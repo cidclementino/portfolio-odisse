@@ -1,0 +1,22 @@
+---
+layout: default
+title: Odisse — Estúdio de Arquitetura & Design
+---
+<main class="gallery-page">
+  <div class="gallery">
+    {% for projeto in site.projetos %}
+    <div class="gallery__item">
+      <a class="gallery__row" href="{{ projeto.url | relative_url }}" aria-expanded="false">
+        <div class="gallery__thumb">
+          {% if projeto.capa %}<img src="{{ projeto.capa | relative_url }}" alt="{{ projeto.titulo }}">{% endif %}
+        </div>
+        <div class="gallery__info">
+          <span class="gallery__title">{{ projeto.titulo }}</span>
+          <span class="gallery__place">{{ projeto.local }}</span>
+        </div>
+      </a>
+      <div class="gallery__panel"></div>
+    </div>
+    {% endfor %}
+  </div>
+</main>

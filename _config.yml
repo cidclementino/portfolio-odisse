@@ -1,0 +1,30 @@
+title: Odisse — Estúdio de Arquitetura & Design
+description: >
+  Odisse — Estúdio de Arquitetura & Design. Projetos de arquitetura,
+  objetos autorais e pesquisa editorial.
+
+# Enquanto o site estiver em cidclementino.github.io/portfolio-odisse,
+# o baseurl precisa ser o nome do repositório. Se um domínio próprio for
+# configurado depois (CNAME), troque isto para uma string vazia: ""
+baseurl: "/portfolio-odisse"
+url: "https://cidclementino.github.io"
+
+collections:
+  projetos:
+    output: true
+    permalink: /projetos/:name.html
+    sort_by: ordem
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+  - scope:
+      path: ""
+      type: "projetos"
+    values:
+      layout: "projeto"
+
+exclude:
+  - README.md
