@@ -4,146 +4,67 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Odisse — Estúdio de Arquitetura & Design</title>
-<meta name="description" content="Odisse — Estúdio de Arquitetura & Design. Arquitetura, objetos autorais e pesquisa editorial construídos na tensão entre memória e potencialidade.">
+<meta name="description" content="Odisse — Estúdio de Arquitetura & Design. Projetos de arquitetura, objetos autorais e pesquisa editorial.">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,700;1,500;1,700&family=Archivo:wght@400;500;600;700&display=swap" rel="stylesheet">
-
 <link rel="stylesheet" href="styles.css">
 <script src="analytics.js" defer></script>
 </head>
 <body>
 
 <nav class="nav">
-  <span class="nav__mark">Odisse</span>
+  <a class="nav__mark" href="index.html">Odisse</a>
   <ul class="nav__links">
-    <li><a href="#nucleos">Núcleos</a></li>
-    <li><a href="#portfolio">Portfólio</a></li>
-    <li><a href="#contato">Contato</a></li>
+    <li><a href="sobre.html">Sobre</a></li>
+    <li><a href="index.html" aria-current="page">Projetos</a></li>
+    <li><a href="contato.html">Contato</a></li>
   </ul>
 </nav>
 
-<!-- ================= HERO ================= -->
-<header class="hero">
-  <svg class="tensao" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
-    <path d="M -20 680 C 280 560, 420 780, 700 560 C 980 340, 1100 520, 1460 260" />
-  </svg>
-  <div class="wrap">
-    <p class="eyebrow hero__eyebrow">Estúdio de Arquitetura &amp; Design — João Pessoa</p>
-    <h1>Construímos as faces <em>duradouras</em> de uma civilização.</h1>
-    <p class="lede">Espaços, objetos e experiências forjados na tensão entre território, memória e potencialidade. Arquitetura e Design como ferramentas de transformação — não como convenção.</p>
-    <div class="hero__meta">
-      <div><span class="num">5</span><span class="lbl">Anos de atuação</span></div>
-      <div><span class="num">100.000+</span><span class="lbl">m² projetados</span></div>
-      <div><span class="num">3</span><span class="lbl">Núcleos</span></div>
-    </div>
+<main class="gallery-page">
+  <div class="gallery-head">
+    <p class="eyebrow">Odisse Arquitetos</p>
+    <h1>Projetos</h1>
   </div>
-</header>
 
-<!-- ================= MANIFESTO ================= -->
-<section class="manifesto">
-  <div class="wrap">
-    <p>Cada projeto é um mundo próprio, parte de um universo compartilhado que floresce da tensão criativa entre memória e potencialidade — entre uma <strong>reserva de grandeza</strong> e a gestação de uma nova linguagem.</p>
-    <p>Combinamos rigor técnico, investigação histórica e sensibilidade artística para ir além do programa específico e da análise contextual estereotipada. Somos criadores de obras tão enraizadas em seu contexto quanto abertas ao futuro.</p>
-  </div>
-</section>
+  <div class="gallery">
 
-<!-- ================= NÚCLEOS ================= -->
-<section class="nucleos" id="nucleos">
-  <div class="nucleos__head">
-    <p class="eyebrow">Estrutura</p>
-    <h2>Três núcleos, um só universo.</h2>
-  </div>
-  <div class="nucleos__grid">
-
-    <a class="nucleo" href="https://projetos.odisse.com.br" target="_blank" rel="noopener">
-      <span class="nucleo__num">01 — Arquitetura</span>
-      <h3>Odisse Arquitetos</h3>
-      <p>Projetos residenciais, comerciais e de reforma pensados a partir da tensão entre território, programa e arquétipo. Rigor técnico e investigação histórica em cada especificidade.</p>
-      <span class="nucleo__go">Ver projetos
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </span>
+    <a class="gallery__row" href="projetos/yvc.html">
+      <div class="gallery__info">
+        <span class="gallery__title">Residência YVC</span>
+        <span class="gallery__place">João Pessoa, Brasil</span>
+      </div>
+      <div class="gallery__thumb"></div>
     </a>
 
-    <a class="nucleo" href="#" target="_blank" rel="noopener">
-      <span class="nucleo__num">02 — Design</span>
-      <h3>Odisse Objetos</h3>
-      <p>Mobiliário e peças autorais que traduzem a mesma pesquisa formal da arquitetura em escala de objeto — matéria, gesto e permanência.</p>
-      <span class="nucleo__go">Ver a loja
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </span>
+    <a class="gallery__row" href="projetos/dcmcc.html">
+      <div class="gallery__info">
+        <span class="gallery__title">DCMCC</span>
+        <span class="gallery__place">Campina Grande, Brasil</span>
+      </div>
+      <div class="gallery__thumb"></div>
     </a>
 
-    <a class="nucleo" href="https://odisse.substack.com" target="_blank" rel="noopener">
-      <span class="nucleo__num">03 — Editorial</span>
-      <h3>Elaia</h3>
-      <p>O braço editorial do Odisse — um espaço permanente de pesquisa e escrita sobre arquitetura, design e os arquétipos que atravessam o que construímos.</p>
-      <span class="nucleo__go">Ler a Elaia
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </span>
+    <a class="gallery__row" href="projetos/altavista.html">
+      <div class="gallery__info">
+        <span class="gallery__title">Altavista</span>
+        <span class="gallery__place">Bananeiras, Brasil</span>
+      </div>
+      <div class="gallery__thumb"></div>
     </a>
 
   </div>
-</section>
-
-<!-- ================= HISTÓRIA MONUMENTAL ================= -->
-<section class="monumental">
-  <div class="wrap">
-    <div class="stat"><span class="num">5</span><span class="lbl">Anos de estúdio</span></div>
-    <div class="stat"><span class="num">100.000+</span><span class="lbl">m² de arquitetura</span></div>
-    <div class="stat"><span class="num">CASACOR</span><span class="lbl">Paraíba</span></div>
-    <div class="stat"><span class="num">3</span><span class="lbl">Núcleos ativos</span></div>
-  </div>
-</section>
-
-<!-- ================= PORTFÓLIO ================= -->
-<section class="portfolio" id="portfolio">
-  <div class="portfolio__head">
-    <p class="eyebrow">Trabalhos selecionados</p>
-    <h2>Portfólio</h2>
-  </div>
-  <div class="portfolio__grid">
-
-    <a class="projeto" href="https://projetos.odisse.com.br/residencial" target="_blank" rel="noopener">
-      <div class="projeto__frame"></div>
-      <p class="projeto__name">Residência YVC</p>
-      <p class="projeto__meta">Residencial</p>
-    </a>
-
-    <a class="projeto" href="https://projetos.odisse.com.br/residencial" target="_blank" rel="noopener">
-      <div class="projeto__frame"></div>
-      <p class="projeto__name">DCMCC</p>
-      <p class="projeto__meta">Residencial</p>
-    </a>
-
-    <a class="projeto" href="https://projetos.odisse.com.br/residencial" target="_blank" rel="noopener">
-      <div class="projeto__frame"></div>
-      <p class="projeto__name">Altavista</p>
-      <p class="projeto__meta">Residencial</p>
-    </a>
-
-    <div class="projeto projeto--soon">
-      <div class="projeto__frame"><p class="projeto__name">Mais projetos<br>em breve</p></div>
-    </div>
-
-  </div>
-</section>
-
-<!-- ================= CONTATO ================= -->
-<section class="contato" id="contato">
-  <p class="eyebrow">Fale com o estúdio</p>
-  <h2>Vamos além do programa. Vamos além das convenções.</h2>
-  <a class="btn" href="https://wa.me/5583991223088" target="_blank" rel="noopener">Falar no WhatsApp</a>
-</section>
+</main>
 
 <footer>
   <div class="wrap">
     <span class="mark">Reserva Criativa</span>
     <ul>
-      <li><a href="https://projetos.odisse.com.br" target="_blank" rel="noopener">Arquitetos</a></li>
-      <li><a href="#" target="_blank" rel="noopener">Objetos</a></li>
-      <li><a href="https://odisse.substack.com" target="_blank" rel="noopener">Elaia</a></li>
+      <li><a href="sobre.html">Sobre</a></li>
+      <li><a href="index.html">Projetos</a></li>
+      <li><a href="contato.html">Contato</a></li>
     </ul>
     <p class="copy">© <span id="ano-atual">2026</span> Odisse — Estúdio de Arquitetura &amp; Design. João Pessoa, PB.</p>
   </div>
