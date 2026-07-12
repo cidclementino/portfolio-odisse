@@ -231,7 +231,6 @@ img { display: block; max-width: 100%; }
 .gallery__panel.is-revealed .panel__sidebar .project__share {
   opacity: 1;
 }
-.gallery__panel.is-revealed .panel__sidebar { border-right: 1px solid rgba(26,26,26,0.12); }
 /* o bloco de título já tem padding próprio pensado pra quando está na
    linha; dentro da barra lateral isso somaria com o padding dela */
 .panel__sidebar .gallery__info { padding: 0; gap: 2px; }
@@ -264,14 +263,16 @@ img { display: block; max-width: 100%; }
 }
 .panel__spreads.is-dragging { cursor: grabbing; scroll-snap-type: none; }
 .panel__spreads::-webkit-scrollbar { display: none; }
-.panel__progress {
-  position: absolute;
-  left: 240px; right: 0; bottom: 0;
-  height: 3px;
-  background: rgba(26,26,26,0.1);
+.panel__dots {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 25;
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
-.panel__progress span { display: block; height: 100%; width: 0%; background: var(--gold); transition: width 0.15s linear; }
-.panel__dots { position: absolute; right: 20px; bottom: 14px; z-index: 5; display: flex; gap: 8px; align-items: center; }
 .panel__dots button {
   width: 7px; height: 7px;
   padding: 0;
@@ -280,8 +281,8 @@ img { display: block; max-width: 100%; }
   background: rgba(26,26,26,0.22);
   cursor: pointer;
 }
-.panel__dots button.is-active { background: var(--gold); }
-.panel__dots button:hover { background: var(--copper); }
+.panel__dots button.is-active { background: var(--slate); }
+.panel__dots button:hover { background: var(--slate); }
 .panel__loading, .panel__error {
   padding: 32px;
   font-size: 0.8rem;
@@ -299,14 +300,11 @@ img { display: block; max-width: 100%; }
     align-items: center;
     justify-content: space-between;
     padding: 20px;
-    border-right: none;
-    border-bottom: 1px solid rgba(244,244,244,0.12);
     gap: 14px;
   }
   .panel__sidebar .project__meta { flex-direction: row; flex-wrap: wrap; margin-top: 0; gap: 16px; }
   .panel__sidebar .project__share { margin-top: 0; }
   .panel__spreads { height: auto; flex: 1; }
-  .panel__progress { left: 0; }
 }
 
 /* ==========================================================================
@@ -328,7 +326,6 @@ img { display: block; max-width: 100%; }
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border-right: 1px solid rgba(26,26,26,0.12);
   overflow-y: visible;
 }
 .project__back {
@@ -345,6 +342,22 @@ img { display: block; max-width: 100%; }
   gap: 8px;
 }
 .project__back svg { width: 14px; height: 14px; transform: rotate(180deg); }
+
+/* botão "voltar ao topo" — canto esquerdo, útil dada a quantidade de projetos */
+.back-to-top {
+  position: fixed;
+  left: 28px; bottom: 22px;
+  z-index: 40;
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(26,26,26,0.2);
+  background: rgba(244,244,244,0.9);
+  color: var(--escuro);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.back-to-top:hover { background: var(--slate); border-color: var(--slate); color: var(--claro); }
+.back-to-top svg { width: 16px; height: 16px; }
 
 .project__title h1 {
   font-family: var(--display);
@@ -471,24 +484,8 @@ img { display: block; max-width: 100%; }
 }
 .frame:has(img)::after { content: none; }
 
-/* barra de progresso das spreads */
-.project__progress {
-  position: fixed;
-  left: var(--sidebar-w); right: 0; bottom: 0;
-  height: 3px;
-  background: rgba(26,26,26,0.1);
-  z-index: 30;
-}
-.project__progress span {
-  display: block;
-  height: 100%;
-  width: 0%;
-  background: var(--gold);
-  transition: width 0.15s linear;
-}
-
-/* pontinhos de navegação */
-.project__dots { position: fixed; right: 28px; bottom: 22px; z-index: 30; display: flex; gap: 10px; align-items: center; }
+/* pontinhos de navegação — centralizados, alinhados com a marca do cabeçalho */
+.project__dots { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 30; display: flex; gap: 10px; align-items: center; }
 .project__dots button {
   width: 8px; height: 8px;
   padding: 0;
@@ -497,8 +494,8 @@ img { display: block; max-width: 100%; }
   background: rgba(26,26,26,0.22);
   cursor: pointer;
 }
-.project__dots button.is-active { background: var(--gold); }
-.project__dots button:hover { background: var(--copper); }
+.project__dots button.is-active { background: var(--slate); }
+.project__dots button:hover { background: var(--slate); }
 
 @media (max-width: 780px) {
   .project { flex-direction: column; height: auto; min-height: 100svh; }
@@ -509,8 +506,6 @@ img { display: block; max-width: 100%; }
     align-items: center;
     justify-content: space-between;
     padding: 88px 20px 20px;
-    border-right: none;
-    border-bottom: 1px solid rgba(26,26,26,0.12);
     gap: 16px;
   }
   .project__meta { flex-direction: row; flex-wrap: wrap; margin-top: 0; gap: 20px; }
@@ -518,7 +513,6 @@ img { display: block; max-width: 100%; }
   .project__spreads { height: 62vh; gap: 24px; padding: 0 20px; }
   .spread--texto { width: 84vw; }
   .texto-bloco { padding: 28px 24px; }
-  .project__progress { left: 0; }
   .project__dots { right: 16px; bottom: 14px; }
 }
 
