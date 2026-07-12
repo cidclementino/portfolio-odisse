@@ -3,7 +3,7 @@
 // antes de navegar de verdade pra próxima página.
 
 document.addEventListener('DOMContentLoaded', function () {
-  var EXIT_MS = 180;
+  var EXIT_MS = 90;
   var reduceMotion = window.matchMedia &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
