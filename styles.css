@@ -41,6 +41,20 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  animation: page-fade-in 0.18s ease;
+}
+@keyframes page-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* aplicada via JS um instante antes de navegar pra outra página */
+body.is-leaving {
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  body { animation: none; }
+  body.is-leaving { transition: none; opacity: 1; }
 }
 
 a { color: inherit; }
