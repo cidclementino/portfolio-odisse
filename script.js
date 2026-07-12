@@ -10,4 +10,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var ano = document.getElementById('ano-atual');
   if (ano) ano.textContent = new Date().getFullYear();
+
+  var backToTop = document.querySelector('.back-to-top');
+  if (backToTop) {
+    backToTop.addEventListener('click', function () {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
 });
