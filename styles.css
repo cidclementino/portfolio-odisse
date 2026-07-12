@@ -94,9 +94,14 @@ img { display: block; max-width: 100%; }
   letter-spacing: 0.16em;
   text-transform: uppercase;
   font-weight: 600;
-  opacity: 0.75;
+  transition: color 0.2s ease;
 }
-.nav__links a:hover, .nav__links a[aria-current="page"] { opacity: 1; }
+.nav__links a:hover { color: var(--gold); }
+.nav__links a[aria-current="page"] {
+  color: var(--gold);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
 @media (max-width: 640px) {
   .nav__links { gap: 16px; }
   .nav { padding: 18px var(--gutter); }
@@ -621,7 +626,7 @@ img { display: block; max-width: 100%; }
   margin: 0 auto;
   text-align: left;
 }
-.contato__doc .eyebrow { color: var(--claro); margin-bottom: 28px; display: block; }
+.contato__doc .eyebrow,
 .contato__doc h3 {
   font-family: var(--ui);
   font-size: 0.68rem;
@@ -629,9 +634,21 @@ img { display: block; max-width: 100%; }
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--claro);
+  display: block;
   margin: 40px 0 10px;
 }
-.contato__doc h3:first-of-type { margin-top: 32px; }
+.contato__doc .eyebrow::before,
+.contato__doc h3::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  height: 2px;
+  margin-right: 8px;
+  vertical-align: middle;
+  background: var(--claro);
+}
+.contato__doc .eyebrow:first-child,
+.contato__doc h3:first-of-type { margin-top: 0; }
 .contato__doc p {
   font-size: 0.95rem;
   line-height: 1.7;
@@ -665,3 +682,32 @@ footer ul { list-style: none; display: flex; gap: 22px; margin: 0; padding: 0; }
 footer a { text-decoration: none; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; transition: color 0.2s ease; }
 footer a:hover { color: var(--gold); }
 footer .copy { font-size: 0.68rem; color: rgba(244,244,244,0.4); margin: 0; }
+
+/* ==========================================================================
+   MARCAS DE CANTO — remetem à fita da identidade visual, fixas nos
+   quatro cantos de toda página; azul no fundo claro, branco no fundo azul
+   ========================================================================== */
+.corner-marks {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 15;
+}
+.corner-mark {
+  position: absolute;
+  width: 16px;
+  height: 22px;
+  fill: var(--slate);
+}
+.corner-marks--light .corner-mark { fill: var(--claro); }
+.corner-mark--tl { top: 18px; left: 18px; }
+.corner-mark--tr { top: 18px; right: 18px; transform: scaleX(-1); }
+.corner-mark--bl { bottom: 18px; left: 18px; transform: scaleY(-1); }
+.corner-mark--br { bottom: 18px; right: 18px; transform: scale(-1, -1); }
+@media (max-width: 640px) {
+  .corner-mark { width: 12px; height: 17px; }
+  .corner-mark--tl, .corner-mark--tr { top: 12px; }
+  .corner-mark--bl, .corner-mark--br { bottom: 12px; }
+  .corner-mark--tl, .corner-mark--bl { left: 12px; }
+  .corner-mark--tr, .corner-mark--br { right: 12px; }
+}
