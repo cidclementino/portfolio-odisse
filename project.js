@@ -1,17 +1,26 @@
 // Lógica das páginas de projeto: converte a rolagem vertical do mouse em
-// deslocamento horizontal entre spreads, atualiza a barra de progresso,
-// monta os pontinhos de navegação (um por spread) e permite arrastar
-// com o mouse.
+// deslocamento horizontal entre spreads, monta os pontinhos de navegação
+// (um por spread, clicáveis, centralizando o conteúdo na tela) e permite
+// arrastar com o mouse.
 
 document.addEventListener('DOMContentLoaded', function () {
   var track = document.querySelector('.project__spreads');
   if (!track) return;
 
-  var progressBar = document.querySelector('.project__progress span');
   var dotsWrap = document.querySelector('.project__dots');
 
   var spreads = Array.prototype.slice.call(track.querySelectorAll('.spread'));
   var dots = [];
+
+  // calcula o scrollLeft necessário pra que o CENTRO do spread coincida
+  // com o centro real da tela (onde ficam a marca "Odisse" e os
+  // pontinhos) — em vez de encostar o spread na borda esquerda da galeria
+  function centerScrollFor(spread) {
+    var trackRect = track.getBoundingClientRect();
+    var viewportCenter = window.innerWidth / 2;
+    var spreadCenter = spread.offsetLeft + spread.offsetWidth / 2;
+    return spreadCenter - (viewportCenter - trackRect.left);
+  }
 
   if (dotsWrap && spreads.length > 1) {
     spreads.forEach(function (spread, i) {
@@ -19,29 +28,28 @@ document.addEventListener('DOMContentLoaded', function () {
       dot.type = 'button';
       dot.setAttribute('aria-label', 'Ir para o conteúdo ' + (i + 1));
       dot.addEventListener('click', function () {
-        track.scrollTo({ left: spread.offsetLeft, behavior: 'smooth' });
+        track.scrollTo({ left: centerScrollFor(spread), behavior: 'smooth' });
       });
       dotsWrap.appendChild(dot);
       dots.push(dot);
     });
   }
 
-  function updateProgress() {
-    var max = track.scrollWidth - track.clientWidth;
-    var pct = max > 0 ? (track.scrollLeft / max) * 100 : 0;
-    if (progressBar) progressBar.style.width = pct + '%';
-
-    if (dots.length) {
-      var current = 0;
-      var best = Infinity;
-      spreads.forEach(function (spread, i) {
-        var dist = Math.abs(spread.offsetLeft - track.scrollLeft);
-        if (dist < best) { best = dist; current = i; }
-      });
-      dots.forEach(function (dot, i) {
-        dot.classList.toggle('is-active', i === current);
-      });
-    }
+  function updateActiveDot() {
+    if (!dots.length) return;
+    // acha o spread cujo CENTRO está mais próximo do centro visível
+    // atual da esteira (equivalente ao ponto de "encaixe" dos pontinhos)
+    var currentCenter = track.scrollLeft + track.clientWidth / 2;
+    var current = 0;
+    var best = Infinity;
+    spreads.forEach(function (spread, i) {
+      var center = spread.offsetLeft + spread.offsetWidth / 2;
+      var dist = Math.abs(center - currentCenter);
+      if (dist < best) { best = dist; current = i; }
+    });
+    dots.forEach(function (dot, i) {
+      dot.classList.toggle('is-active', i === current);
+    });
   }
 
   // Roda do mouse (trackpads já mandam deltaX naturalmente; mouse comum só
@@ -53,8 +61,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }, { passive: false });
 
-  track.addEventListener('scroll', updateProgress, { passive: true });
-  window.addEventListener('resize', updateProgress);
+  track.addEventListener('scroll', updateActiveDot, { passive: true });
+  window.addEventListener('resize', updateActiveDot);
 
   document.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowRight') track.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
@@ -92,5 +100,5 @@ document.addEventListener('DOMContentLoaded', function () {
   track.addEventListener('pointerleave', function () { if (isDown) endDrag(); });
   track.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
 
-  updateProgress();
+  updateActiveDot();
 });
