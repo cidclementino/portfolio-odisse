@@ -196,7 +196,6 @@ document.addEventListener('DOMContentLoaded', function () {
             '<div class="panel__reveal">' +
               '<div class="panel__spreads">' + spreads.innerHTML + '</div>' +
             '</div>' +
-            '<div class="panel__progress"><span></span></div>' +
             '<div class="panel__dots"></div>' +
           '</div>';
 
@@ -218,9 +217,18 @@ document.addEventListener('DOMContentLoaded', function () {
       });
   }
 
+  // calcula o scrollLeft necessário pra que o CENTRO do spread coincida
+  // com o centro real da tela (onde ficam a marca "Odisse" e os
+  // pontinhos) — em vez de encostar o spread na borda esquerda da galeria
+  function centerScrollFor(track, spread) {
+    var trackRect = track.getBoundingClientRect();
+    var viewportCenter = window.innerWidth / 2;
+    var spreadCenter = spread.offsetLeft + spread.offsetWidth / 2;
+    return spreadCenter - (viewportCenter - trackRect.left);
+  }
+
   function wirePanel(panel) {
     var track = panel.querySelector('.panel__spreads');
-    var progressBar = panel.querySelector('.panel__progress span');
     var dotsWrap = panel.querySelector('.panel__dots');
     if (!track) return;
 
@@ -234,30 +242,28 @@ document.addEventListener('DOMContentLoaded', function () {
         dot.setAttribute('aria-label', 'Ir para o conteúdo ' + (i + 1));
         dot.addEventListener('click', function (e) {
           e.stopPropagation();
-          track.scrollTo({ left: spread.offsetLeft, behavior: 'smooth' });
+          track.scrollTo({ left: centerScrollFor(track, spread), behavior: 'smooth' });
         });
         dotsWrap.appendChild(dot);
         dots.push(dot);
       });
     }
 
-    function updateProgress() {
-      var max = track.scrollWidth - track.clientWidth;
-      var pct = max > 0 ? (track.scrollLeft / max) * 100 : 0;
-      if (progressBar) progressBar.style.width = pct + '%';
-
-      if (dots.length) {
-        // acha o spread mais próximo da posição atual de rolagem
-        var current = 0;
-        var best = Infinity;
-        spreads.forEach(function (spread, i) {
-          var dist = Math.abs(spread.offsetLeft - track.scrollLeft);
-          if (dist < best) { best = dist; current = i; }
-        });
-        dots.forEach(function (dot, i) {
-          dot.classList.toggle('is-active', i === current);
-        });
-      }
+    function updateActiveDot() {
+      if (!dots.length) return;
+      // acha o spread cujo CENTRO está mais próximo do centro visível
+      // atual da esteira (equivalente ao ponto de "encaixe" dos pontinhos)
+      var currentCenter = track.scrollLeft + track.clientWidth / 2;
+      var current = 0;
+      var best = Infinity;
+      spreads.forEach(function (spread, i) {
+        var center = spread.offsetLeft + spread.offsetWidth / 2;
+        var dist = Math.abs(center - currentCenter);
+        if (dist < best) { best = dist; current = i; }
+      });
+      dots.forEach(function (dot, i) {
+        dot.classList.toggle('is-active', i === current);
+      });
     }
 
     track.addEventListener('wheel', function (e) {
@@ -267,7 +273,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }, { passive: false });
 
-    track.addEventListener('scroll', updateProgress, { passive: true });
+    track.addEventListener('scroll', updateActiveDot, { passive: true });
 
     // arrastar com o mouse (touch já rola nativamente)
     var isDown = false;
@@ -301,6 +307,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // evita que o "arrastar" dispare cliques em links dentro do spread
     track.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
 
-    updateProgress();
+    updateActiveDot();
   }
 });
