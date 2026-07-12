@@ -1,0 +1,23 @@
+# Dados de contato do Odisse — editar aqui, sem precisar mexer em HTML.
+# Usado em contato.html via site.data.contato.*
+
+email: contato@odisse.com.br
+telefone: "+55 83 99122-3088"
+whatsapp: "https://wa.me/5583991223088"
+
+formulario_candidatura: "#"
+
+endereco:
+  linha1: "Rua Bananeiras, nº 361 – Sala 107"
+  linha2: "Caixa Postal 393"
+  linha3: "Manaíra, João Pessoa – PB"
+  cep: "58.038-170"
+
+redes:
+  instagram: "https://www.instagram.com/odisseestudio/"
+  tiktok: "https://www.tiktok.com/@odisseestudio"
+  youtube: "https://www.youtube.com/@odisseestudio"
+
+elaia: "https://odisse.substack.com/"
+servicos: "https://projetos.odisse.com.br"
+objetos: "#"
