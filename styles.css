@@ -353,7 +353,7 @@ img { display: block; max-width: 100%; }
 /* botão "voltar ao topo" — canto esquerdo, útil dada a quantidade de projetos */
 .back-to-top {
   position: fixed;
-  left: 28px; bottom: 22px;
+  left: var(--gutter); bottom: 22px;
   z-index: 40;
   width: 40px; height: 40px;
   border-radius: 50%;
@@ -628,10 +628,11 @@ img { display: block; max-width: 100%; }
 }
 .contato__doc .eyebrow,
 .contato__doc h3 {
+  position: relative;
   font-family: var(--ui);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--claro);
   display: block;
@@ -640,11 +641,12 @@ img { display: block; max-width: 100%; }
 .contato__doc .eyebrow::before,
 .contato__doc h3::before {
   content: '';
-  display: inline-block;
+  position: absolute;
+  left: -26px;
+  top: 50%;
+  transform: translateY(-50%);
   width: 14px;
   height: 2px;
-  margin-right: 8px;
-  vertical-align: middle;
   background: var(--claro);
 }
 .contato__doc .eyebrow:first-child,
@@ -685,7 +687,9 @@ footer .copy { font-size: 0.68rem; color: rgba(244,244,244,0.4); margin: 0; }
 
 /* ==========================================================================
    MARCAS DE CANTO — remetem à fita da identidade visual, fixas nos
-   quatro cantos de toda página; azul no fundo claro, branco no fundo azul
+   quatro cantos, coladas na borda da página; azul no fundo claro,
+   branco no fundo azul. A altura das duas de cima bate com a faixa do
+   cabeçalho, pra ficarem alinhadas com o texto dele, não flutuando acima.
    ========================================================================== */
 .corner-marks {
   position: fixed;
@@ -696,18 +700,14 @@ footer .copy { font-size: 0.68rem; color: rgba(244,244,244,0.4); margin: 0; }
 .corner-mark {
   position: absolute;
   width: 16px;
-  height: 22px;
-  fill: var(--slate);
+  height: 64px;
+  background: var(--slate);
 }
-.corner-marks--light .corner-mark { fill: var(--claro); }
-.corner-mark--tl { top: 18px; left: 18px; }
-.corner-mark--tr { top: 18px; right: 18px; transform: scaleX(-1); }
-.corner-mark--bl { bottom: 18px; left: 18px; transform: scaleY(-1); }
-.corner-mark--br { bottom: 18px; right: 18px; transform: scale(-1, -1); }
+.corner-marks--light .corner-mark { background: var(--claro); }
+.corner-mark--tl { top: 0; left: 0; }
+.corner-mark--tr { top: 0; right: 0; }
+.corner-mark--bl { bottom: 0; left: 0; }
+.corner-mark--br { bottom: 0; right: 0; }
 @media (max-width: 640px) {
-  .corner-mark { width: 12px; height: 17px; }
-  .corner-mark--tl, .corner-mark--tr { top: 12px; }
-  .corner-mark--bl, .corner-mark--br { bottom: 12px; }
-  .corner-mark--tl, .corner-mark--bl { left: 12px; }
-  .corner-mark--tr, .corner-mark--br { right: 12px; }
+  .corner-mark { width: 12px; height: 54px; }
 }
