@@ -56,6 +56,11 @@ document.addEventListener('DOMContentLoaded', function () {
   // manda deltaY, então convertemos deltaY em scrollLeft quando fizer sentido).
   track.addEventListener('wheel', function (e) {
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+      var atStart = track.scrollLeft <= 0;
+      var atEnd = track.scrollLeft >= track.scrollWidth - track.clientWidth - 1;
+      // já chegou na ponta na direção em que o usuário está rolando?
+      // então devolve o scroll pra página, não captura
+      if ((e.deltaY < 0 && atStart) || (e.deltaY > 0 && atEnd)) return;
       e.preventDefault();
       track.scrollLeft += e.deltaY;
     }
