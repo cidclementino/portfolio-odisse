@@ -11,6 +11,7 @@
 // não roda em file://).
 
 var ROW_COLLAPSE_MS = 450;
+var SCROLL_MAX_WAIT_MS = 600;
 
 document.addEventListener('DOMContentLoaded', function () {
   var items = document.querySelectorAll('.gallery__item');
@@ -29,7 +30,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
     row.addEventListener('click', function (e) {
       e.preventDefault();
+      startOpen();
+    });
 
+    // clicar no título (a mesma barra, esteja ela na linha ou já
+    // movida pra dentro do painel) fecha o projeto quando ele já
+    // está aberto — como clicar de novo na capa faria
+    item._info.addEventListener('click', function (e) {
+      if (panel.classList.contains('is-open')) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeProject(row, panel, item._info, item._thumb);
+      }
+    });
+
+    function startOpen() {
       var isOpen = panel.classList.contains('is-open');
 
       // fecha qualquer outro projeto aberto (accordion: só um por vez)
@@ -45,11 +60,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (isOpen) {
         closeProject(row, panel, item._info, item._thumb);
-      } else {
-        openProject(row, panel, item._info, item._thumb, item._url);
+        return;
       }
-    });
+
+      // antes de qualquer outra coisa, centraliza a linha clicada na
+      // tela — só depois disso a animação de abertura começa
+      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      waitForScrollEnd(SCROLL_MAX_WAIT_MS).then(function () {
+        openProject(row, panel, item._info, item._thumb, item._url);
+      });
+    }
   });
+
+  // espera o scroll suave terminar (evento 'scrollend', quando o
+  // navegador suporta) ou, no máximo, o tempo indicado
+  function waitForScrollEnd(maxWait) {
+    return new Promise(function (resolve) {
+      var done = false;
+      function finish() {
+        if (done) return;
+        done = true;
+        window.removeEventListener('scrollend', finish);
+        resolve();
+      }
+      window.addEventListener('scrollend', finish, { once: true });
+      window.setTimeout(finish, maxWait);
+    });
+  }
 
   function openProject(row, panel, info, thumb, url) {
     row.setAttribute('aria-expanded', 'true');
@@ -224,6 +261,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     track.addEventListener('pointerdown', function (e) {
       if (e.pointerType === 'touch') return; // touch já tem scroll nativo
+      e.preventDefault(); // impede seleção de texto e o "fantasma" de arrastar imagem
       isDown = true;
       moved = false;
       startX = e.clientX;
