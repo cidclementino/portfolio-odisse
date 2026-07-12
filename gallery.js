@@ -197,14 +197,7 @@ document.addEventListener('DOMContentLoaded', function () {
               '<div class="panel__spreads">' + spreads.innerHTML + '</div>' +
             '</div>' +
             '<div class="panel__progress"><span></span></div>' +
-            '<div class="panel__arrows">' +
-              '<button class="prev" aria-label="Spread anterior" type="button">' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' +
-              '</button>' +
-              '<button class="next" aria-label="Próximo spread" type="button">' +
-                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' +
-              '</button>' +
-            '</div>' +
+            '<div class="panel__dots"></div>' +
           '</div>';
 
         var sidebar = panel.querySelector('.panel__sidebar');
@@ -228,14 +221,43 @@ document.addEventListener('DOMContentLoaded', function () {
   function wirePanel(panel) {
     var track = panel.querySelector('.panel__spreads');
     var progressBar = panel.querySelector('.panel__progress span');
-    var prevBtn = panel.querySelector('.panel__arrows .prev');
-    var nextBtn = panel.querySelector('.panel__arrows .next');
+    var dotsWrap = panel.querySelector('.panel__dots');
     if (!track) return;
+
+    var spreads = Array.prototype.slice.call(track.querySelectorAll('.spread'));
+    var dots = [];
+
+    if (dotsWrap && spreads.length > 1) {
+      spreads.forEach(function (spread, i) {
+        var dot = document.createElement('button');
+        dot.type = 'button';
+        dot.setAttribute('aria-label', 'Ir para o conteúdo ' + (i + 1));
+        dot.addEventListener('click', function (e) {
+          e.stopPropagation();
+          track.scrollTo({ left: spread.offsetLeft, behavior: 'smooth' });
+        });
+        dotsWrap.appendChild(dot);
+        dots.push(dot);
+      });
+    }
 
     function updateProgress() {
       var max = track.scrollWidth - track.clientWidth;
       var pct = max > 0 ? (track.scrollLeft / max) * 100 : 0;
       if (progressBar) progressBar.style.width = pct + '%';
+
+      if (dots.length) {
+        // acha o spread mais próximo da posição atual de rolagem
+        var current = 0;
+        var best = Infinity;
+        spreads.forEach(function (spread, i) {
+          var dist = Math.abs(spread.offsetLeft - track.scrollLeft);
+          if (dist < best) { best = dist; current = i; }
+        });
+        dots.forEach(function (dot, i) {
+          dot.classList.toggle('is-active', i === current);
+        });
+      }
     }
 
     track.addEventListener('wheel', function (e) {
@@ -246,12 +268,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }, { passive: false });
 
     track.addEventListener('scroll', updateProgress, { passive: true });
-
-    function goTo(dir) {
-      track.scrollBy({ left: dir * track.clientWidth, behavior: 'smooth' });
-    }
-    if (prevBtn) prevBtn.addEventListener('click', function (e) { e.stopPropagation(); goTo(-1); });
-    if (nextBtn) nextBtn.addEventListener('click', function (e) { e.stopPropagation(); goTo(1); });
 
     // arrastar com o mouse (touch já rola nativamente)
     var isDown = false;
