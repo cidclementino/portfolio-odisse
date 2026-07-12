@@ -590,7 +590,7 @@ img { display: block; max-width: 100%; }
 }
 
 .sobre__intro-photo { margin-bottom: 28px; }
-.sobre__intro-photo .frame { width: 100%; aspect-ratio: 3/2; }
+.sobre__intro-photo .frame { width: 100%; aspect-ratio: 3/2; border: none; }
 .sobre__intro-photo img { width: 100%; height: 100%; object-fit: cover; }
 .sobre__intro-text p {
   font-size: 0.95rem;
@@ -681,7 +681,7 @@ img { display: block; max-width: 100%; }
   grid-template-columns: repeat(2, 1fr);
   gap: 40px;
 }
-.pessoa__foto { aspect-ratio: 1/1; margin-bottom: 16px; }
+.pessoa__foto { aspect-ratio: 1/1; margin-bottom: 16px; border: none; }
 .pessoa__foto img { width: 100%; height: 100%; object-fit: cover; }
 .pessoa h4 {
   font-family: var(--display);
