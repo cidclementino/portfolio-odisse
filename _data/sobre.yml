@@ -1,8 +1,8 @@
 # Dados da página Sobre — editar aqui, sem precisar mexer em HTML.
 # Usado em sobre.html via site.data.sobre.*
 
-# Lista livre — não é só "prêmios", pode incluir qualquer reconhecimento
-reconhecimentos:
+# Prêmios e reconhecimentos do estúdio
+premiacoes:
   - ano: 2023
     descricao: "CASACOR Paraíba — Melhor Uso de Materiais Inovadores"
   - ano: 2023
