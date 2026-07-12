@@ -19,6 +19,9 @@
 
   --max: 1280px;
   --gutter: clamp(24px, 5vw, 72px);
+  --gallery-max: min(1680px, 95vw);
+  --gallery-pad: clamp(16px, 2.5vw, 40px);
+  --gallery-inset: calc((100vw - var(--gallery-max)) / 2 + var(--gallery-pad));
   --sidebar-w: 280px;
 }
 
@@ -107,9 +110,9 @@ img { display: block; max-width: 100%; }
 .gallery-page { padding-top: 96px; }
 
 .gallery {
-  max-width: min(1680px, 95vw);
+  max-width: var(--gallery-max);
   margin: 0 auto;
-  padding: 40px clamp(16px, 2.5vw, 40px) 64px;
+  padding: 40px var(--gallery-pad) 64px;
   display: flex;
   flex-direction: column;
   gap: 56px;
@@ -202,7 +205,7 @@ img { display: block; max-width: 100%; }
   /* estica a galeria até a borda real da tela (não só até o respiro
      lateral da página) — dá a sensação de que há mais conteúdo além
      do que se vê, e favorece o arrastar */
-  margin-right: calc(-1 * ((100vw - min(1680px, 95vw)) / 2) - clamp(16px, 2.5vw, 40px));
+  margin-right: calc(-1 * var(--gallery-inset));
 }
 .gallery__panel.is-open {
   height: min(680px, 76vh);
@@ -265,7 +268,7 @@ img { display: block; max-width: 100%; }
 .panel__spreads::-webkit-scrollbar { display: none; }
 .panel__dots {
   position: absolute;
-  left: 50%;
+  left: calc(50vw - var(--gallery-inset));
   bottom: 14px;
   transform: translateX(-50%);
   z-index: 25;
