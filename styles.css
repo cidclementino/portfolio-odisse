@@ -41,8 +41,12 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
-  animation: page-fade-in 0.18s ease;
+  animation: page-fade-in 0.09s ease;
 }
+/* nas páginas de fundo azul (Sobre, Contato), o body em si também fica
+   azul — assim o que aparece "por trás" durante o fade já nasce na cor
+   certa, sem o flash branco ao navegar entre duas páginas azuis */
+body.is-dark-page { background: var(--slate); }
 @keyframes page-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -50,7 +54,7 @@ body {
 /* aplicada via JS um instante antes de navegar pra outra página */
 body.is-leaving {
   opacity: 0;
-  transition: opacity 0.18s ease;
+  transition: opacity 0.09s ease;
 }
 @media (prefers-reduced-motion: reduce) {
   body { animation: none; }
