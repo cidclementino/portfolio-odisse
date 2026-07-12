@@ -119,7 +119,6 @@ img { display: block; max-width: 100%; }
   align-items: start;
   text-decoration: none;
   color: var(--escuro);
-  transition: grid-template-columns 0.55s cubic-bezier(.4,0,.2,1);
 }
 .gallery__thumb {
   grid-column: 2;
@@ -129,11 +128,11 @@ img { display: block; max-width: 100%; }
     repeating-linear-gradient(135deg, transparent 0 16px, rgba(26,26,26,0.06) 16px 17px),
     linear-gradient(160deg, var(--parchment), var(--claro));
   border: 1px solid rgba(26,26,26,0.12);
-  transform: scale(1);
-  transition: transform 0.3s ease, opacity 0.4s ease;
+  transform: scale(1) translateX(0);
+  transition: transform 0.45s cubic-bezier(.4,0,.2,1), opacity 0.4s ease;
 }
 .gallery__thumb img { width: 100%; height: 100%; object-fit: cover; }
-.gallery__row:hover .gallery__thumb { transform: scale(1.005); }
+.gallery__row:hover .gallery__thumb { transform: scale(1.005) translateX(0); }
 .gallery__info {
   grid-column: 3;
   justify-self: start;
@@ -144,7 +143,7 @@ img { display: block; max-width: 100%; }
   min-width: 0;
   padding-left: 24px;
   padding-top: 2px;
-  transition: opacity 0.35s ease;
+  transition: transform 0.45s cubic-bezier(.4,0,.2,1);
 }
 .gallery__title {
   font-family: var(--display);
@@ -164,13 +163,20 @@ img { display: block; max-width: 100%; }
   white-space: nowrap;
 }
 
-/* estado de recolhimento: a capa encolhe e some, o texto assenta à esquerda */
-.gallery__row.is-collapsing {
+/* estado de recolhimento (FLIP): a capa desloca-se p/ esquerda e some;
+   o texto é deslocado via transform (calculado em JS) até a posição que
+   vai ocupar quando a coluna da imagem, de fato, for zerada — sem pular */
+.gallery__row.is-collapsing .gallery__thumb {
+  transform: translateX(-32px);
+  opacity: 0;
+}
+/* estado final (sem transição): a grade já reflete o resultado —
+   a imagem alocada em 0px e o texto sem transform, já assentado ali */
+.gallery__row.is-settled {
   grid-template-columns: 0px 0px 1fr;
 }
-.gallery__row.is-collapsing .gallery__thumb { opacity: 0; }
+.gallery__row.is-settled .gallery__thumb { display: none; }
 .gallery__row.is-hidden { display: none; }
-.gallery__row.is-fading .gallery__info { opacity: 0; }
 
 @media (max-width: 640px) {
   .gallery { gap: 36px; padding: 24px var(--gutter) 48px; }
@@ -178,7 +184,8 @@ img { display: block; max-width: 100%; }
   .gallery__thumb { grid-column: 1; width: 100%; }
   .gallery__info { grid-column: 1; justify-self: center; padding-left: 0; margin-top: 12px; text-align: center; }
   /* no mobile o layout já é empilhado; o colapso vira um fade simples */
-  .gallery__row.is-collapsing { grid-template-columns: 1fr; opacity: 0; transition: opacity 0.4s ease; }
+  .gallery__row.is-collapsing { opacity: 0; transition: opacity 0.4s ease; }
+  .gallery__row.is-collapsing .gallery__thumb { transform: none; }
 }
 
 /* ---------- painel de expansão inline (accordion) — tema claro ---------- */
@@ -190,8 +197,8 @@ img { display: block; max-width: 100%; }
   transition: height 0.5s cubic-bezier(.4,0,.2,1), margin-top 0.5s cubic-bezier(.4,0,.2,1);
 }
 .gallery__panel.is-open {
-  height: min(560px, 62vh);
-  margin-top: 28px;
+  height: min(680px, 76vh);
+  margin-top: 4px;
   border-color: rgba(26,26,26,0.12);
 }
 
@@ -199,15 +206,37 @@ img { display: block; max-width: 100%; }
 .panel__sidebar {
   width: 240px;
   flex-shrink: 0;
-  padding: 28px 28px 20px;
+  padding: 20px 28px 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   border-right: 1px solid rgba(26,26,26,0.12);
   overflow-y: auto;
 }
-.panel__spreads {
+/* revelação da coluna: título/local já visíveis (vieram da linha);
+   só os metadados complementares entram em fade */
+.panel__sidebar .project__meta,
+.panel__sidebar .project__share {
+  opacity: 0;
+  transition: opacity 0.5s ease 0.15s;
+}
+.gallery__panel.is-revealed .panel__sidebar .project__meta,
+.gallery__panel.is-revealed .panel__sidebar .project__share {
+  opacity: 1;
+}
+
+/* o conteúdo (imagens/textos) nasce por baixo da coluna de título,
+   revelando da esquerda pra direita — como uma cortina que abre */
+.panel__reveal {
   flex: 1;
+  height: 100%;
+  overflow: hidden;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 0.6s cubic-bezier(.4,0,.2,1) 0.05s;
+}
+.gallery__panel.is-revealed .panel__reveal { clip-path: inset(0 0 0 0); }
+
+.panel__spreads {
   display: flex;
   align-items: stretch;
   gap: 32px;
@@ -218,7 +247,9 @@ img { display: block; max-width: 100%; }
   scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  cursor: grab;
 }
+.panel__spreads.is-dragging { cursor: grabbing; scroll-snap-type: none; }
 .panel__spreads::-webkit-scrollbar { display: none; }
 .panel__progress {
   position: absolute;
@@ -248,7 +279,7 @@ img { display: block; max-width: 100%; }
 .panel__error a { color: var(--copper); }
 
 @media (max-width: 780px) {
-  .gallery__panel.is-open { height: min(680px, 78vh); }
+  .gallery__panel.is-open { height: min(720px, 82vh); }
   .panel__inner { flex-direction: column; }
   .panel__sidebar {
     width: 100%;
@@ -318,7 +349,7 @@ img { display: block; max-width: 100%; }
   color: var(--slate);
 }
 
-.project__meta { margin-top: 40px; display: flex; flex-direction: column; gap: 18px; }
+.project__meta { margin-top: 32px; display: flex; flex-direction: column; gap: 10px; }
 .project__meta dt {
   font-size: 0.64rem;
   letter-spacing: 0.14em;
@@ -355,7 +386,9 @@ img { display: block; max-width: 100%; }
   scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  cursor: grab;
 }
+.project__spreads.is-dragging { cursor: grabbing; scroll-snap-type: none; }
 .project__spreads::-webkit-scrollbar { display: none; }
 
 .spread {
