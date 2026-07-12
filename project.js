@@ -49,6 +49,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   track.addEventListener('pointerdown', function (e) {
     if (e.pointerType === 'touch') return;
+    e.preventDefault(); // impede seleção de texto e o "fantasma" de arrastar imagem
     isDown = true;
     moved = false;
     startX = e.clientX;
