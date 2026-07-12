@@ -1,5 +1,9 @@
 # Dados da página Sobre — editar aqui, sem precisar mexer em HTML.
 # Usado em sobre.html via site.data.sobre.*
+# A ordem dos campos abaixo segue a ordem em que aparecem na página.
+
+# Foto da abertura, ao lado/acima do texto de descrição
+foto_estudio: "/images/equipe/estudio.jpg"
 
 # Um item da lista = um parágrafo da descrição geral do estúdio
 descricao:
@@ -91,5 +95,3 @@ equipe:
       coordenação executiva do Odisse, conduzindo projetos do conceito à
       obra com atenção rigorosa a prazos, processos e à experiência do
       cliente em cada etapa.
-
-foto_estudio: "/images/equipe/estudio.jpg"
