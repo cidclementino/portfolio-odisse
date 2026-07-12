@@ -7,7 +7,7 @@ description: >
 ---
 <section class="sobre">
 
-  <div class="sobre__wide sobre__intro">
+  <div class="sobre__intro-wrap sobre__intro">
     <div class="sobre__intro-text">
       <p class="eyebrow">Sobre</p>
       <p>Com sede em João Pessoa, o Odisse — Estúdio de Arquitetura &amp; Design — é formado por um grupo de profissionais obstinados que se dedica à criação de espaços, objetos e experiências que fundem beleza e finalidade para a construção de um sentido cultural comum e vitalista. Pois entendemos a Arquitetura e o Design como ferramentas de transformação, forjadas na tensão entre os territórios que ocupam, suas histórias e a potencialidade dos arquétipos que manifestam.</p>
@@ -48,8 +48,8 @@ description: >
 
   <div class="sobre__doc">
 
-    <h3>Reconhecimentos</h3>
-    {% for item in site.data.sobre.reconhecimentos %}
+    <h3>Premiações</h3>
+    {% for item in site.data.sobre.premiacoes %}
     <p><strong>{{ item.ano }}</strong> — {{ item.descricao }}</p>
     {% endfor %}
 
