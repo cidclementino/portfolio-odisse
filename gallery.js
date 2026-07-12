@@ -67,14 +67,17 @@ document.addEventListener('DOMContentLoaded', function () {
     if (info) info.style.transform = 'translateX(-' + deltaX + 'px)';
     row.classList.add('is-collapsing');
 
+    // 3) abre o painel NA HORA — junto com o recolhimento da linha, não
+    //    depois. É isso que faz parecer uma coisa só se movendo, ao invés
+    //    de "a linha recolhe, para, e uma caixa aparece" (popup)
+    openPanel(panel, url);
+
     window.setTimeout(function () {
-      // 3) agora sim zera a coluna de verdade e remove o transform —
+      // 4) só então zera a coluna de verdade e remove o transform —
       //    como o transform já deixou o texto exatamente nessa posição,
       //    não há salto visual
       row.classList.add('is-settled');
       if (info) info.style.transform = '';
-
-      openPanel(panel, url);
     }, ROW_COLLAPSE_MS);
   }
 
