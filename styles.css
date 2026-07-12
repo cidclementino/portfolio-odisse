@@ -622,7 +622,7 @@ img { display: block; max-width: 100%; }
   min-height: 60vh;
 }
 .contato__doc {
-  max-width: 52vw;
+  max-width: 47vw;
   margin: 0 auto;
   text-align: left;
 }
@@ -649,8 +649,7 @@ img { display: block; max-width: 100%; }
   height: 2px;
   background: var(--claro);
 }
-.contato__doc .eyebrow:first-child,
-.contato__doc h3:first-of-type { margin-top: 0; }
+.contato__doc .eyebrow:first-child { margin-top: 0; }
 .contato__doc p {
   font-size: 0.95rem;
   line-height: 1.7;
@@ -686,28 +685,31 @@ footer a:hover { color: var(--gold); }
 footer .copy { font-size: 0.68rem; color: rgba(244,244,244,0.4); margin: 0; }
 
 /* ==========================================================================
-   MARCAS DE CANTO — remetem à fita da identidade visual, fixas nos
-   quatro cantos, coladas na borda da página; azul no fundo claro,
-   branco no fundo azul. A altura das duas de cima bate com a faixa do
-   cabeçalho, pra ficarem alinhadas com o texto dele, não flutuando acima.
+   MARCAS DE CANTO — remetem à fita da identidade visual, coladas nas
+   bordas laterais (sem respiro lateral), com um respiro vertical no topo
+   e na base pra ficarem alinhadas com o centro do texto do cabeçalho.
+   Ficam acima do degradê do cabeçalho pra aparecerem sempre 100% sólidas.
+   Azul no fundo claro, branco no fundo azul.
    ========================================================================== */
 .corner-marks {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 15;
+  z-index: 55;
 }
 .corner-mark {
   position: absolute;
-  width: 16px;
-  height: 64px;
+  width: 32px;
+  height: 28px;
   background: var(--slate);
 }
 .corner-marks--light .corner-mark { background: var(--claro); }
-.corner-mark--tl { top: 0; left: 0; }
-.corner-mark--tr { top: 0; right: 0; }
-.corner-mark--bl { bottom: 0; left: 0; }
-.corner-mark--br { bottom: 0; right: 0; }
+.corner-mark--tl { top: 17px; left: 0; }
+.corner-mark--tr { top: 17px; right: 0; }
+.corner-mark--bl { bottom: 17px; left: 0; }
+.corner-mark--br { bottom: 17px; right: 0; }
 @media (max-width: 640px) {
-  .corner-mark { width: 12px; height: 54px; }
+  .corner-mark { width: 24px; height: 24px; }
+  .corner-mark--tl, .corner-mark--tr { top: 14px; }
+  .corner-mark--bl, .corner-mark--br { bottom: 14px; }
 }
