@@ -11,6 +11,7 @@
   --parchment: #F3DFC1;
   --copper: #7F675F;
   --slate: #495763;
+  --gold: #D8A263; /* reservado apenas para o estado de hover dos links */
   --linha: rgba(244, 244, 244, 0.4);
 
   --display: 'Archivo', sans-serif;
@@ -623,11 +624,11 @@ img { display: block; max-width: 100%; }
 .contato__doc .eyebrow { color: var(--claro); margin-bottom: 28px; display: block; }
 .contato__doc h3 {
   font-family: var(--ui);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(244,244,244,0.5);
+  color: var(--claro);
   margin: 40px 0 10px;
 }
 .contato__doc h3:first-of-type { margin-top: 32px; }
@@ -643,14 +644,24 @@ img { display: block; max-width: 100%; }
   text-underline-offset: 3px;
   text-decoration-thickness: 1px;
 }
-.contato__doc a:hover { color: var(--escuro); }
+.contato__doc a:hover { color: var(--gold); }
 
 /* ==========================================================================
    FOOTER
    ========================================================================== */
 footer { background: var(--slate); color: rgba(244,244,244,0.7); padding: 48px var(--gutter) 32px; }
-footer .wrap { max-width: var(--max); padding: 0; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 24px; align-items: center; }
+footer .wrap {
+  max-width: var(--max);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
 footer .mark { font-family: var(--display); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.78rem; color: var(--claro); }
+footer .mark .dot { color: var(--claro); }
 footer ul { list-style: none; display: flex; gap: 22px; margin: 0; padding: 0; }
-footer a { text-decoration: none; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; }
-footer .copy { font-size: 0.68rem; color: rgba(244,244,244,0.4); width: 100%; margin-top: 24px; }
+footer a { text-decoration: none; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; transition: color 0.2s ease; }
+footer a:hover { color: var(--gold); }
+footer .copy { font-size: 0.68rem; color: rgba(244,244,244,0.4); margin: 0; }
