@@ -212,13 +212,24 @@ img { display: block; max-width: 100%; }
   flex-direction: column;
   gap: 24px;
   overflow-y: auto;
-  /* a barra esquerda é continuação do bloco título/local que já está na
-     linha (acima) — aqui só entram os metadados complementares */
+}
+/* o container em si NUNCA fica invisível — é aqui que o título (o
+   mesmo elemento que já estava na linha) é encaixado, e ele não pode
+   piscar. Só os metadados complementares, que são conteúdo novo
+   buscado da página do projeto, entram em fade. */
+.panel__sidebar .project__meta,
+.panel__sidebar .project__share {
   opacity: 0;
   transition: opacity 0.4s ease;
 }
-.gallery__panel.is-revealed .panel__sidebar { opacity: 1; }
+.gallery__panel.is-revealed .panel__sidebar .project__meta,
+.gallery__panel.is-revealed .panel__sidebar .project__share {
+  opacity: 1;
+}
 .gallery__panel.is-revealed .panel__sidebar { border-right: 1px solid rgba(26,26,26,0.12); }
+/* o bloco de título já tem padding próprio pensado pra quando está na
+   linha; dentro da barra lateral isso somaria com o padding dela */
+.panel__sidebar .gallery__info { padding: 0; gap: 2px; }
 
 /* o conteúdo (imagens/textos) surge em fade — sem cortina, sem wipe */
 .panel__reveal {
