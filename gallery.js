@@ -1,11 +1,14 @@
 // Dinâmica da home: ao clicar num projeto, ao invés de navegar pra uma
-// página nova, busca o HTML da página do projeto (fetch) e injeta o
-// conteúdo (sidebar + spreads) num painel que se expande logo abaixo
-// da linha clicada. Um projeto aberto por vez (accordion).
+// página nova, a linha "recolhe" — a capa encolhe e some, o título/local
+// assenta fixo à esquerda — e o conteúdo do projeto (fetch da própria
+// página do projeto) se expande logo abaixo, no mesmo alinhamento.
+// Um projeto aberto por vez (accordion).
 //
 // Requer ser servido via http/https (GitHub Pages funciona; abrir o
 // index.html direto do disco via file:// não funciona, pois fetch()
 // não roda em file://).
+
+var ROW_COLLAPSE_MS = 550;
 
 document.addEventListener('DOMContentLoaded', function () {
   var items = document.querySelectorAll('.gallery__item');
@@ -23,33 +26,61 @@ document.addEventListener('DOMContentLoaded', function () {
 
       var isOpen = panel.classList.contains('is-open');
 
-      // fecha qualquer outro painel aberto (accordion: só um por vez)
-      document.querySelectorAll('.gallery__panel.is-open').forEach(function (p) {
-        if (p !== panel) closePanel(p);
+      // fecha qualquer outro projeto aberto (accordion: só um por vez)
+      document.querySelectorAll('.gallery__item').forEach(function (otherItem) {
+        if (otherItem !== item) {
+          var otherRow = otherItem.querySelector('.gallery__row');
+          var otherPanel = otherItem.querySelector('.gallery__panel');
+          if (otherPanel && otherPanel.classList.contains('is-open')) {
+            closeProject(otherRow, otherPanel);
+          }
+        }
       });
 
       if (isOpen) {
-        closePanel(panel);
+        closeProject(row, panel);
       } else {
-        openPanel(panel, url, row);
+        openProject(row, panel, url);
       }
     });
   });
 
+  function openProject(row, panel, url) {
+    row.setAttribute('aria-expanded', 'true');
+    // 1) a capa encolhe/some e o texto desliza pra esquerda
+    row.classList.add('is-collapsing');
+
+    window.setTimeout(function () {
+      // 2) some com a linha de vez e abre o painel logo abaixo, no mesmo lugar
+      row.classList.add('is-hidden');
+      openPanel(panel, url);
+    }, ROW_COLLAPSE_MS);
+  }
+
+  function closeProject(row, panel) {
+    row.setAttribute('aria-expanded', 'false');
+    // fecha o painel primeiro...
+    closePanel(panel);
+    // ...e traz a linha de volta (capa reaparece, texto volta pro lugar)
+    row.classList.remove('is-hidden');
+    // pequeno atraso pra garantir que o navegador aplique 'is-hidden' antes
+    // de tirar 'is-collapsing', senão o reaparecimento pula sem animar
+    requestAnimationFrame(function () {
+      row.classList.remove('is-collapsing');
+    });
+  }
+
   function closePanel(panel) {
     panel.classList.remove('is-open');
-    var row = panel.parentElement.querySelector('.gallery__row');
-    if (row) row.setAttribute('aria-expanded', 'false');
     // limpa o conteúdo só depois da transição, pra não cortar a animação
     window.setTimeout(function () {
       if (!panel.classList.contains('is-open')) panel.innerHTML = '';
     }, 520);
   }
 
-  function openPanel(panel, url, row) {
+  function openPanel(panel, url) {
     panel.innerHTML = '<div class="panel__loading">Carregando projeto…</div>';
     panel.classList.add('is-open');
-    row.setAttribute('aria-expanded', 'true');
 
     fetch(url)
       .then(function (res) {
