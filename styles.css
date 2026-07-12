@@ -69,7 +69,15 @@ img { display: block; max-width: 100%; }
   align-items: center;
   justify-content: space-between;
   color: var(--escuro);
-  background: linear-gradient(to bottom, rgba(244,244,244,0.9), rgba(244,244,244,0));
+  background: rgba(244,244,244,0.9);
+  transition: color 0.3s ease, background 0.3s ease;
+}
+/* por trás do cabeçalho há uma seção de fundo escuro (hero, monumental,
+   footer) — inverte pra texto claro, com um gradiente escuro sutil no
+   lugar do claro, mantendo a legibilidade */
+.nav--on-dark {
+  color: var(--claro);
+  background: rgba(26,26,26,0.35);
 }
 /* variante com a marca centralizada (usada na home) */
 .nav--centered {
@@ -525,7 +533,7 @@ img { display: block; max-width: 100%; }
 .hero {
   position: relative;
   min-height: 92vh;
-  background: var(--escuro);
+  background: var(--slate);
   color: var(--claro);
   display: flex;
   flex-direction: column;
@@ -603,7 +611,7 @@ img { display: block; max-width: 100%; }
 .nucleo__go svg { width: 14px; height: 14px; transition: transform 0.25s ease; }
 .nucleo:hover .nucleo__go svg { transform: translateX(4px); }
 
-.monumental { background: var(--escuro); color: var(--claro); padding: 56px var(--gutter); }
+.monumental { background: var(--slate); color: var(--claro); padding: 56px var(--gutter); }
 .monumental .wrap { max-width: var(--max); padding: 0; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 32px; }
 .monumental .stat .num { font-family: var(--display); font-weight: 800; letter-spacing: -0.02em; font-size: clamp(1.8rem, 4vw, 2.6rem); color: var(--gold); display: block; }
 .monumental .stat .lbl { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(244,244,244,0.6); }
@@ -611,27 +619,35 @@ img { display: block; max-width: 100%; }
 /* ==========================================================================
    CONTATO
    ========================================================================== */
-.contato { background: var(--parchment); padding: clamp(120px, 16vw, 200px) var(--gutter) clamp(72px, 12vw, 140px); text-align: center; min-height: 60vh; }
+.contato {
+  background: var(--slate);
+  color: var(--claro);
+  padding: clamp(120px, 16vw, 200px) var(--gutter) clamp(72px, 12vw, 140px);
+  text-align: center;
+  min-height: 60vh;
+}
+.contato .eyebrow { color: var(--gold); }
 .contato h2 {
   font-family: var(--display); font-weight: 800; letter-spacing: -0.02em;
   font-size: clamp(1.8rem, 4.5vw, 2.8rem); max-width: 16ch; margin: 0 auto 32px;
+  color: var(--claro);
 }
-.contato .sub { max-width: 40ch; margin: -12px auto 32px; color: rgba(26,26,26,0.7); }
+.contato .sub { max-width: 40ch; margin: -12px auto 32px; color: rgba(244,244,244,0.75); }
 .btn {
   display: inline-flex; align-items: center; gap: 10px;
-  background: var(--escuro); color: var(--claro); text-decoration: none;
+  background: var(--gold); color: var(--escuro); text-decoration: none;
   padding: 16px 32px; font-size: 0.78rem; letter-spacing: 0.14em;
   text-transform: uppercase; font-weight: 700; transition: background 0.25s ease;
 }
-.btn:hover { background: var(--copper); }
+.btn:hover { background: var(--claro); }
 .contato__info { margin-top: 48px; display: flex; gap: 48px; justify-content: center; flex-wrap: wrap; }
-.contato__info div { text-align: left; }
-.contato__info .lbl { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--copper); display: block; margin-bottom: 6px; }
+.contato__info div { text-align: left; color: var(--claro); }
+.contato__info .lbl { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(244,244,244,0.6); display: block; margin-bottom: 6px; }
 
 /* ==========================================================================
    FOOTER
    ========================================================================== */
-footer { background: var(--escuro); color: rgba(244,244,244,0.7); padding: 48px var(--gutter) 32px; }
+footer { background: var(--slate); color: rgba(244,244,244,0.7); padding: 48px var(--gutter) 32px; }
 footer .wrap { max-width: var(--max); padding: 0; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 24px; align-items: center; }
 footer .mark { font-family: var(--display); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.78rem; color: var(--gold); }
 footer ul { list-style: none; display: flex; gap: 22px; margin: 0; padding: 0; }
