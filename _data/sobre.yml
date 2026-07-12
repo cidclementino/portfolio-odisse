@@ -1,6 +1,66 @@
 # Dados da página Sobre — editar aqui, sem precisar mexer em HTML.
 # Usado em sobre.html via site.data.sobre.*
 
+# Um item da lista = um parágrafo da descrição geral do estúdio
+descricao:
+  - >
+    Com sede em João Pessoa, o Odisse — Estúdio de Arquitetura & Design —
+    é formado por um grupo de profissionais obstinados que se dedica à
+    criação de espaços, objetos e experiências que fundem beleza e
+    finalidade para a construção de um sentido cultural comum e vitalista.
+    Pois entendemos a Arquitetura e o Design como ferramentas de
+    transformação, forjadas na tensão entre os territórios que ocupam,
+    suas histórias e a potencialidade dos arquétipos que manifestam.
+  - >
+    Assim, vamos além do programa específico, da análise contextual
+    estereotipada. Vamos além das convenções. Em nossa prática,
+    combinamos rigor técnico, investigação histórica e sensibilidade
+    artística. Combinação que se traduz em uma análise crítica e
+    aprofundada das especificidades de cada programa, território,
+    contexto e finalidade. Cada projeto é um mundo próprio, mas parte
+    integrante de um universo compartilhado que floresce da tensão
+    criativa entre memória e potencialidade. Entre uma reserva de
+    grandeza e a gestação de uma nova linguagem. Somos criadores de
+    obras tão enraizadas em seu contexto quanto abertas ao futuro.
+  - >
+    Ao longo de cinco anos de atuação, o Odisse projetou mais de
+    100.000 m² de arquitetura, desenvolveu mobiliários e peças autorais e
+    participou de eventos especializados como a CASACOR Paraíba. Mais do
+    que um escritório, o Odisse se estrutura como um espaço permanente de
+    pesquisa, desenho e experimentação em Arquitetura e Design,
+    construindo as faces duradouras de nossa civilização.
+
+# Os três núcleos do estúdio. "interno: true" faz o link passar pelo
+# relative_url do Jekyll (páginas do próprio site); "interno: false" usa
+# a URL exatamente como está escrita (links externos, ou "#" placeholder).
+nucleos:
+  - nome: "Odisse Arquitetos"
+    link_texto: "Conheça nossos serviços"
+    link_url: "/index.html"
+    interno: true
+    descricao: >
+      Projetos residenciais, comerciais e de reforma pensados a partir da
+      tensão entre território, programa e arquétipo. Rigor técnico e
+      investigação histórica em cada especificidade.
+
+  - nome: "Odisse Objetos"
+    link_texto: "Visite nossa loja"
+    link_url: "#"
+    interno: false
+    descricao: >
+      Mobiliário e peças autorais que traduzem a mesma pesquisa formal da
+      arquitetura em escala de objeto — matéria, gesto e permanência.
+
+  - nome: "Elaia"
+    link_texto: "Leia Elaia"
+    link_url: "https://odisse.substack.com"
+    interno: false
+    externo: true
+    descricao: >
+      O braço editorial do Odisse — um espaço permanente de pesquisa e
+      escrita sobre arquitetura, design e os arquétipos que atravessam o
+      que construímos.
+
 # Prêmios e reconhecimentos do estúdio
 premiacoes:
   - ano: 2023
