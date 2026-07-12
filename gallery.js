@@ -1,14 +1,20 @@
-// Dinâmica da home: ao clicar num projeto, ao invés de navegar pra uma
-// página nova, a linha "recolhe" — a capa encolhe e some, o título/local
-// assenta fixo à esquerda — e o conteúdo do projeto (fetch da própria
-// página do projeto) se expande logo abaixo, no mesmo alinhamento.
+// Dinâmica da home: ao clicar num projeto, a capa desliza pra esquerda e
+// some (sem encolher); o bloco de título/local é deslocado, via transform
+// calculado (técnica FLIP), até a posição que vai ocupar de verdade quando
+// a coluna da imagem for zerada — assim ele não "pula". Só então o
+// conteúdo do projeto (fetch da própria página do projeto) nasce por
+// baixo dessa coluna, revelando da esquerda pra direita; dentro dela, só
+// os metadados complementares (ano, cliente...) entram em fade — o
+// título/local já está visível, vindo da própria linha.
+//
 // Um projeto aberto por vez (accordion).
 //
 // Requer ser servido via http/https (GitHub Pages funciona; abrir o
 // index.html direto do disco via file:// não funciona, pois fetch()
 // não roda em file://).
 
-var ROW_COLLAPSE_MS = 550;
+var ROW_COLLAPSE_MS = 450;
+var REVEAL_DELAY_MS = 30;
 
 document.addEventListener('DOMContentLoaded', function () {
   var items = document.querySelectorAll('.gallery__item');
@@ -19,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var panel = item.querySelector('.gallery__panel');
     if (!row || !panel) return;
 
+    var info = row.querySelector('.gallery__info');
     var url = row.getAttribute('href');
 
     row.addEventListener('click', function (e) {
@@ -40,38 +47,66 @@ document.addEventListener('DOMContentLoaded', function () {
       if (isOpen) {
         closeProject(row, panel);
       } else {
-        openProject(row, panel, url);
+        openProject(row, panel, info, url);
       }
     });
   });
 
-  function openProject(row, panel, url) {
+  function openProject(row, panel, info, url) {
     row.setAttribute('aria-expanded', 'true');
-    // 1) a capa encolhe/some e o texto desliza pra esquerda
+
+    // --- técnica FLIP ---
+    // 1) mede onde o texto está agora, relativo à linha
+    var rowRect = row.getBoundingClientRect();
+    var infoRect = info ? info.getBoundingClientRect() : null;
+    var deltaX = infoRect ? (infoRect.left - rowRect.left) : 0;
+
+    // 2) desloca o texto (via transform) até a posição que ele vai
+    //    ocupar de verdade quando a coluna da imagem for zerada (x=0),
+    //    e ao mesmo tempo desliza a capa pra esquerda + fade
+    if (info) info.style.transform = 'translateX(-' + deltaX + 'px)';
     row.classList.add('is-collapsing');
 
     window.setTimeout(function () {
-      // 2) some com a linha de vez e abre o painel logo abaixo, no mesmo lugar
-      row.classList.add('is-hidden');
+      // 3) agora sim zera a coluna de verdade e remove o transform —
+      //    como o transform já deixou o texto exatamente nessa posição,
+      //    não há salto visual
+      row.classList.add('is-settled');
+      if (info) info.style.transform = '';
+
       openPanel(panel, url);
     }, ROW_COLLAPSE_MS);
   }
 
   function closeProject(row, panel) {
     row.setAttribute('aria-expanded', 'false');
-    // fecha o painel primeiro...
     closePanel(panel);
-    // ...e traz a linha de volta (capa reaparece, texto volta pro lugar)
-    row.classList.remove('is-hidden');
-    // pequeno atraso pra garantir que o navegador aplique 'is-hidden' antes
-    // de tirar 'is-collapsing', senão o reaparecimento pula sem animar
+
+    var info = row.querySelector('.gallery__info');
+    // volta pro layout original e, com o mesmo truque ao contrário,
+    // anima o texto voltando pro lugar dele
+    row.classList.remove('is-settled');
+
     requestAnimationFrame(function () {
-      row.classList.remove('is-collapsing');
+      var rowRect = row.getBoundingClientRect();
+      var infoRect = info ? info.getBoundingClientRect() : null;
+      var deltaX = infoRect ? (infoRect.left - rowRect.left) : 0;
+      if (info) {
+        info.style.transition = 'none';
+        info.style.transform = 'translateX(-' + deltaX + 'px)';
+      }
+      requestAnimationFrame(function () {
+        row.classList.remove('is-collapsing');
+        if (info) {
+          info.style.transition = '';
+          info.style.transform = '';
+        }
+      });
     });
   }
 
   function closePanel(panel) {
-    panel.classList.remove('is-open');
+    panel.classList.remove('is-open', 'is-revealed');
     // limpa o conteúdo só depois da transição, pra não cortar a animação
     window.setTimeout(function () {
       if (!panel.classList.contains('is-open')) panel.innerHTML = '';
@@ -96,7 +131,9 @@ document.addEventListener('DOMContentLoaded', function () {
         panel.innerHTML =
           '<div class="panel__inner">' +
             '<aside class="panel__sidebar">' + sidebar.innerHTML + '</aside>' +
-            '<div class="panel__spreads">' + spreads.innerHTML + '</div>' +
+            '<div class="panel__reveal">' +
+              '<div class="panel__spreads">' + spreads.innerHTML + '</div>' +
+            '</div>' +
             '<div class="panel__progress"><span></span></div>' +
             '<div class="panel__arrows">' +
               '<button class="prev" aria-label="Spread anterior" type="button">' +
@@ -109,6 +146,13 @@ document.addEventListener('DOMContentLoaded', function () {
           '</div>';
 
         wirePanel(panel);
+
+        // dispara a revelação (wipe do conteúdo + fade dos metadados)
+        // num próximo frame, pra garantir que o browser já pintou o
+        // estado inicial (clip-path fechado / opacity 0) antes de animar
+        window.setTimeout(function () {
+          panel.classList.add('is-revealed');
+        }, REVEAL_DELAY_MS);
       })
       .catch(function (err) {
         panel.innerHTML =
@@ -145,6 +189,37 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (prevBtn) prevBtn.addEventListener('click', function (e) { e.stopPropagation(); goTo(-1); });
     if (nextBtn) nextBtn.addEventListener('click', function (e) { e.stopPropagation(); goTo(1); });
+
+    // arrastar com o mouse (touch já rola nativamente)
+    var isDown = false;
+    var startX = 0;
+    var startScroll = 0;
+    var moved = false;
+
+    track.addEventListener('pointerdown', function (e) {
+      if (e.pointerType === 'touch') return; // touch já tem scroll nativo
+      isDown = true;
+      moved = false;
+      startX = e.clientX;
+      startScroll = track.scrollLeft;
+      track.classList.add('is-dragging');
+      track.setPointerCapture(e.pointerId);
+    });
+    track.addEventListener('pointermove', function (e) {
+      if (!isDown) return;
+      var dx = e.clientX - startX;
+      if (Math.abs(dx) > 4) moved = true;
+      track.scrollLeft = startScroll - dx;
+    });
+    function endDrag() {
+      isDown = false;
+      track.classList.remove('is-dragging');
+    }
+    track.addEventListener('pointerup', endDrag);
+    track.addEventListener('pointercancel', endDrag);
+    track.addEventListener('pointerleave', function () { if (isDown) endDrag(); });
+    // evita que o "arrastar" dispare cliques em links dentro do spread
+    track.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
 
     updateProgress();
   }
