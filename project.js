@@ -41,5 +41,35 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.key === 'ArrowLeft') goToSpread(-1);
   });
 
+  // arrastar com o mouse (touch já rola nativamente)
+  var isDown = false;
+  var startX = 0;
+  var startScroll = 0;
+  var moved = false;
+
+  track.addEventListener('pointerdown', function (e) {
+    if (e.pointerType === 'touch') return;
+    isDown = true;
+    moved = false;
+    startX = e.clientX;
+    startScroll = track.scrollLeft;
+    track.classList.add('is-dragging');
+    track.setPointerCapture(e.pointerId);
+  });
+  track.addEventListener('pointermove', function (e) {
+    if (!isDown) return;
+    var dx = e.clientX - startX;
+    if (Math.abs(dx) > 4) moved = true;
+    track.scrollLeft = startScroll - dx;
+  });
+  function endDrag() {
+    isDown = false;
+    track.classList.remove('is-dragging');
+  }
+  track.addEventListener('pointerup', endDrag);
+  track.addEventListener('pointercancel', endDrag);
+  track.addEventListener('pointerleave', function () { if (isDown) endDrag(); });
+  track.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
+
   updateProgress();
 });
