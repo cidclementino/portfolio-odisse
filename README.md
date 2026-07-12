@@ -31,7 +31,7 @@ _projetos/               → um arquivo por projeto (front matter puro, sem HTML
   yvc.html
   dcmcc.html
   altavista.html
-images/projetos/{slug}/  → imagens de cada projeto (capa.jpg, 01.jpg, 02.jpg...)
+images/{slug}/  → imagens de cada projeto (capa.jpg, 01.jpg, 02.jpg...)
 index.html            → Home (front matter + loop automático nos projetos)
 sobre.html             → Sobre (front matter + conteúdo)
 contato.html            → Contato (front matter + conteúdo)
@@ -55,11 +55,11 @@ cliente: "Privado"
 tipologia: "Residencial"
 area: "—"
 status: "Concluído"
-capa: /images/projetos/yvc/capa.jpg
+capa: /images/yvc/capa.jpg
 ordem: 1
 secoes:
   - tipo: imagem
-    imagem: /images/projetos/yvc/01.jpg
+    imagem: /images/yvc/01.jpg
     alt: "Residência YVC — fachada"
 
   - tipo: texto
@@ -68,7 +68,7 @@ secoes:
       em branco entre eles, como neste exemplo.
 
   - tipo: imagem
-    imagem: /images/projetos/yvc/02.jpg
+    imagem: /images/yvc/02.jpg
 ---
 ```
 
@@ -92,7 +92,7 @@ secoes:
 1. Duplique um arquivo de `_projetos/` (ex.: `_projetos/yvc.html`) com um
    nome novo, ex.: `_projetos/nome-do-projeto.html`
 2. Preencha o front matter (metadados + `secoes`)
-3. Coloque as imagens em `images/projetos/nome-do-projeto/`
+3. Coloque as imagens em `images/nome-do-projeto/`
 4. Pronto — o projeto aparece sozinho na Home (a Home faz um loop
    automático em todos os arquivos de `_projetos/`) e ganha uma página
    própria em `/projetos/nome-do-projeto.html`
@@ -104,7 +104,7 @@ Não precisa mexer em `index.html` nem duplicar nada lá.
 Os três projetos atuais (YVC, DCMCC, Altavista) estão com **imagens
 placeholder geradas** (retângulo com o padrão listrado de identidade visual
 + nome do arquivo) só pra não aparecer ícone de imagem quebrada. Substitua
-os arquivos em `images/projetos/{slug}/` pelos renders reais, mantendo os
+os arquivos em `images/{slug}/` pelos renders reais, mantendo os
 mesmos nomes de arquivo (ou trocando o campo `imagem`/`capa` no front
 matter se preferir nomes diferentes).
 
