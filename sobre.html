@@ -5,71 +5,75 @@ description: >
   Odisse — Estúdio de Arquitetura & Design. Arquitetura, objetos autorais
   e pesquisa editorial construídos na tensão entre memória e potencialidade.
 ---
-<header class="hero">
-  <svg class="tensao" viewBox="0 0 1440 900" preserveAspectRatio="none" aria-hidden="true">
-    <path d="M -20 680 C 280 560, 420 780, 700 560 C 980 340, 1100 520, 1460 260" />
-  </svg>
-  <div class="wrap">
-    <p class="eyebrow hero__eyebrow">Estúdio de Arquitetura &amp; Design — João Pessoa</p>
-    <h1>Construímos as faces <em>duradouras</em> de uma civilização.</h1>
-    <p class="lede">Espaços, objetos e experiências forjados na tensão entre território, memória e potencialidade. Arquitetura e Design como ferramentas de transformação — não como convenção.</p>
-    <div class="hero__meta">
-      <div><span class="num">5</span><span class="lbl">Anos de atuação</span></div>
-      <div><span class="num">100.000+</span><span class="lbl">m² projetados</span></div>
-      <div><span class="num">3</span><span class="lbl">Núcleos</span></div>
+<section class="sobre">
+
+  <div class="sobre__wide sobre__intro">
+    <div class="sobre__intro-text">
+      <p class="eyebrow">Sobre</p>
+      <p>Com sede em João Pessoa, o Odisse — Estúdio de Arquitetura &amp; Design — é formado por um grupo de profissionais obstinados que se dedica à criação de espaços, objetos e experiências que fundem beleza e finalidade para a construção de um sentido cultural comum e vitalista. Pois entendemos a Arquitetura e o Design como ferramentas de transformação, forjadas na tensão entre os territórios que ocupam, suas histórias e a potencialidade dos arquétipos que manifestam.</p>
+      <p>Assim, vamos além do programa específico, da análise contextual estereotipada. Vamos além das convenções. Em nossa prática, combinamos rigor técnico, investigação histórica e sensibilidade artística. Combinação que se traduz em uma análise crítica e aprofundada das especificidades de cada programa, território, contexto e finalidade. Cada projeto é um mundo próprio, mas parte integrante de um universo compartilhado que floresce da tensão criativa entre memória e potencialidade. Entre uma reserva de grandeza e a gestação de uma nova linguagem. Somos criadores de obras tão enraizadas em seu contexto quanto abertas ao futuro.</p>
+      <p>Ao longo de cinco anos de atuação, o Odisse projetou mais de 100.000 m² de arquitetura, desenvolveu mobiliários e peças autorais e participou de eventos especializados como a CASACOR Paraíba. Mais do que um escritório, o Odisse se estrutura como um espaço permanente de pesquisa, desenho e experimentação em Arquitetura e Design, construindo as faces duradouras de nossa civilização.</p>
+    </div>
+    <div class="sobre__intro-photo">
+      <div class="frame">
+        <img src="{{ site.data.sobre.foto_estudio | relative_url }}" alt="Odisse — Estúdio de Arquitetura &amp; Design">
+      </div>
     </div>
   </div>
-</header>
 
-<section class="manifesto">
-  <div class="wrap">
-    <p>Cada projeto é um mundo próprio, parte de um universo compartilhado que floresce da tensão criativa entre memória e potencialidade — entre uma <strong>reserva de grandeza</strong> e a gestação de uma nova linguagem.</p>
-    <p>Combinamos rigor técnico, investigação histórica e sensibilidade artística para ir além do programa específico e da análise contextual estereotipada. Somos criadores de obras tão enraizadas em seu contexto quanto abertas ao futuro.</p>
+  <div class="sobre__wide">
+    <h3>Núcleos</h3>
+    <div class="nucleos-grid">
+
+      <div class="nucleo-box">
+        <h4>Odisse Arquitetos</h4>
+        <p>Projetos residenciais, comerciais e de reforma pensados a partir da tensão entre território, programa e arquétipo. Rigor técnico e investigação histórica em cada especificidade.</p>
+        <p><a href="{{ '/index.html' | relative_url }}">Ver projetos</a></p>
+      </div>
+
+      <div class="nucleo-box">
+        <h4>Odisse Objetos</h4>
+        <p>Mobiliário e peças autorais que traduzem a mesma pesquisa formal da arquitetura em escala de objeto — matéria, gesto e permanência.</p>
+        <p><a href="#">Ver a loja</a></p>
+      </div>
+
+      <div class="nucleo-box">
+        <h4>Elaia</h4>
+        <p>O braço editorial do Odisse — um espaço permanente de pesquisa e escrita sobre arquitetura, design e os arquétipos que atravessam o que construímos.</p>
+        <p><a href="https://odisse.substack.com" target="_blank" rel="noopener">Ler a Elaia</a></p>
+      </div>
+
+    </div>
   </div>
-</section>
 
-<section class="nucleos" id="nucleos">
-  <div class="nucleos__head">
-    <p class="eyebrow">Estrutura</p>
-    <h2>Três núcleos, um só universo.</h2>
-  </div>
-  <div class="nucleos__grid">
+  <div class="sobre__doc">
 
-    <a class="nucleo" href="{{ '/index.html' | relative_url }}">
-      <span class="nucleo__num">01 — Arquitetura</span>
-      <h3>Odisse Arquitetos</h3>
-      <p>Projetos residenciais, comerciais e de reforma pensados a partir da tensão entre território, programa e arquétipo. Rigor técnico e investigação histórica em cada especificidade.</p>
-      <span class="nucleo__go">Ver projetos
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </span>
-    </a>
+    <h3>Reconhecimentos</h3>
+    {% for item in site.data.sobre.reconhecimentos %}
+    <p><strong>{{ item.ano }}</strong> — {{ item.descricao }}</p>
+    {% endfor %}
 
-    <a class="nucleo" href="#" target="_blank" rel="noopener">
-      <span class="nucleo__num">02 — Design</span>
-      <h3>Odisse Objetos</h3>
-      <p>Mobiliário e peças autorais que traduzem a mesma pesquisa formal da arquitetura em escala de objeto — matéria, gesto e permanência.</p>
-      <span class="nucleo__go">Ver a loja
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </span>
-    </a>
+    {% if site.data.sobre.publicacoes and site.data.sobre.publicacoes.size > 0 %}
+    <h3>Publicações</h3>
+    {% for item in site.data.sobre.publicacoes %}
+    <p><strong>{{ item.ano }}</strong> — {{ item.descricao }}</p>
+    {% endfor %}
+    {% endif %}
 
-    <a class="nucleo" href="https://odisse.substack.com" target="_blank" rel="noopener">
-      <span class="nucleo__num">03 — Editorial</span>
-      <h3>Elaia</h3>
-      <p>O braço editorial do Odisse — um espaço permanente de pesquisa e escrita sobre arquitetura, design e os arquétipos que atravessam o que construímos.</p>
-      <span class="nucleo__go">Ler a Elaia
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-      </span>
-    </a>
+    <h3>Equipe</h3>
+    <div class="equipe-grid">
+      {% for pessoa in site.data.sobre.equipe %}
+      <div class="pessoa">
+        <div class="pessoa__foto frame">
+          <img src="{{ pessoa.foto | relative_url }}" alt="{{ pessoa.nome }}">
+        </div>
+        <h4>{{ pessoa.nome }}</h4>
+        <p class="pessoa__cargo">{{ pessoa.cargo }}</p>
+        <p>{{ pessoa.bio }}</p>
+      </div>
+      {% endfor %}
+    </div>
 
   </div>
-</section>
 
-<section class="monumental">
-  <div class="wrap">
-    <div class="stat"><span class="num">5</span><span class="lbl">Anos de estúdio</span></div>
-    <div class="stat"><span class="num">100.000+</span><span class="lbl">m² de arquitetura</span></div>
-    <div class="stat"><span class="num">CASACOR</span><span class="lbl">Paraíba</span></div>
-    <div class="stat"><span class="num">3</span><span class="lbl">Núcleos ativos</span></div>
-  </div>
 </section>
