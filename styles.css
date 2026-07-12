@@ -119,6 +119,7 @@ img { display: block; max-width: 100%; }
   align-items: start;
   text-decoration: none;
   color: var(--escuro);
+  overflow: hidden;
 }
 .gallery__thumb {
   grid-column: 2;
@@ -163,13 +164,13 @@ img { display: block; max-width: 100%; }
   white-space: nowrap;
 }
 
-/* estado de recolhimento (FLIP): a capa desloca-se p/ esquerda e some;
-   o texto é deslocado via transform (calculado em JS) até a posição que
-   vai ocupar quando a coluna da imagem, de fato, for zerada — sem pular */
-.gallery__row.is-collapsing .gallery__thumb {
-  transform: translateX(-32px);
-  opacity: 0;
-}
+/* estado de recolhimento (FLIP): a capa e o texto se deslocam JUNTOS,
+   na mesma distância (calculada em JS) — como se o texto empurrasse a
+   capa pra fora do quadro. A capa, por sair mais à esquerda, acaba
+   saindo da área visível (clipada pelo overflow:hidden da linha) e
+   some; o texto para exatamente onde vai assentar de verdade. */
+.gallery__row.is-collapsing .gallery__thumb { opacity: 0; }
+
 /* estado final (sem transição): a grade já reflete o resultado —
    a imagem alocada em 0px e o texto sem transform, já assentado ali */
 .gallery__row.is-settled {
@@ -183,10 +184,13 @@ img { display: block; max-width: 100%; }
   .gallery__row { grid-template-columns: 1fr; justify-items: center; }
   .gallery__thumb { grid-column: 1; width: 100%; }
   .gallery__info { grid-column: 1; justify-self: center; padding-left: 0; margin-top: 12px; text-align: center; }
-  /* no mobile o layout já é empilhado; o colapso vira um fade simples */
+  /* no mobile o layout já é empilhado; o colapso vira um fade simples,
+     e o "assentar" é só ocultar a linha (sem mexer no grid de desktop) */
   .gallery__row.is-collapsing { opacity: 0; transition: opacity 0.4s ease; }
   .gallery__row.is-collapsing .gallery__thumb { transform: none; }
+  .gallery__row.is-settled { display: none; grid-template-columns: 1fr; }
 }
+
 
 /* ---------- painel de expansão inline (accordion) — tema claro ---------- */
 .gallery__panel {
@@ -206,33 +210,25 @@ img { display: block; max-width: 100%; }
   padding: 4px 28px 20px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 24px;
   overflow-y: auto;
-}
-/* revelação da coluna: título/local já visíveis (vieram da linha);
-   só os metadados complementares entram em fade, junto com o resto */
-.panel__sidebar .project__meta,
-.panel__sidebar .project__share {
+  /* a barra esquerda é continuação do bloco título/local que já está na
+     linha (acima) — aqui só entram os metadados complementares */
   opacity: 0;
-  transition: opacity 0.4s ease 0.05s;
+  transition: opacity 0.4s ease;
 }
-.gallery__panel.is-revealed .panel__sidebar .project__meta,
-.gallery__panel.is-revealed .panel__sidebar .project__share {
-  opacity: 1;
-}
+.gallery__panel.is-revealed .panel__sidebar { opacity: 1; }
 .gallery__panel.is-revealed .panel__sidebar { border-right: 1px solid rgba(26,26,26,0.12); }
 
-/* o conteúdo (imagens/textos) nasce por baixo da coluna de título,
-   revelando da esquerda pra direita — como uma cortina que abre —
-   ao mesmo tempo em que a linha acima recolhe, não depois */
+/* o conteúdo (imagens/textos) surge em fade — sem cortina, sem wipe */
 .panel__reveal {
   flex: 1;
   height: 100%;
   overflow: hidden;
-  clip-path: inset(0 100% 0 0);
-  transition: clip-path 0.45s cubic-bezier(.4,0,.2,1);
+  opacity: 0;
+  transition: opacity 0.4s ease;
 }
-.gallery__panel.is-revealed .panel__reveal { clip-path: inset(0 0 0 0); }
+.gallery__panel.is-revealed .panel__reveal { opacity: 1; }
 
 .panel__spreads {
   display: flex;
