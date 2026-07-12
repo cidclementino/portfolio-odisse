@@ -622,27 +622,38 @@ img { display: block; max-width: 100%; }
 .contato {
   background: var(--slate);
   color: var(--claro);
-  padding: clamp(120px, 16vw, 200px) var(--gutter) clamp(72px, 12vw, 140px);
-  text-align: center;
+  padding: clamp(140px, 18vw, 220px) var(--gutter) clamp(96px, 14vw, 160px);
   min-height: 60vh;
 }
-.contato .eyebrow { color: var(--gold); }
-.contato h2 {
-  font-family: var(--display); font-weight: 800; letter-spacing: -0.02em;
-  font-size: clamp(1.8rem, 4.5vw, 2.8rem); max-width: 16ch; margin: 0 auto 32px;
+.contato__doc {
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: left;
+}
+.contato__doc .eyebrow { color: var(--gold); margin-bottom: 28px; display: block; }
+.contato__doc h3 {
+  font-family: var(--ui);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(244,244,244,0.5);
+  margin: 40px 0 10px;
+}
+.contato__doc h3:first-of-type { margin-top: 32px; }
+.contato__doc p {
+  font-size: 0.95rem;
+  line-height: 1.7;
   color: var(--claro);
+  margin: 0 0 4px;
 }
-.contato .sub { max-width: 40ch; margin: -12px auto 32px; color: rgba(244,244,244,0.75); }
-.btn {
-  display: inline-flex; align-items: center; gap: 10px;
-  background: var(--gold); color: var(--escuro); text-decoration: none;
-  padding: 16px 32px; font-size: 0.78rem; letter-spacing: 0.14em;
-  text-transform: uppercase; font-weight: 700; transition: background 0.25s ease;
+.contato__doc a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
 }
-.btn:hover { background: var(--claro); }
-.contato__info { margin-top: 48px; display: flex; gap: 48px; justify-content: center; flex-wrap: wrap; }
-.contato__info div { text-align: left; color: var(--claro); }
-.contato__info .lbl { font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(244,244,244,0.6); display: block; margin-bottom: 6px; }
+.contato__doc a:hover { color: var(--gold); }
 
 /* ==========================================================================
    FOOTER
