@@ -1,4 +1,4 @@
-<nav class="nav">
+<nav class="nav{% if page.url contains 'sobre' or page.url contains 'contato' %} nav--on-dark{% endif %}">
   <a class="nav__mark" href="{{ '/index.html' | relative_url }}">Odisse</a>
   <ul class="nav__links">
     <li><a href="{{ '/sobre.html' | relative_url }}"{% if page.url contains 'sobre' %} aria-current="page"{% endif %}>Sobre</a></li>
