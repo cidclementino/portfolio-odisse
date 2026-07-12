@@ -1,19 +1,47 @@
 // Lógica das páginas de projeto: converte a rolagem vertical do mouse em
 // deslocamento horizontal entre spreads, atualiza a barra de progresso,
-// e liga as setas de navegação e o teclado.
+// monta os pontinhos de navegação (um por spread) e permite arrastar
+// com o mouse.
 
 document.addEventListener('DOMContentLoaded', function () {
   var track = document.querySelector('.project__spreads');
   if (!track) return;
 
   var progressBar = document.querySelector('.project__progress span');
-  var prevBtn = document.querySelector('.project__arrows .prev');
-  var nextBtn = document.querySelector('.project__arrows .next');
+  var dotsWrap = document.querySelector('.project__dots');
+
+  var spreads = Array.prototype.slice.call(track.querySelectorAll('.spread'));
+  var dots = [];
+
+  if (dotsWrap && spreads.length > 1) {
+    spreads.forEach(function (spread, i) {
+      var dot = document.createElement('button');
+      dot.type = 'button';
+      dot.setAttribute('aria-label', 'Ir para o conteúdo ' + (i + 1));
+      dot.addEventListener('click', function () {
+        track.scrollTo({ left: spread.offsetLeft, behavior: 'smooth' });
+      });
+      dotsWrap.appendChild(dot);
+      dots.push(dot);
+    });
+  }
 
   function updateProgress() {
     var max = track.scrollWidth - track.clientWidth;
     var pct = max > 0 ? (track.scrollLeft / max) * 100 : 0;
     if (progressBar) progressBar.style.width = pct + '%';
+
+    if (dots.length) {
+      var current = 0;
+      var best = Infinity;
+      spreads.forEach(function (spread, i) {
+        var dist = Math.abs(spread.offsetLeft - track.scrollLeft);
+        if (dist < best) { best = dist; current = i; }
+      });
+      dots.forEach(function (dot, i) {
+        dot.classList.toggle('is-active', i === current);
+      });
+    }
   }
 
   // Roda do mouse (trackpads já mandam deltaX naturalmente; mouse comum só
@@ -28,17 +56,9 @@ document.addEventListener('DOMContentLoaded', function () {
   track.addEventListener('scroll', updateProgress, { passive: true });
   window.addEventListener('resize', updateProgress);
 
-  function goToSpread(direction) {
-    var width = track.clientWidth;
-    track.scrollBy({ left: direction * width, behavior: 'smooth' });
-  }
-
-  if (prevBtn) prevBtn.addEventListener('click', function () { goToSpread(-1); });
-  if (nextBtn) nextBtn.addEventListener('click', function () { goToSpread(1); });
-
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'ArrowRight') goToSpread(1);
-    if (e.key === 'ArrowLeft') goToSpread(-1);
+    if (e.key === 'ArrowRight') track.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
+    if (e.key === 'ArrowLeft') track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' });
   });
 
   // arrastar com o mouse (touch já rola nativamente)
