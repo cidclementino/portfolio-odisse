@@ -96,12 +96,16 @@ img { display: block; max-width: 100%; }
   font-weight: 600;
   transition: color 0.2s ease;
 }
-.nav__links a:hover { color: var(--gold); }
+/* páginas de fundo claro (Home, Projetos) — destaque em azul */
+.nav__links a:hover { color: var(--slate); }
 .nav__links a[aria-current="page"] {
-  color: var(--gold);
+  color: var(--slate);
   text-decoration: underline;
   text-underline-offset: 4px;
 }
+/* páginas de fundo azul (Sobre, Contato) — destaque em laranja */
+.nav--on-dark .nav__links a:hover { color: var(--gold); }
+.nav--on-dark .nav__links a[aria-current="page"] { color: var(--gold); }
 @media (max-width: 640px) {
   .nav__links { gap: 16px; }
   .nav { padding: 18px var(--gutter); }
@@ -630,9 +634,9 @@ img { display: block; max-width: 100%; }
 .contato__doc h3 {
   position: relative;
   font-family: var(--ui);
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--claro);
   display: block;
@@ -699,17 +703,17 @@ footer .copy { font-size: 0.68rem; color: rgba(244,244,244,0.4); margin: 0; }
 }
 .corner-mark {
   position: absolute;
-  width: 32px;
+  width: 24px;
   height: 28px;
   background: var(--slate);
 }
 .corner-marks--light .corner-mark { background: var(--claro); }
-.corner-mark--tl { top: 17px; left: 0; }
-.corner-mark--tr { top: 17px; right: 0; }
-.corner-mark--bl { bottom: 17px; left: 0; }
-.corner-mark--br { bottom: 17px; right: 0; }
+.corner-mark--tl { top: 23px; left: 0; }
+.corner-mark--tr { top: 23px; right: 0; }
+.corner-mark--bl { bottom: 23px; left: 0; }
+.corner-mark--br { bottom: 23px; right: 0; }
 @media (max-width: 640px) {
-  .corner-mark { width: 24px; height: 24px; }
-  .corner-mark--tl, .corner-mark--tr { top: 14px; }
-  .corner-mark--bl, .corner-mark--br { bottom: 14px; }
+  .corner-mark { width: 18px; height: 24px; }
+  .corner-mark--tl, .corner-mark--tr { top: 18px; }
+  .corner-mark--bl, .corner-mark--br { bottom: 18px; }
 }
