@@ -1,0 +1,35 @@
+# Dados da página Sobre — editar aqui, sem precisar mexer em HTML.
+# Usado em sobre.html via site.data.sobre.*
+
+# Lista livre — não é só "prêmios", pode incluir qualquer reconhecimento
+reconhecimentos:
+  - ano: 2023
+    descricao: "CASACOR Paraíba — Melhor Uso de Materiais Inovadores"
+  - ano: 2023
+    descricao: "Finalista, Prêmio Salão Design"
+
+# Deixe vazia ([]) que a seção de Publicações some sozinha da página.
+# Assim que tiver conteúdo, é só preencher no mesmo formato acima.
+publicacoes: []
+
+equipe:
+  - nome: "Cid Clementino"
+    cargo: "Coordenador Criativo"
+    foto: "/images/equipe/cid.jpg"
+    bio: >
+      Formado em Arquitetura e Urbanismo pela UFPB, Cid conduz a direção
+      criativa do Odisse, atravessando arquitetura, design de objetos e a
+      produção editorial da Elaia. Sua atuação une rigor técnico à
+      investigação de linguagens visuais, moldando a identidade do estúdio
+      em todas as frentes em que ele se manifesta.
+
+  - nome: "Nathalia Linhares"
+    cargo: "Coordenadora Executiva"
+    foto: "/images/equipe/nathalia.jpg"
+    bio: >
+      Formada em Arquitetura e Urbanismo pela UFPB, Nathalia lidera a
+      coordenação executiva do Odisse, conduzindo projetos do conceito à
+      obra com atenção rigorosa a prazos, processos e à experiência do
+      cliente em cada etapa.
+
+foto_estudio: "/images/equipe/estudio.jpg"
