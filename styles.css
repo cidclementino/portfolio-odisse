@@ -37,6 +37,7 @@ body {
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 a { color: inherit; }
@@ -198,6 +199,10 @@ img { display: block; max-width: 100%; }
   overflow: hidden;
   background: var(--claro);
   transition: height 0.45s cubic-bezier(.4,0,.2,1);
+  /* estica a galeria até a borda real da tela (não só até o respiro
+     lateral da página) — dá a sensação de que há mais conteúdo além
+     do que se vê, e favorece o arrastar */
+  margin-right: calc(-1 * ((100vw - min(1680px, 95vw)) / 2) - clamp(16px, 2.5vw, 40px));
 }
 .gallery__panel.is-open {
   height: min(680px, 76vh);
@@ -211,7 +216,7 @@ img { display: block; max-width: 100%; }
   display: flex;
   flex-direction: column;
   gap: 24px;
-  overflow-y: auto;
+  overflow-y: visible;
 }
 /* o container em si NUNCA fica invisível — é aqui que o título (o
    mesmo elemento que já estava na linha) é encaixado, e ele não pode
@@ -242,6 +247,7 @@ img { display: block; max-width: 100%; }
 .gallery__panel.is-revealed .panel__reveal { opacity: 1; }
 
 .panel__spreads {
+  position: relative;
   display: flex;
   align-items: stretch;
   gap: 32px;
@@ -249,7 +255,7 @@ img { display: block; max-width: 100%; }
   height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x proximity;
+  scroll-snap-type: none;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   cursor: grab;
@@ -265,19 +271,17 @@ img { display: block; max-width: 100%; }
   background: rgba(26,26,26,0.1);
 }
 .panel__progress span { display: block; height: 100%; width: 0%; background: var(--gold); transition: width 0.15s linear; }
-.panel__arrows { position: absolute; right: 20px; bottom: 16px; z-index: 5; display: flex; gap: 8px; }
-.panel__arrows button {
-  width: 36px; height: 36px;
+.panel__dots { position: absolute; right: 20px; bottom: 14px; z-index: 5; display: flex; gap: 8px; align-items: center; }
+.panel__dots button {
+  width: 7px; height: 7px;
+  padding: 0;
+  border: none;
   border-radius: 50%;
-  border: 1px solid rgba(26,26,26,0.2);
-  background: rgba(244,244,244,0.85);
-  color: var(--escuro);
+  background: rgba(26,26,26,0.22);
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
 }
-.panel__arrows button:hover { background: var(--gold); border-color: var(--gold); color: var(--escuro); }
-.panel__arrows svg { width: 14px; height: 14px; }
-.panel__arrows .prev svg { transform: rotate(180deg); }
+.panel__dots button.is-active { background: var(--gold); }
+.panel__dots button:hover { background: var(--copper); }
 .panel__loading, .panel__error {
   padding: 32px;
   font-size: 0.8rem;
@@ -325,7 +329,7 @@ img { display: block; max-width: 100%; }
   flex-direction: column;
   justify-content: space-between;
   border-right: 1px solid rgba(26,26,26,0.12);
-  overflow-y: auto;
+  overflow-y: visible;
 }
 .project__back {
   position: fixed;
@@ -382,6 +386,7 @@ img { display: block; max-width: 100%; }
 
 /* spreads (a esteira horizontal, em formato de filme) */
 .project__spreads {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: stretch;
@@ -390,7 +395,7 @@ img { display: block; max-width: 100%; }
   height: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x proximity;
+  scroll-snap-type: none;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   cursor: grab;
@@ -431,7 +436,7 @@ img { display: block; max-width: 100%; }
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  background: var(--parchment);
+  background: var(--claro);
   padding: 48px 36px;
   display: flex;
   flex-direction: column;
@@ -482,20 +487,18 @@ img { display: block; max-width: 100%; }
   transition: width 0.15s linear;
 }
 
-/* setas de navegação */
-.project__arrows { position: fixed; right: 28px; bottom: 26px; z-index: 30; display: flex; gap: 10px; }
-.project__arrows button {
-  width: 42px; height: 42px;
+/* pontinhos de navegação */
+.project__dots { position: fixed; right: 28px; bottom: 22px; z-index: 30; display: flex; gap: 10px; align-items: center; }
+.project__dots button {
+  width: 8px; height: 8px;
+  padding: 0;
+  border: none;
   border-radius: 50%;
-  border: 1px solid rgba(26,26,26,0.2);
-  background: rgba(244,244,244,0.85);
-  color: var(--escuro);
+  background: rgba(26,26,26,0.22);
   cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
 }
-.project__arrows button:hover { background: var(--gold); border-color: var(--gold); color: var(--escuro); }
-.project__arrows svg { width: 16px; height: 16px; }
-.project__arrows .prev svg { transform: rotate(180deg); }
+.project__dots button.is-active { background: var(--gold); }
+.project__dots button:hover { background: var(--copper); }
 
 @media (max-width: 780px) {
   .project { flex-direction: column; height: auto; min-height: 100svh; }
@@ -516,7 +519,7 @@ img { display: block; max-width: 100%; }
   .spread--texto { width: 84vw; }
   .texto-bloco { padding: 28px 24px; }
   .project__progress { left: 0; }
-  .project__arrows { right: 16px; bottom: 16px; }
+  .project__dots { right: 16px; bottom: 14px; }
 }
 
 /* ==========================================================================
