@@ -1,11 +1,11 @@
-// Dinâmica da home: ao clicar num projeto, a capa desliza pra esquerda e
-// some (sem encolher); o bloco de título/local é deslocado, via transform
-// calculado (técnica FLIP), até a posição que vai ocupar de verdade quando
-// a coluna da imagem for zerada — assim ele não "pula". Só então o
-// conteúdo do projeto (fetch da própria página do projeto) nasce por
-// baixo dessa coluna, revelando da esquerda pra direita; dentro dela, só
-// os metadados complementares (ano, cliente...) entram em fade — o
-// título/local já está visível, vindo da própria linha.
+// Dinâmica da home: ao clicar num projeto, a capa e o bloco título/local
+// se deslocam JUNTOS pra esquerda (mesma distância, calculada via FLIP) —
+// como se o texto empurrasse a capa pra fora; a capa acaba saindo da área
+// visível e some, o texto para exatamente onde vai assentar de verdade,
+// sem pular. O bloco de título/local NUNCA é recriado — ele é o mesmo
+// elemento que já estava na linha; só ganham fade os metadados
+// complementares (ano, cliente...) e as imagens/textos do projeto,
+// que aparecem abaixo dele.
 //
 // Um projeto aberto por vez (accordion).
 //
@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!row || !panel) return;
 
     var info = row.querySelector('.gallery__info');
+    var thumb = row.querySelector('.gallery__thumb');
     var url = row.getAttribute('href');
 
     row.addEventListener('click', function (e) {
@@ -47,24 +48,30 @@ document.addEventListener('DOMContentLoaded', function () {
       if (isOpen) {
         closeProject(row, panel);
       } else {
-        openProject(row, panel, info, url);
+        openProject(row, panel, info, thumb, url);
       }
     });
   });
 
-  function openProject(row, panel, info, url) {
+  function openProject(row, panel, info, thumb, url) {
     row.setAttribute('aria-expanded', 'true');
+    var isMobile = window.innerWidth <= 640;
 
-    // --- técnica FLIP ---
-    // 1) mede onde o texto está agora, relativo à linha
-    var rowRect = row.getBoundingClientRect();
-    var infoRect = info ? info.getBoundingClientRect() : null;
-    var deltaX = infoRect ? (infoRect.left - rowRect.left) : 0;
+    if (!isMobile) {
+      // --- técnica FLIP (só faz sentido no layout lado a lado) ---
+      // 1) mede onde o texto está agora, relativo à linha
+      var rowRect = row.getBoundingClientRect();
+      var infoRect = info ? info.getBoundingClientRect() : null;
+      var deltaX = infoRect ? (infoRect.left - rowRect.left) : 0;
 
-    // 2) desloca o texto (via transform) até a posição que ele vai
-    //    ocupar de verdade quando a coluna da imagem for zerada (x=0),
-    //    e ao mesmo tempo desliza a capa pra esquerda + fade
-    if (info) info.style.transform = 'translateX(-' + deltaX + 'px)';
+      // 2) desloca o texto E a capa JUNTOS, na mesma distância — como se o
+      //    texto estivesse empurrando a capa pra fora. A capa, por estar
+      //    mais à esquerda, acaba saindo da área visível (clipada) e some;
+      //    o texto para exatamente onde vai assentar de verdade.
+      var move = 'translateX(-' + deltaX + 'px)';
+      if (info) info.style.transform = move;
+      if (thumb) thumb.style.transform = move;
+    }
     row.classList.add('is-collapsing');
 
     // 3) abre o painel NA HORA — junto com o recolhimento da linha, não
@@ -73,11 +80,12 @@ document.addEventListener('DOMContentLoaded', function () {
     openPanel(panel, url);
 
     window.setTimeout(function () {
-      // 4) só então zera a coluna de verdade e remove o transform —
-      //    como o transform já deixou o texto exatamente nessa posição,
+      // 4) só então zera a coluna de verdade e remove os transforms —
+      //    como o transform já deixou tudo exatamente nessa posição,
       //    não há salto visual
       row.classList.add('is-settled');
       if (info) info.style.transform = '';
+      if (thumb) thumb.style.transform = '';
     }, ROW_COLLAPSE_MS);
   }
 
@@ -86,24 +94,28 @@ document.addEventListener('DOMContentLoaded', function () {
     closePanel(panel);
 
     var info = row.querySelector('.gallery__info');
+    var thumb = row.querySelector('.gallery__thumb');
+    var isMobile = window.innerWidth <= 640;
     // volta pro layout original e, com o mesmo truque ao contrário,
-    // anima o texto voltando pro lugar dele
+    // anima texto e capa voltando pro lugar deles, juntos
     row.classList.remove('is-settled');
+
+    if (isMobile) {
+      row.classList.remove('is-collapsing');
+      return;
+    }
 
     requestAnimationFrame(function () {
       var rowRect = row.getBoundingClientRect();
       var infoRect = info ? info.getBoundingClientRect() : null;
       var deltaX = infoRect ? (infoRect.left - rowRect.left) : 0;
-      if (info) {
-        info.style.transition = 'none';
-        info.style.transform = 'translateX(-' + deltaX + 'px)';
-      }
+      var move = 'translateX(-' + deltaX + 'px)';
+      if (info) { info.style.transition = 'none'; info.style.transform = move; }
+      if (thumb) { thumb.style.transition = 'none'; thumb.style.transform = move; }
       requestAnimationFrame(function () {
         row.classList.remove('is-collapsing');
-        if (info) {
-          info.style.transition = '';
-          info.style.transform = '';
-        }
+        if (info) { info.style.transition = ''; info.style.transform = ''; }
+        if (thumb) { thumb.style.transition = ''; thumb.style.transform = ''; }
       });
     });
   }
@@ -127,13 +139,17 @@ document.addEventListener('DOMContentLoaded', function () {
       })
       .then(function (html) {
         var doc = new DOMParser().parseFromString(html, 'text/html');
-        var sidebar = doc.querySelector('.project__sidebar');
+        var meta = doc.querySelector('.project__meta');
+        var share = doc.querySelector('.project__share');
         var spreads = doc.querySelector('.project__spreads');
-        if (!sidebar || !spreads) throw new Error('estrutura inesperada em ' + url);
+        if (!meta || !spreads) throw new Error('estrutura inesperada em ' + url);
 
         panel.innerHTML =
           '<div class="panel__inner">' +
-            '<aside class="panel__sidebar">' + sidebar.innerHTML + '</aside>' +
+            '<aside class="panel__sidebar">' +
+              meta.outerHTML +
+              (share ? share.outerHTML : '') +
+            '</aside>' +
             '<div class="panel__reveal">' +
               '<div class="panel__spreads">' + spreads.innerHTML + '</div>' +
             '</div>' +
@@ -150,9 +166,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
         wirePanel(panel);
 
-        // dispara a revelação (wipe do conteúdo + fade dos metadados)
+        // dispara a revelação (fade do conteúdo + fade dos metadados)
         // num próximo frame, pra garantir que o browser já pintou o
-        // estado inicial (clip-path fechado / opacity 0) antes de animar
+        // estado inicial (opacity 0) antes de animar
         window.setTimeout(function () {
           panel.classList.add('is-revealed');
         }, REVEAL_DELAY_MS);
