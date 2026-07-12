@@ -1,11 +1,8 @@
-// Dinâmica da home: ao clicar num projeto, a capa e o bloco título/local
-// se deslocam JUNTOS pra esquerda (mesma distância, calculada via FLIP) —
-// como se o texto empurrasse a capa pra fora; a capa acaba saindo da área
-// visível e some, o texto para exatamente onde vai assentar de verdade,
-// sem pular. O bloco de título/local NUNCA é recriado — ele é o mesmo
-// elemento que já estava na linha; só ganham fade os metadados
-// complementares (ano, cliente...) e as imagens/textos do projeto,
-// que aparecem abaixo dele.
+// Dinâmica da home: ao clicar num projeto, a capa desliza pra fora (some)
+// enquanto o bloco título/local é FISICAMENTE MOVIDO — o mesmo elemento
+// do DOM, não uma cópia — pra dentro da barra lateral que aparece abaixo.
+// Só os metadados complementares (ano, cliente...) e as imagens/textos
+// do projeto são conteúdo novo, buscado (fetch) da página do projeto.
 //
 // Um projeto aberto por vez (accordion).
 //
@@ -14,7 +11,6 @@
 // não roda em file://).
 
 var ROW_COLLAPSE_MS = 450;
-var REVEAL_DELAY_MS = 30;
 
 document.addEventListener('DOMContentLoaded', function () {
   var items = document.querySelectorAll('.gallery__item');
@@ -25,9 +21,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var panel = item.querySelector('.gallery__panel');
     if (!row || !panel) return;
 
-    var info = row.querySelector('.gallery__info');
-    var thumb = row.querySelector('.gallery__thumb');
-    var url = row.getAttribute('href');
+    // guarda as referências reais (o MESMO nó) pra usar tanto ao abrir
+    // quanto ao fechar — mesmo depois de o título ser movido de lugar
+    item._info = row.querySelector('.gallery__info');
+    item._thumb = row.querySelector('.gallery__thumb');
+    item._url = row.getAttribute('href');
 
     row.addEventListener('click', function (e) {
       e.preventDefault();
@@ -40,15 +38,15 @@ document.addEventListener('DOMContentLoaded', function () {
           var otherRow = otherItem.querySelector('.gallery__row');
           var otherPanel = otherItem.querySelector('.gallery__panel');
           if (otherPanel && otherPanel.classList.contains('is-open')) {
-            closeProject(otherRow, otherPanel);
+            closeProject(otherRow, otherPanel, otherItem._info, otherItem._thumb);
           }
         }
       });
 
       if (isOpen) {
-        closeProject(row, panel);
+        closeProject(row, panel, item._info, item._thumb);
       } else {
-        openProject(row, panel, info, thumb, url);
+        openProject(row, panel, item._info, item._thumb, item._url);
       }
     });
   });
@@ -58,46 +56,53 @@ document.addEventListener('DOMContentLoaded', function () {
     var isMobile = window.innerWidth <= 640;
 
     if (!isMobile) {
-      // --- técnica FLIP (só faz sentido no layout lado a lado) ---
-      // 1) mede onde o texto está agora, relativo à linha
+      // a capa e o título se deslocam JUNTOS, na mesma distância — como
+      // se o título empurrasse a capa pra fora. A capa, por estar mais à
+      // esquerda, sai da área visível (a linha tem overflow:hidden) e
+      // some; o título para exatamente onde a barra lateral começa.
       var rowRect = row.getBoundingClientRect();
-      var infoRect = info ? info.getBoundingClientRect() : null;
-      var deltaX = infoRect ? (infoRect.left - rowRect.left) : 0;
-
-      // 2) desloca o texto E a capa JUNTOS, na mesma distância — como se o
-      //    texto estivesse empurrando a capa pra fora. A capa, por estar
-      //    mais à esquerda, acaba saindo da área visível (clipada) e some;
-      //    o texto para exatamente onde vai assentar de verdade.
+      var infoRect = info.getBoundingClientRect();
+      var deltaX = infoRect.left - rowRect.left;
       var move = 'translateX(-' + deltaX + 'px)';
-      if (info) info.style.transform = move;
-      if (thumb) thumb.style.transform = move;
+      info.style.transform = move;
+      thumb.style.transform = move;
     }
     row.classList.add('is-collapsing');
 
-    // 3) abre o painel NA HORA — junto com o recolhimento da linha, não
-    //    depois. É isso que faz parecer uma coisa só se movendo, ao invés
-    //    de "a linha recolhe, para, e uma caixa aparece" (popup)
-    openPanel(panel, url);
+    // o painel começa a abrir NA HORA, junto com a capa saindo — não
+    // depois. É isso que evita a sensação de "recolhe, para, e uma
+    // caixa aparece" (popup)
+    var panelReady = openPanel(panel, url);
+    var rowSettled = new Promise(function (resolve) {
+      window.setTimeout(resolve, ROW_COLLAPSE_MS);
+    });
 
-    window.setTimeout(function () {
-      // 4) só então zera a coluna de verdade e remove os transforms —
-      //    como o transform já deixou tudo exatamente nessa posição,
-      //    não há salto visual
+    Promise.all([panelReady, rowSettled]).then(function (results) {
+      var sidebar = results[0];
       row.classList.add('is-settled');
-      if (info) info.style.transform = '';
-      if (thumb) thumb.style.transform = '';
-    }, ROW_COLLAPSE_MS);
+      info.style.transform = '';
+      thumb.style.transform = '';
+
+      if (sidebar) {
+        // move o título DE VERDADE (mesmo nó) pra dentro da barra lateral —
+        // como ele já parou exatamente na mesma posição em que a barra
+        // lateral começa (flush à esquerda), não há salto visual. Não
+        // recria, não duplica; os metadados entram logo depois dele
+        sidebar.insertBefore(info, sidebar.firstChild);
+        panel.classList.add('is-revealed');
+      }
+    });
   }
 
-  function closeProject(row, panel) {
+  function closeProject(row, panel, info, thumb) {
     row.setAttribute('aria-expanded', 'false');
-    closePanel(panel);
-
-    var info = row.querySelector('.gallery__info');
-    var thumb = row.querySelector('.gallery__thumb');
     var isMobile = window.innerWidth <= 640;
-    // volta pro layout original e, com o mesmo truque ao contrário,
-    // anima texto e capa voltando pro lugar deles, juntos
+
+    // traz o título de volta pra linha ANTES de fechar/limpar o painel
+    // (senão ele seria destruído junto com o resto do conteúdo buscado)
+    row.appendChild(info);
+
+    closePanel(panel);
     row.classList.remove('is-settled');
 
     if (isMobile) {
@@ -107,15 +112,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     requestAnimationFrame(function () {
       var rowRect = row.getBoundingClientRect();
-      var infoRect = info ? info.getBoundingClientRect() : null;
-      var deltaX = infoRect ? (infoRect.left - rowRect.left) : 0;
+      var infoRect = info.getBoundingClientRect();
+      var deltaX = infoRect.left - rowRect.left;
       var move = 'translateX(-' + deltaX + 'px)';
-      if (info) { info.style.transition = 'none'; info.style.transform = move; }
-      if (thumb) { thumb.style.transition = 'none'; thumb.style.transform = move; }
+      info.style.transition = 'none'; info.style.transform = move;
+      thumb.style.transition = 'none'; thumb.style.transform = move;
       requestAnimationFrame(function () {
         row.classList.remove('is-collapsing');
-        if (info) { info.style.transition = ''; info.style.transform = ''; }
-        if (thumb) { thumb.style.transition = ''; thumb.style.transform = ''; }
+        info.style.transition = ''; info.style.transform = '';
+        thumb.style.transition = ''; thumb.style.transform = '';
       });
     });
   }
@@ -123,16 +128,20 @@ document.addEventListener('DOMContentLoaded', function () {
   function closePanel(panel) {
     panel.classList.remove('is-open', 'is-revealed');
     // limpa o conteúdo só depois da transição, pra não cortar a animação
+    // (o título já foi resgatado antes de chegar aqui)
     window.setTimeout(function () {
       if (!panel.classList.contains('is-open')) panel.innerHTML = '';
     }, 520);
   }
 
+  // retorna uma Promise que resolve com o elemento da barra lateral
+  // (ainda vazio, pronto pra receber o título) assim que o conteúdo
+  // buscado estiver montado — ou null em caso de erro
   function openPanel(panel, url) {
     panel.innerHTML = '<div class="panel__loading">Carregando projeto…</div>';
     panel.classList.add('is-open');
 
-    fetch(url)
+    return fetch(url)
       .then(function (res) {
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.text();
@@ -146,10 +155,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         panel.innerHTML =
           '<div class="panel__inner">' +
-            '<aside class="panel__sidebar">' +
-              meta.outerHTML +
-              (share ? share.outerHTML : '') +
-            '</aside>' +
+            '<aside class="panel__sidebar"></aside>' +
             '<div class="panel__reveal">' +
               '<div class="panel__spreads">' + spreads.innerHTML + '</div>' +
             '</div>' +
@@ -164,20 +170,21 @@ document.addEventListener('DOMContentLoaded', function () {
             '</div>' +
           '</div>';
 
-        wirePanel(panel);
+        var sidebar = panel.querySelector('.panel__sidebar');
+        // meta/share vêm de um Document diferente (o do DOMParser) —
+        // precisam ser "importados" antes de entrar no documento atual
+        sidebar.appendChild(document.importNode(meta, true));
+        if (share) sidebar.appendChild(document.importNode(share, true));
 
-        // dispara a revelação (fade do conteúdo + fade dos metadados)
-        // num próximo frame, pra garantir que o browser já pintou o
-        // estado inicial (opacity 0) antes de animar
-        window.setTimeout(function () {
-          panel.classList.add('is-revealed');
-        }, REVEAL_DELAY_MS);
+        wirePanel(panel);
+        return sidebar;
       })
       .catch(function (err) {
         panel.innerHTML =
           '<div class="panel__error">Não consegui carregar esse projeto agora. ' +
           '<a href="' + url + '">Abrir em página própria</a>.</div>';
         console.error(err);
+        return null;
       });
   }
 
