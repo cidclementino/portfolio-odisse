@@ -18,6 +18,12 @@
 
 {{ content }}
 
+{% if page.url == '/index.html' or page.url == '/' %}
+<button class="back-to-top" aria-label="Voltar ao topo" type="button">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+{% endif %}
+
 {% include footer.html %}
 
 <script src="{{ '/script.js' | relative_url }}" defer></script>
