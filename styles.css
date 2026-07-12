@@ -763,7 +763,13 @@ img { display: block; max-width: 100%; }
 /* ==========================================================================
    FOOTER
    ========================================================================== */
-footer { background: var(--slate); color: rgba(244,244,244,0.7); padding: 48px var(--gutter) 32px; }
+footer {
+  background: var(--claro);
+  color: rgba(26,26,26,0.65);
+  padding: 48px var(--gutter) 32px;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+footer.footer--dark { background: var(--slate); color: rgba(244,244,244,0.7); }
 footer .wrap {
   max-width: var(--max);
   padding: 0;
@@ -773,12 +779,31 @@ footer .wrap {
   gap: 18px;
   text-align: center;
 }
-footer .mark { font-family: var(--display); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.78rem; color: var(--claro); }
-footer .mark .dot { color: var(--claro); }
+footer .mark { font-family: var(--display); font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; font-size: 0.78rem; color: var(--escuro); }
+footer.footer--dark .mark { color: var(--claro); }
+footer .mark .dot { color: inherit; }
+
+/* espaço reservado para a logo do estúdio, entre a marca e o menu */
+footer .footer__logo {
+  width: 40px;
+  height: 40px;
+  background:
+    repeating-linear-gradient(135deg, transparent 0 10px, rgba(26,26,26,0.08) 10px 11px),
+    linear-gradient(160deg, #E7E7E7, var(--claro));
+  border: 1px solid rgba(26,26,26,0.12);
+  border-radius: 50%;
+}
+footer.footer--dark .footer__logo {
+  background:
+    repeating-linear-gradient(135deg, transparent 0 10px, rgba(244,244,244,0.08) 10px 11px),
+    linear-gradient(160deg, rgba(244,244,244,0.12), transparent);
+  border-color: rgba(244,244,244,0.2);
+}
+
 footer ul { list-style: none; display: flex; gap: 22px; margin: 0; padding: 0; }
-footer a { text-decoration: none; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; transition: color 0.2s ease; }
+footer a { text-decoration: none; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: inherit; transition: color 0.2s ease; }
 footer a:hover { color: var(--gold); }
-footer .copy { font-size: 0.68rem; color: rgba(244,244,244,0.4); margin: 0; }
+footer .copy { font-size: 0.68rem; color: inherit; opacity: 0.7; margin: 0; }
 
 /* ==========================================================================
    MARCAS DE CANTO — remetem à fita da identidade visual, coladas nas
