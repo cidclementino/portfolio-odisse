@@ -10,7 +10,7 @@ url: "https://www.odisse.com.br"
 collections:
   projetos:
     output: true
-    permalink: /projetos/:name.html
+    permalink: /projetos/:name/
     sort_by: ordem
 
 defaults:
@@ -23,6 +23,14 @@ defaults:
       type: "projetos"
     values:
       layout: "projeto"
+  - scope:
+      path: "sobre.html"
+    values:
+      permalink: /sobre/
+  - scope:
+      path: "contato.html"
+    values:
+      permalink: /contato/
 
 exclude:
   - README.md
