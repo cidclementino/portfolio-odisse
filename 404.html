@@ -1,0 +1,39 @@
+---
+title: Página não encontrada — Odisse
+permalink: /404.html
+---
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redirecionando… — Odisse</title>
+<link rel="stylesheet" href="{{ '/styles.css' | relative_url }}">
+<script>
+  (function () {
+    var path = window.location.pathname;
+
+    // Qualquer URL antiga em /projects/<slug> (com ou sem barra final)
+    // redireciona para /projetos/<slug>/ — sem precisar listar cada projeto
+    var match = path.match(/^\/projects\/([^\/]+)\/?$/);
+    if (match) {
+      window.location.replace('/projetos/' + match[1] + '/');
+      return;
+    }
+
+    // /projects (listagem antiga, sem slug) redireciona pra Home,
+    // já que a Home hoje reúne todos os projetos
+    if (/^\/projects\/?$/.test(path)) {
+      window.location.replace('/');
+      return;
+    }
+  })();
+</script>
+</head>
+<body>
+  <main style="min-height:60vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:2rem;">
+    <h1>Página não encontrada</h1>
+    <p>Se você não foi redirecionado automaticamente, <a href="{{ '/' | relative_url }}">clique aqui para voltar à Home</a>.</p>
+  </main>
+</body>
+</html>
