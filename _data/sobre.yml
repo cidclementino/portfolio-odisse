@@ -40,7 +40,7 @@ descricao:
 nucleos:
   - nome: "Odisse Arquitetos"
     link_texto: "Conheça nossos serviços"
-    link_url: "/index.html"
+    link_url: "/"
     interno: true
     descricao: >
       Projetos residenciais, comerciais e de reforma pensados a partir da
