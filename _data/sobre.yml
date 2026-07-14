@@ -49,7 +49,7 @@ nucleos:
 
   - nome: "Odisse Objetos"
     link_texto: "Visite nossa loja"
-    link_url: "#"
+    link_url: "https://www.odisseobjetos.com/"
     interno: false
     descricao: >
       Mobiliário e peças autorais que traduzem a mesma pesquisa formal da
