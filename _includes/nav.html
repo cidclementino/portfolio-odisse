@@ -1,8 +1,8 @@
 <nav class="nav{% if page.url contains 'sobre' or page.url contains 'contato' %} nav--on-dark{% endif %}">
-  <a class="nav__mark" href="{{ '/index.html' | relative_url }}">Odisse</a>
+  <a class="nav__mark" href="{{ '/' | relative_url }}">Odisse</a>
   <ul class="nav__links">
-    <li><a href="{{ '/index.html' | relative_url }}"{% if page.url == '/index.html' or page.url == '/' %} aria-current="page"{% endif %}>Projetos</a></li>
-    <li><a href="{{ '/sobre.html' | relative_url }}"{% if page.url contains 'sobre' %} aria-current="page"{% endif %}>Sobre</a></li>
-    <li><a href="{{ '/contato.html' | relative_url }}"{% if page.url contains 'contato' %} aria-current="page"{% endif %}>Contato</a></li>
+    <li><a href="{{ '/' | relative_url }}"{% if page.url == '/' %} aria-current="page"{% endif %}>Projetos</a></li>
+    <li><a href="{{ '/sobre/' | relative_url }}"{% if page.url contains 'sobre' %} aria-current="page"{% endif %}>Sobre</a></li>
+    <li><a href="{{ '/contato/' | relative_url }}"{% if page.url contains 'contato' %} aria-current="page"{% endif %}>Contato</a></li>
   </ul>
 </nav>
