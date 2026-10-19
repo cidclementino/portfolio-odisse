@@ -99,6 +99,22 @@ secoes:
 
 Não precisa mexer em `index.html` nem duplicar nada lá.
 
+## Painel de edição (odisse.com.br/admin/)
+
+Projetos também podem ser criados e editados direto pelo site, em
+`/admin/`, sem abrir o GitHub. O painel (Sveltia CMS) grava os arquivos
+em `_projetos/` e as imagens em `images/{slug}/`, no mesmo formato
+descrito acima. Cada "Salvar" vira um commit na `main`, e o site
+atualiza em 1–2 minutos.
+
+- **Acesso:** botão "Sign In with Token", com um token fine-grained do
+  GitHub restrito a este repositório (permissões *Contents* e *Pull
+  requests*: leitura e escrita). O token fica salvo só no navegador
+  usado.
+- **Imagens:** convertidas para WebP no envio (máx. 2400 px, qualidade 82).
+- **Texto:** cada quebra de linha (Enter) vira um parágrafo.
+- **Campos e listas** (status, seções etc.) ficam em `admin/config.yml`.
+
 ## Sobre as imagens
 
 Os três projetos atuais (YVC, DCMCC, Altavista) estão com **imagens

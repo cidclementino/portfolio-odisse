@@ -1,0 +1,149 @@
+# yaml-language-server: $schema=https://unpkg.com/@sveltia/cms/schema/sveltia-cms.json
+# Painel de edição do portfólio — odisse.com.br/admin/
+
+backend:
+  name: github
+  repo: cidclementino/portfolio-odisse
+  branch: main
+  commit_messages:
+    create: "Novo projeto: {{slug}}"
+    update: "Atualiza projeto: {{slug}}"
+    delete: "Remove projeto: {{slug}}"
+    uploadMedia: "Envia imagem: {{path}}"
+    deleteMedia: "Remove imagem: {{path}}"
+
+site_url: https://www.odisse.com.br
+display_url: https://www.odisse.com.br
+
+# Pasta padrão de mídia (cada projeto usa a sua própria, definida abaixo)
+media_folder: images
+public_folder: /images
+
+# Imagens enviadas pelo painel são convertidas para WebP,
+# com no máximo 2400 px no lado maior e qualidade 82.
+media_libraries:
+  default:
+    config:
+      transformations:
+        raster_image:
+          format: webp
+          quality: 82
+          width: 2400
+          height: 2400
+
+# Endereços sem acento e sem caracteres especiais
+slug:
+  encoding: ascii
+  clean_accents: true
+  sanitize_replacement: "-"
+
+collections:
+  - name: projetos
+    label: Projetos
+    label_singular: Projeto
+    folder: _projetos
+    extension: html
+    format: yaml-frontmatter
+    create: true
+    delete: true
+    identifier_field: titulo
+    slug: "{{slug}}"
+    summary: "{{titulo}} — {{local}}"
+    sortable_fields:
+      fields: [ordem, titulo, ano]
+      default:
+        field: ordem
+        direction: ascending
+    preview_path: "projetos/{{slug}}/"
+    media_folder: /images/{{slug}}
+    public_folder: /images/{{slug}}
+
+    # A ordem dos campos segue a ordem em que aparecem na página
+    fields:
+      # — Ficha técnica —
+      - name: titulo
+        label: Título
+        widget: string
+
+      - name: local
+        label: Local
+        widget: string
+        hint: "Ex.: João Pessoa, Brasil"
+
+      - name: ano
+        label: Ano
+        widget: number
+        value_type: int
+        required: false
+
+      - name: cliente
+        label: Cliente
+        widget: string
+        required: false
+
+      - name: tipologia
+        label: Tipologia
+        widget: string
+        required: false
+        hint: "Ex.: Residencial, Comercial, Interiores"
+
+      - name: area
+        label: Área
+        widget: string
+        required: false
+        hint: "Ex.: 320 m²"
+
+      - name: status
+        label: Status
+        widget: select
+        required: false
+        options:
+          - Ideia
+          - Conceito
+          - Em desenvolvimento
+          - Em obra
+          - Concluído
+
+      - name: capa
+        label: Capa
+        widget: image
+        hint: "Imagem usada na galeria da página inicial."
+
+      - name: ordem
+        label: Ordem na página inicial
+        widget: number
+        value_type: int
+        hint: "Menor número aparece primeiro."
+
+      # — Seções do projeto —
+      - name: secoes
+        label: Seções
+        label_singular: seção
+        widget: list
+        typeKey: tipo
+        collapsed: auto
+        thumbnail: imagem
+        types:
+          - name: imagem
+            label: Imagem
+            description: "Uma imagem em tela cheia."
+            summary: "Imagem — {{alt}}"
+            fields:
+              - name: imagem
+                label: Imagem
+                widget: image
+              - name: alt
+                label: Descrição da imagem
+                widget: string
+                required: false
+                hint: "Texto alternativo, para leitores de tela e buscadores. Ex.: Residência YVC — fachada"
+
+          - name: texto
+            label: Texto
+            description: "Um bloco de texto ocupando metade da tela."
+            summary: "Texto — {{texto | truncate(60)}}"
+            fields:
+              - name: texto
+                label: Texto
+                widget: text
+                hint: "Cada quebra de linha (Enter) inicia um novo parágrafo."

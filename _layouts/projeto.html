@@ -53,7 +53,11 @@
         {% when 'texto' %}
         <div class="spread spread--texto">
           <div class="texto-bloco">
-            {{ secao.texto | markdownify }}
+            {% assign paragrafos = secao.texto | newline_to_br | split: '<br />' %}
+            {% for paragrafo in paragrafos %}
+              {% assign p = paragrafo | strip %}
+              {% if p != '' %}{{ p | markdownify }}{% endif %}
+            {% endfor %}
           </div>
         </div>
 
