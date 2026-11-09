@@ -1,0 +1,60 @@
+{
+  "estudio": {
+    "nome": "Odisse, Estúdio de Arquitetura e Design",
+    "descricao": "Estúdio de arquitetura e design em João Pessoa. Projetos de arquitetura, interiores, objetos autorais e pesquisa editorial."
+  },
+  "paginas": {
+    "home": {
+      "titulo": "Odisse, Estúdio de Arquitetura e Design",
+      "descricao": "Odisse, Estúdio de Arquitetura e Design, em João Pessoa. Projetos de arquitetura, objetos autorais e pesquisa editorial."
+    },
+    "sobre": {
+      "titulo": "Sobre — Odisse",
+      "descricao": "Odisse — Estúdio de Arquitetura & Design. Arquitetura, objetos autorais e pesquisa editorial construídos na tensão entre memória e potencialidade."
+    },
+    "contato": {
+      "titulo": "Contato — Odisse",
+      "descricao": "Fale com o estúdio Odisse — Arquitetura & Design, João Pessoa."
+    }
+  },
+  "og_imagem": "/assets/og/5cc0f9239a3a48c8.jpg",
+  "ficha": {
+    "@context": "https://schema.org",
+    "@type": "ProfessionalService",
+    "@id": "https://www.odisse.com.br/#estudio",
+    "name": "Odisse, Estúdio de Arquitetura e Design",
+    "url": "https://www.odisse.com.br/",
+    "logo": "https://www.odisse.com.br/assets/brand/favicon-512.png",
+    "image": "https://www.odisse.com.br/assets/og/5cc0f9239a3a48c8.jpg",
+    "description": "Estúdio de arquitetura e design em João Pessoa. Projetos de arquitetura, interiores, objetos autorais e pesquisa editorial.",
+    "telephone": "+55 83 99122-3088",
+    "email": "contato@odisse.com.br",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Rua Bananeiras, 361 – Sala 107, Manaíra",
+      "addressLocality": "João Pessoa",
+      "addressRegion": "PB",
+      "postalCode": "58038-170",
+      "addressCountry": "BR"
+    },
+    "areaServed": "João Pessoa, Paraíba e outras cidades do Brasil",
+    "founder": [
+      {
+        "@type": "Person",
+        "name": "Cid Clementino"
+      },
+      {
+        "@type": "Person",
+        "name": "Nathalia Linhares"
+      }
+    ],
+    "sameAs": [
+      "https://www.instagram.com/odisseestudio/",
+      "https://www.tiktok.com/@odisseestudio",
+      "https://www.youtube.com/@odisseestudio",
+      "https://odisse.substack.com/",
+      "https://www.odisseobjetos.com/",
+      "https://projetos.odisse.com.br"
+    ]
+  }
+}

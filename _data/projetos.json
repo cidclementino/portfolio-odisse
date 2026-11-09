@@ -1,0 +1,35 @@
+[
+  {
+    "slug": "residencia-yvc",
+    "titulo": "Residência YVC",
+    "local": "João Pessoa, Brasil",
+    "atualizado": "2026-11-09T05:38:49.564Z",
+    "imagens": [
+      {
+        "url": "https://site-odisse.reservaprojectbasework.workers.dev/img/5cc0f9239a3a48c8-m"
+      }
+    ]
+  },
+  {
+    "slug": "residencia-dcmcc",
+    "titulo": "Residência DCMCC",
+    "local": "João Pessoa, Brasil",
+    "atualizado": "2026-11-09T03:54:22.869Z",
+    "imagens": [
+      {
+        "url": "https://site-odisse.reservaprojectbasework.workers.dev/img/3e45195178aa4a11-m"
+      }
+    ]
+  },
+  {
+    "slug": "residencia-altavista",
+    "titulo": "Residência Altavista",
+    "local": "João Pessoa, Brasil",
+    "atualizado": "2026-11-09T03:54:26.757Z",
+    "imagens": [
+      {
+        "url": "https://site-odisse.reservaprojectbasework.workers.dev/img/45e096e7351a4fbc-m"
+      }
+    ]
+  }
+]
