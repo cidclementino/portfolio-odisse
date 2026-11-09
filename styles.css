@@ -30,6 +30,7 @@
   --slate: #495763;
   --gold: #D8A263; /* reservado apenas para o estado de hover dos links */
   --linha: rgba(244, 244, 244, 0.4);
+  --vazio: #E6E6E4; /* fundo liso enquanto a imagem não chega (placeholder) */
 
   --display: 'Inter', -apple-system, sans-serif;
   --ui: 'Inter', -apple-system, sans-serif;
@@ -124,10 +125,11 @@ img { display: block; max-width: 100%; }
   display: flex;
   align-items: center;
   height: 18px;
-  color: inherit;
+  color: var(--slate); /* o azul Odisse — o mesmo do menu ativo */
   text-decoration: none;
 }
-.nav__mark svg { height: 15px; width: auto; display: block; }
+.nav--on-dark .nav__mark { color: inherit; }
+.nav__mark svg { height: 21px; width: auto; display: block; }
 .nav__links { display: flex; gap: 28px; list-style: none; margin: 0; padding: 0; }
 .nav__links a {
   text-decoration: none;
@@ -151,7 +153,7 @@ img { display: block; max-width: 100%; }
   :root { --nav-centro: 31px; --ponto: 5px; }
   .nav__links { gap: 16px; }
   .nav { padding: 18px var(--gutter); }
-  .nav__mark svg { height: 13px; }
+  .nav__mark svg { height: 17px; }
   .contato__doc { max-width: 86vw; }
 }
 
@@ -180,10 +182,7 @@ img { display: block; max-width: 100%; }
   grid-column: 2;
   aspect-ratio: 4/3;
   overflow: hidden;
-  background:
-    repeating-linear-gradient(135deg, transparent 0 16px, rgba(26,26,26,0.06) 16px 17px),
-    linear-gradient(160deg, #E7E7E7, var(--claro));
-  border: 1px solid rgba(26,26,26,0.12);
+  background: var(--vazio);
   transform: scale(1) translateX(0);
   transition: transform 0.45s cubic-bezier(.4,0,.2,1), opacity 0.4s ease;
 }
@@ -277,14 +276,33 @@ img { display: block; max-width: 100%; }
    piscar. Só os metadados complementares, que são conteúdo novo
    buscado da página do projeto, entram em fade. */
 .panel__sidebar .project__meta,
-.panel__sidebar .project__share {
+.panel__sidebar .project__share,
+.panel__sidebar .panel__fechar {
   opacity: 0;
   transition: opacity 0.4s ease;
 }
 .gallery__panel.is-revealed .panel__sidebar .project__meta,
-.gallery__panel.is-revealed .panel__sidebar .project__share {
+.gallery__panel.is-revealed .panel__sidebar .project__share,
+.gallery__panel.is-revealed .panel__sidebar .panel__fechar {
   opacity: 1;
 }
+
+/* fechar o projeto — no pé da barra lateral */
+.panel__fechar {
+  margin-top: auto;
+  flex-shrink: 0;
+  width: 40px; height: 40px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(26,26,26,0.2);
+  background: transparent;
+  color: var(--escuro);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity 0.4s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+.panel__fechar:hover { background: var(--slate); border-color: var(--slate); color: var(--claro); }
+.panel__fechar svg { width: 16px; height: 16px; display: block; }
 /* o bloco de título já tem padding próprio pensado pra quando está na
    linha; dentro da barra lateral isso somaria com o padding dela */
 .panel__sidebar .gallery__info { padding: 0; gap: 2px; }
@@ -358,6 +376,7 @@ img { display: block; max-width: 100%; }
   }
   .panel__sidebar .project__meta { flex-direction: row; flex-wrap: wrap; margin-top: 0; gap: 16px; }
   .panel__sidebar .project__share { margin-top: 0; }
+  .panel__fechar { margin-top: 0; margin-left: auto; }
   .panel__spreads { height: auto; flex: 1; }
 }
 
@@ -496,11 +515,15 @@ img { display: block; max-width: 100%; }
   aspect-ratio: 4 / 3;
 }
 
-/* texto: dimensão fixa, mais esguio, fundo claro (cartão) */
+/* texto: cartão de fundo claro em três larguras, escolhidas no painel —
+   P (esguio, o padrão), M (uma coluna mais larga) e G (duas colunas,
+   pra textos longos se distribuírem sem ficar comprimidos) */
 .spread--texto {
   align-items: center;
   width: min(360px, 72vw);
 }
+.spread--texto-m { width: min(540px, 80vw); }
+.spread--texto-g { width: min(820px, 86vw); }
 .texto-bloco {
   width: 100%;
   height: 100%;
@@ -509,9 +532,13 @@ img { display: block; max-width: 100%; }
   padding: 48px 36px;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: safe center; /* texto que não cabe começa do topo, sem cortar */
+  overflow-y: auto;
+  scrollbar-width: thin;
   text-align: left;
 }
+.spread--texto-g .texto-bloco { display: block; columns: 2; column-gap: 44px; align-content: center; }
+.spread--texto-g .texto-bloco p { break-inside: avoid-column; }
 .texto-bloco p {
   font-size: 0.92rem;
   line-height: 1.7;
@@ -523,10 +550,7 @@ img { display: block; max-width: 100%; }
 .frame {
   position: relative;
   overflow: hidden;
-  background:
-    repeating-linear-gradient(135deg, transparent 0 22px, rgba(26,26,26,0.06) 22px 23px),
-    linear-gradient(160deg, #E7E7E7, var(--claro));
-  border: 1px solid rgba(26,26,26,0.12);
+  background: var(--vazio); /* espera da imagem: cor lisa, sem hachura */
 }
 .frame img { display: block; -webkit-user-drag: none; user-drag: none; }
 
@@ -557,7 +581,8 @@ img { display: block; max-width: 100%; }
   .project__meta { flex-direction: row; flex-wrap: wrap; margin-top: 0; gap: 20px; }
   .project__share { margin-top: 0; }
   .project__spreads { height: 62vh; gap: 24px; padding: 0 20px; }
-  .spread--texto { width: 84vw; }
+  .spread--texto, .spread--texto-m, .spread--texto-g { width: 84vw; }
+  .spread--texto-g .texto-bloco { columns: 1; }
   .texto-bloco { padding: 28px 24px; }
   .project__dots { right: 16px; bottom: 14px; }
 }
@@ -606,6 +631,7 @@ img { display: block; max-width: 100%; }
   background: var(--claro);
 }
 
+.sobre .frame { background: rgba(244,244,244,0.09); } /* placeholder liso, no tom do azul */
 .sobre__intro-photo { margin-bottom: 28px; }
 .sobre__intro-photo .frame { width: 100%; aspect-ratio: 3/2; border: none; }
 .sobre__intro-photo img { width: 100%; height: 100%; object-fit: cover; }
@@ -847,14 +873,14 @@ footer .copy { font-size: 0.68rem; color: inherit; opacity: 0.7; margin: 0; }
   width: min(560px, 62%);
   margin: 0 auto;
   aspect-ratio: 4/3;
-  background: linear-gradient(100deg, #E9E9E9 30%, #F1F1F1 50%, #E9E9E9 70%) 0 0 / 300% 100%;
-  animation: esqueleto 1.4s ease-in-out infinite;
+  background: var(--vazio);
+  animation: esqueleto 1.6s ease-in-out infinite alternate;
 }
-@keyframes esqueleto { from { background-position: 100% 0; } to { background-position: 0 0; } }
+@keyframes esqueleto { from { opacity: 1; } to { opacity: .55; } }
 .gallery.is-ready .gallery__item { animation: page-fade-in 0.35s ease both; }
 .gallery__aviso { text-align: center; font-size: 0.8rem; letter-spacing: 0.08em; color: var(--slate); padding: 15vh 0; }
 .project__title--carregando h1, .project__title--carregando .place {
-  display: block; width: 180px; background: #E9E9E9; color: transparent;
+  display: block; width: 180px; background: var(--vazio); color: transparent;
 }
 .project__title--carregando .place { width: 120px; margin-top: 8px; }
 .project__spreads .spread { animation: page-fade-in 0.35s ease both; }
@@ -866,3 +892,8 @@ footer .copy { font-size: 0.68rem; color: inherit; opacity: 0.7; margin: 0; }
 }
 .nao-encontrada h1 { font-weight: 700; letter-spacing: -0.02em; font-size: 1.6rem; margin: 0 0 8px; }
 .nao-encontrada a { color: var(--slate); }
+
+/* Sobre e Contato: o conteúdo editado no painel chega da nuvem; até lá (no
+   máximo 1,5 s) a seção fica invisível, pra não piscar a versão antiga */
+.sobre, .contato { transition: opacity 0.25s ease; }
+.pag-aguarda .sobre, .pag-aguarda .contato { opacity: 0; }

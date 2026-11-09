@@ -8,7 +8,54 @@
 // da nuvem: a galeria é montada aqui e só depois ganha a dinâmica.
 
 var ROW_COLLAPSE_MS = 450;
-var SCROLL_MAX_WAIT_MS = 600;
+var SCROLL_MS = 620; // centralização: um pouco mais que o recolhimento do projeto de cima
+
+// altura final do painel aberto — a mesma de .gallery__panel.is-open no CSS
+function alturaPainel() {
+  return window.innerWidth <= 780
+    ? Math.min(720, window.innerHeight * 0.82)
+    : Math.min(680, window.innerHeight * 0.76);
+}
+
+// Leva o elemento `el` até a altura `alvo()` da tela (px a partir do topo),
+// com easing. A cada quadro a rolagem é recalculada a partir da posição REAL
+// do elemento — então, se o projeto de cima está se recolhendo (e puxando
+// tudo pra cima), a compensação é exata e o projeto clicado desliza direto
+// pro centro, sem ser arrastado pra fora da tela. Uma nova rolagem cancela a
+// anterior; a roda do mouse ou o toque do usuário também.
+var rolagemAtual = 0;
+// rolagem imediata — o CSS tem scroll-behavior: smooth, que transformaria
+// cada correção de quadro numa animação própria (e uma cancelaria a outra)
+function rolarJa(dy) {
+  window.scrollTo({ top: window.scrollY + dy, behavior: 'instant' });
+}
+function seguir(el, alvo, ms) {
+  var id = ++rolagemAtual;
+  var reduzir = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return new Promise(function (resolve) {
+    var t0 = performance.now();
+    var inicio = el.getBoundingClientRect().top;
+    function interromper() { if (rolagemAtual === id) rolagemAtual = -1; }
+    function fim() {
+      window.removeEventListener('wheel', interromper);
+      window.removeEventListener('touchstart', interromper);
+      if (rolagemAtual === id) rolagemAtual = 0;
+      resolve();
+    }
+    window.addEventListener('wheel', interromper, { passive: true });
+    window.addEventListener('touchstart', interromper, { passive: true });
+    function passo(agora) {
+      if (rolagemAtual !== id) return fim();
+      var t = reduzir ? 1 : Math.min(1, (agora - t0) / ms);
+      var e = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; // easeInOutCubic
+      var desejado = inicio + (alvo() - inicio) * e;
+      var dy = el.getBoundingClientRect().top - desejado;
+      if (Math.abs(dy) >= 0.5) rolarJa(dy);
+      if (t < 1) requestAnimationFrame(passo); else fim();
+    }
+    requestAnimationFrame(passo);
+  });
+}
 
 document.addEventListener('DOMContentLoaded', function () {
   var P = window.Odisse.projetos;
@@ -63,47 +110,50 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function startOpen() {
       var isOpen = panel.classList.contains('is-open');
-
-      // fecha qualquer outro projeto aberto (accordion: só um por vez)
-      document.querySelectorAll('.gallery__item').forEach(function (otherItem) {
-        if (otherItem !== item) {
-          var otherRow = otherItem.querySelector('.gallery__row');
-          var otherPanel = otherItem.querySelector('.gallery__panel');
-          if (otherPanel && otherPanel.classList.contains('is-open')) {
-            closeProject(otherRow, otherPanel, otherItem._info, otherItem._thumb);
-          }
-        }
-      });
-
       if (isOpen) {
         closeProject(row, panel, item._info, item._thumb);
         return;
       }
+      if (item._abrindo) return;
+      item._abrindo = true;
 
-      // antes de qualquer outra coisa, centraliza a linha clicada na
-      // tela — só depois disso a animação de abertura começa
-      row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      waitForScrollEnd(SCROLL_MAX_WAIT_MS).then(function () {
+      // fecha qualquer outro projeto aberto (accordion: só um por vez).
+      // Fechar um projeto que está ACIMA devolve a capa dele à linha na
+      // hora (a página cresce de uma vez) e recolhe o painel aos poucos
+      // (a página encolhe). O salto imediato é compensado aqui mesmo, no
+      // mesmo quadro — o projeto clicado não sai do lugar; o recolhimento
+      // gradual é compensado pela rolagem que persegue o alvo (seguir).
+      var antes = row.getBoundingClientRect().top;
+      fecharOutros(item);
+      var salto = row.getBoundingClientRect().top - antes;
+      if (salto) rolarJa(salto);
+
+      // o projeto abre no lugar da linha (a linha recolhe e o painel ocupa
+      // o espaço dela): a linha vai pra posição em que o painel aberto fica
+      // centralizado na tela — e só então a abertura começa
+      seguir(row, function () {
+        return Math.max(64, (window.innerHeight - alturaPainel()) / 2);
+      }, SCROLL_MS).then(function () {
+        item._abrindo = false;
         openProject(row, panel, item._info, item._thumb, item._url, item._slug);
       });
     }
   });
 
-  // espera o scroll suave terminar (evento 'scrollend', quando o
-  // navegador suporta) ou, no máximo, o tempo indicado
-  function waitForScrollEnd(maxWait) {
-    return new Promise(function (resolve) {
-      var done = false;
-      function finish() {
-        if (done) return;
-        done = true;
-        window.removeEventListener('scrollend', finish);
-        resolve();
+  function fecharOutros(atual) {
+    document.querySelectorAll('.gallery__item').forEach(function (otherItem) {
+      if (otherItem === atual) return;
+      var otherPanel = otherItem.querySelector('.gallery__panel');
+      if (otherPanel && otherPanel.classList.contains('is-open')) {
+        closeProject(otherItem.querySelector('.gallery__row'), otherPanel, otherItem._info, otherItem._thumb);
       }
-      window.addEventListener('scrollend', finish, { once: true });
-      window.setTimeout(finish, maxWait);
     });
   }
+
+  // Esc fecha o projeto aberto
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') fecharOutros(null);
+  });
 
   } // fim de ligar()
 
@@ -140,6 +190,8 @@ document.addEventListener('DOMContentLoaded', function () {
       thumb.style.transform = '';
 
       if (sidebar) {
+        // a linha recolhe (capa some) e o painel sobe pro lugar dela — já
+        // centralizado, porque a rolagem levou a linha até lá antes de abrir
         // move o título DE VERDADE (mesmo nó) pra dentro da barra lateral —
         // como ele já parou exatamente na mesma posição em que a barra
         // lateral começa (flush à esquerda), não há salto visual. Não
@@ -210,7 +262,15 @@ document.addEventListener('DOMContentLoaded', function () {
           '</div>';
 
         var sidebar = panel.querySelector('.panel__sidebar');
-        sidebar.insertAdjacentHTML('beforeend', P.meta(p));
+        sidebar.insertAdjacentHTML('beforeend', P.meta(p) +
+          '<button type="button" class="panel__fechar" aria-label="Fechar projeto" title="Fechar projeto">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
+          '</button>');
+        sidebar.querySelector('.panel__fechar').addEventListener('click', function (e) {
+          e.stopPropagation();
+          var item = panel.closest('.gallery__item');
+          closeProject(item.querySelector('.gallery__row'), panel, item._info, item._thumb);
+        });
 
         if (window.Odisse.metricas) panel._registro = window.Odisse.metricas.projeto(slug, 'home');
         wirePanel(panel);

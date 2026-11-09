@@ -18,6 +18,8 @@
     </a>
     <nav class="menu" aria-label="Menu do painel">
       <a href="#/projetos" data-menu="projetos">Projetos</a>
+      <a href="#/sobre" data-menu="sobre">Sobre</a>
+      <a href="#/contato" data-menu="contato">Contato</a>
       <a href="#/metricas" data-menu="metricas">Métricas</a>
     </nav>
     <div class="topo-acoes">
@@ -31,7 +33,7 @@
     <form class="login-caixa" id="formLogin">
       <span class="login-selo" data-marca="mao"></span>
       <h1>Painel do site</h1>
-      <p>Projetos e métricas de odisse.com.br.</p>
+      <p>Projetos, páginas e métricas de odisse.com.br.</p>
       <label class="campo"><span>Senha</span><input type="password" id="loginSenha" autocomplete="current-password" required></label>
       <p class="erro" id="loginErro" role="alert"></p>
       <button type="submit" class="bt-forte" id="btEntrar">Entrar</button>
@@ -96,6 +98,7 @@
         <div class="grupo">
           <h3>Capa na Home</h3>
           <div class="capa-escolha" id="capaEscolha"></div>
+          <small class="dica-lado">Qualquer imagem do banco pode ser a capa.</small>
         </div>
       </div>
     </aside>
@@ -104,7 +107,7 @@
       <div class="palco-barra">
         <div>
           <h2>Sequência</h2>
-          <p>Imagens e textos na ordem em que aparecem no projeto. Arraste pelo rótulo para reordenar; solte arquivos aqui para adicionar imagens.</p>
+          <p>Imagens e textos na ordem em que aparecem no projeto. Arraste imagens do banco para cá; arraste pelo rótulo para reordenar.</p>
         </div>
         <div class="acoes">
           <button class="bt" id="btAddImg">+ Imagem</button>
@@ -113,7 +116,48 @@
       </div>
       <div class="esteira" id="esteira"></div>
     </section>
+
+    <aside class="banco" id="bancoLado">
+      <div class="lado-cab banco-cab">
+        <div>
+          <h2>Banco de imagens</h2>
+          <p id="bancoInfo"></p>
+        </div>
+        <button class="bt" id="btBancoEnviar" title="Enviar imagens do computador para o banco">+ Enviar</button>
+      </div>
+      <div class="banco-filtro seg" role="group" aria-label="Filtrar o banco" id="bancoFiltro">
+        <button data-f="todas" class="ativo">Todas</button>
+        <button data-f="livres">Não usadas</button>
+      </div>
+      <div class="banco-corpo" id="banco"></div>
+      <p class="banco-dica">Arraste para a sequência, ou use <b>+</b> na imagem para pôr no fim. Solte arquivos aqui para enviar. Arrastar uma imagem da sequência para cá tira ela da sequência (fica no banco).</p>
+    </aside>
     <input type="file" id="arquivo" accept="image/*" multiple hidden>
+  </main>
+
+  <!-- ===================== PÁGINAS (Sobre e Contato) ===================== -->
+  <main class="pagina pagina-ed" id="paginaEd">
+    <div class="sec-cab linha pag-cab">
+      <div>
+        <h1 id="pagTitulo">Página</h1>
+        <p id="pagInfo"></p>
+      </div>
+      <div class="ed-salvar">
+        <span class="sinc" id="pagSinc" data-estado="pronto"><span class="bolinha"></span><span id="pagSincTxt"></span></span>
+        <a class="bt" id="pagVer" href="#" target="_blank" rel="noopener">Ver no site ↗</a>
+        <button class="bt-forte" id="pagSalvar" title="Salvar na nuvem (Ctrl+S)">Salvar</button>
+      </div>
+    </div>
+    <div class="formato">
+      <b>Como escrever os textos</b>
+      <span><kbd>Enter</kbd> quebra a linha</span>
+      <span>linha em branco abre novo parágrafo</span>
+      <span>link: <code>[texto](https://…)</code></span>
+      <span>e-mail: <code>[contato@…](mailto:contato@…)</code></span>
+      <span>negrito: <code>**texto**</code></span>
+    </div>
+    <div id="pagForm"></div>
+    <input type="file" id="pagArquivo" accept="image/*" hidden>
   </main>
 
   <!-- ===================== MÉTRICAS ===================== -->
@@ -134,6 +178,7 @@
 
   <div class="aviso" id="aviso" role="status"></div>
   <div class="dica" id="dica" hidden></div>
+  <div class="seletor" id="seletor" hidden></div>
 
   <script type="module" src="app.js"></script>
 </body>

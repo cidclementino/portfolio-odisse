@@ -26,7 +26,7 @@ async function req(caminho, opc = {}, s = senha()) {
   if (!res.ok) {
     let msg = `O servidor respondeu ${res.status}.`;
     try { msg = (await res.json()).error || msg; } catch { /* corpo vazio */ }
-    throw new Error(msg);
+    throw Object.assign(new Error(msg), { status: res.status });
   }
   return res.json();
 }
@@ -38,6 +38,8 @@ const nuvem = {
   ordem: (ids) => req('/api/admin/ordem', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ids) }),
   imagem: (ref, blob) => req(`/api/admin/imagens/${ref}`, { method: 'PUT', headers: { 'Content-Type': blob.type }, body: blob }),
   metricas: (dias) => req(`/api/admin/metricas?dias=${dias}`),
+  pagina: (nome) => req(`/api/admin/paginas/${nome}`),
+  gravarPagina: (nome, d) => req(`/api/admin/paginas/${nome}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }),
 };
 const imgUrl = (ref, m = true) => `${API}/img/${ref}${m ? '-m' : ''}`;
 const novoId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 16);
@@ -80,10 +82,11 @@ async function enviarImagem(arquivo) {
 
 // ------------------------------------------------------------------ vistas
 let vista = '';
-function mostrar(v) {
+function mostrar(v, menu = v === 'editor' ? 'projetos' : v) {
   vista = v;
   document.body.className = `vista-${v}`;
-  $$('.menu a').forEach((a) => a.classList.toggle('ativo', a.dataset.menu === v || (v === 'editor' && a.dataset.menu === 'projetos')));
+  if (v !== 'editor') fecharSeletor();
+  $$('.menu a').forEach((a) => a.classList.toggle('ativo', a.dataset.menu === menu));
 }
 
 function rota() {
@@ -91,6 +94,7 @@ function rota() {
   const h = location.hash.replace(/^#\/?/, '');
   const [nome, id] = h.split('/');
   if (nome === 'metricas') { mostrar('metricas'); return carregarMetricas(); }
+  if (nome === 'sobre' || nome === 'contato') { mostrar('pagina', nome); return abrirPagina(nome); }
   if (nome === 'novo') { mostrar('editor'); return abrirEditor(null); }
   if (nome === 'projeto' && id) { mostrar('editor'); return abrirEditor(id); }
   mostrar('projetos');
@@ -105,9 +109,18 @@ window.addEventListener('hashchange', () => {
     }
     ed.sujo = false;
   }
+  if (vista === 'pagina' && pg.sujo && location.hash !== `#/${pg.nome}`) {
+    if (!confirm(`Há alterações não salvas na página ${PAG_NOME[pg.nome]}. Sair mesmo assim?`)) {
+      history.replaceState(null, '', `#/${pg.nome}`);
+      return;
+    }
+    pg.sujo = false;
+  }
   rota();
 });
-window.addEventListener('beforeunload', (e) => { if (vista === 'editor' && (ed.sujo || ed.enviando)) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', (e) => {
+  if ((vista === 'editor' && (ed.sujo || ed.enviando)) || (vista === 'pagina' && (pg.sujo || pg.enviando))) { e.preventDefault(); e.returnValue = ''; }
+});
 
 // ------------------------------------------------------------------ entrada
 $('#formLogin').addEventListener('submit', async (e) => {
@@ -301,20 +314,40 @@ $('#btImportar').addEventListener('click', async () => {
 });
 
 // ------------------------------------------------------------------ editor
-const ed = { p: null, novo: false, sujo: false, enviando: 0, slugManual: false, menuEntre: null };
+// O projeto tem duas listas de imagens:
+//   banco  -> todas as imagens enviadas para o projeto (coluna da direita)
+//   secoes -> a sequência publicada: imagens (tiradas do banco) e textos
+// Tirar uma imagem da sequência não a apaga: ela continua no banco.
+const ed = { p: null, novo: false, sujo: false, enviando: 0, slugManual: false, filtro: 'todas' };
 const CAMPOS = { fTitulo: 'titulo', fSlug: 'slug', fLocal: 'local', fAno: 'ano', fArea: 'area', fCliente: 'cliente', fTipologia: 'tipologia', fStatus: 'status' };
+const LARGURAS = { p: 'P', m: 'M', g: 'G' };
+const LARG_TIT = { p: 'Estreito — uma coluna esguia', m: 'Médio — uma coluna larga', g: 'Largo — duas colunas, para textos longos' };
 
 function slugDe(txt) {
   return String(txt || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 70);
 }
 
+// banco = o que já estava no banco + toda imagem da sequência + a capa
+// (projetos criados antes do banco existir ganham o banco aqui)
+function montarBanco(p) {
+  const vistos = new Set();
+  const out = [];
+  const add = (x) => { if (x?.ref && !vistos.has(x.ref)) { vistos.add(x.ref); out.push({ ref: x.ref, w: x.w, h: x.h }); } };
+  (p.banco || []).forEach(add);
+  p.secoes.filter((s) => s.tipo === 'imagem').forEach(add);
+  add(p.capa);
+  return out;
+}
+
 async function abrirEditor(id) {
   ed.sujo = false;
   ed.enviando = 0;
   ed.novo = !id;
+  fecharSeletor();
   if (id) {
     $('#esteira').innerHTML = '<p class="esteira-vazia">Carregando…</p>';
+    $('#banco').innerHTML = '';
     try {
       ed.p = await nuvem.ler(id);
     } catch (err) {
@@ -323,8 +356,9 @@ async function abrirEditor(id) {
       return;
     }
   } else {
-    ed.p = { id: novoId(), titulo: '', slug: '', local: 'João Pessoa, Brasil', ano: String(new Date().getFullYear()), cliente: '', tipologia: '', area: '', status: '', visivel: false, capa: null, secoes: [] };
+    ed.p = { id: novoId(), titulo: '', slug: '', local: 'João Pessoa, Brasil', ano: String(new Date().getFullYear()), cliente: '', tipologia: '', area: '', status: '', visivel: false, capa: null, banco: [], secoes: [] };
   }
+  ed.p.banco = montarBanco(ed.p);
   ed.slugManual = !!id;
   for (const [campo, chave] of Object.entries(CAMPOS)) $('#' + campo).value = ed.p[chave] ?? '';
   $('#fVisivel').checked = ed.p.visivel !== false;
@@ -340,7 +374,7 @@ function estado(e, txt) {
 }
 function mudou() {
   ed.sujo = true;
-  estado('pendente', 'Alterações não salvas');
+  estado(ed.enviando ? 'enviando' : 'pendente', ed.enviando ? `Enviando ${ed.enviando}…` : 'Alterações não salvas');
   desenharTopoEditor();
 }
 
@@ -355,24 +389,109 @@ function desenharEditor() {
   desenharTopoEditor();
   desenharCapa();
   desenharEsteira();
+  desenharBanco();
 }
 
+const srcDe = (x) => x._preview || (x.ref ? imgUrl(x.ref) : '');
+
 function desenharCapa() {
-  const imgs = ed.p.secoes.filter((s) => s.tipo === 'imagem' && s.ref);
+  const imgs = ed.p.banco.filter((b) => b.ref);
   const atual = ed.p.capa?.ref || '';
   $('#capaEscolha').innerHTML =
     `<button class="${atual ? '' : 'ativo'}" data-ref="" title="Usar a primeira imagem da sequência"><span class="auto">Primeira imagem</span></button>` +
-    imgs.map((s) => `<button class="${atual === s.ref ? 'ativo' : ''}" data-ref="${s.ref}"><img src="${s._preview || imgUrl(s.ref)}" alt=""></button>`).join('');
+    imgs.map((b) => `<button class="${atual === b.ref ? 'ativo' : ''}" data-ref="${b.ref}"><img src="${srcDe(b)}" alt="" loading="lazy"></button>`).join('');
 }
 $('#capaEscolha').addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  const s = ed.p.secoes.find((x) => x.ref === b.dataset.ref);
-  ed.p.capa = s ? { ref: s.ref, w: s.w, h: s.h } : null;
+  const bt = e.target.closest('button');
+  if (!bt) return;
+  const b = ed.p.banco.find((x) => x.ref && x.ref === bt.dataset.ref);
+  ed.p.capa = b ? { ref: b.ref, w: b.w, h: b.h } : null;
   desenharCapa();
   mudou();
 });
 
+// ---- banco de imagens (coluna da direita)
+const posicoesDe = (ref) => ed.p.secoes.reduce((a, s, i) => (s.tipo === 'imagem' && ref && s.ref === ref ? [...a, i + 1] : a), []);
+
+function desenharBanco() {
+  const banco = ed.p.banco;
+  const livres = banco.filter((b) => b.ref && !posicoesDe(b.ref).length).length;
+  $('#bancoInfo').textContent = banco.length
+    ? `${banco.length} ${banco.length === 1 ? 'imagem' : 'imagens'} · ${livres} fora da sequência`
+    : 'Nenhuma imagem ainda';
+  $$('#bancoFiltro button').forEach((b) => b.classList.toggle('ativo', b.dataset.f === ed.filtro));
+  const el = $('#banco');
+  if (!banco.length) {
+    el.innerHTML = '<div class="banco-vazio"><span>Envie aqui todas as imagens do projeto.</span><button class="bt" data-acao="b-enviar">Escolher arquivos</button><span>ou solte os arquivos nesta coluna</span></div>';
+    return;
+  }
+  const itens = banco.map((b, k) => ({ b, k, pos: posicoesDe(b.ref) }))
+    .filter(({ b, pos }) => ed.filtro === 'todas' || !b.ref || !pos.length);
+  if (!itens.length) { el.innerHTML = '<p class="banco-nada">Todas as imagens do banco já estão na sequência.</p>'; return; }
+  el.innerHTML = '<div class="banco-grade">' + itens.map(({ b, k, pos }) => `
+    <div class="bimg${pos.length ? ' em-uso' : ''}${b._enviando ? ' subindo' : ''}" data-k="${k}" draggable="${b.ref ? 'true' : 'false'}"
+      title="${pos.length ? `Na sequência: posição ${pos.join(', ')}` : 'Fora da sequência'} — arraste para a sequência">
+      <img src="${srcDe(b)}" alt="" loading="lazy" draggable="false">
+      ${pos.length ? `<span class="uso">${pos.join(' · ')}</span>` : ''}
+      ${ed.p.capa?.ref && ed.p.capa.ref === b.ref ? '<span class="capa-tag">Capa</span>' : ''}
+      ${b._enviando ? '<span class="enviando">Enviando…</span>' : `<span class="bimg-acoes">
+        <button data-acao="b-usar" title="Pôr no fim da sequência">+</button>
+        <button data-acao="b-apagar" class="perigo" title="Excluir do banco">✕</button></span>`}
+    </div>`).join('') + '</div>';
+}
+
+$('#bancoFiltro').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  ed.filtro = b.dataset.f;
+  desenharBanco();
+});
+$('#btBancoEnviar').addEventListener('click', () => { alvoArquivo = { pos: null }; $('#arquivo').click(); });
+
+function secaoDoBanco(b, alt = '') { return { tipo: 'imagem', ref: b.ref, w: b.w, h: b.h, alt }; }
+
+function inserirDoBanco(b, pos) {
+  ed.p.secoes.splice(pos, 0, secaoDoBanco(b));
+  desenharEditor();
+  mudou();
+  $(`.caixa[data-i="${pos}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+}
+function trocarPeloBanco(b, i) {
+  const antiga = ed.p.secoes[i];
+  ed.p.secoes[i] = secaoDoBanco(b, antiga.alt || '');
+  desenharEditor();
+  mudou();
+}
+
+$('#banco').addEventListener('click', (e) => {
+  const bt = e.target.closest('[data-acao]');
+  if (!bt) return;
+  if (bt.dataset.acao === 'b-enviar') { alvoArquivo = { pos: null }; return $('#arquivo').click(); }
+  const k = +bt.closest('.bimg').dataset.k;
+  const b = ed.p.banco[k];
+  if (!b?.ref) return;
+  if (bt.dataset.acao === 'b-usar') return inserirDoBanco(b, ed.p.secoes.length);
+  if (bt.dataset.acao === 'b-apagar') {
+    const pos = posicoesDe(b.ref);
+    const msg = pos.length
+      ? `Esta imagem está na sequência (posição ${pos.join(', ')}). Excluir do banco também a tira da sequência. Continuar?`
+      : 'Excluir esta imagem do banco do projeto?';
+    if (!confirm(msg)) return;
+    ed.p.banco.splice(k, 1);
+    ed.p.secoes = ed.p.secoes.filter((s) => !(s.tipo === 'imagem' && s.ref === b.ref));
+    if (ed.p.capa?.ref === b.ref) ed.p.capa = null;
+    desenharEditor();
+    mudou();
+  }
+});
+$('#banco').addEventListener('dblclick', (e) => {
+  const item = e.target.closest('.bimg');
+  if (!item || e.target.closest('button')) return;
+  const b = ed.p.banco[+item.dataset.k];
+  if (b?.ref) inserirDoBanco(b, ed.p.secoes.length);
+});
+
+// ---- esteira (a sequência)
 function entre(i) {
   return `<div class="entre" data-pos="${i}"><button title="Inserir aqui" data-acao="inserir">+</button></div>`;
 }
@@ -382,26 +501,29 @@ function desenharEsteira() {
   requestAnimationFrame(medirEsteira);
   const sec = ed.p.secoes;
   if (!sec.length) {
-    est.innerHTML = `<div class="esteira-vazia"><span>A sequência está vazia.</span><span>Adicione imagens e textos — ou solte arquivos de imagem aqui.</span></div>`;
+    est.innerHTML = `<div class="esteira-vazia"><span>A sequência está vazia.</span><span>Arraste imagens do banco para cá, ou use + Imagem e + Texto.</span></div>`;
     return;
   }
   est.innerHTML = sec.map((s, i) => {
+    const larg = s.tipo === 'texto' ? (LARGURAS[s.largura] ? s.largura : 'p') : '';
     const barra = `<div class="caixa-barra">
         <span class="n">${i + 1}</span>
         <span class="tipo" draggable="true" title="Arraste para reordenar">${s.tipo === 'imagem' ? 'Imagem' : 'Texto'} ⠿</span>
+        ${s.tipo === 'texto' ? `<span class="larg" role="group" aria-label="Largura do texto">${Object.entries(LARGURAS).map(([k, r]) =>
+          `<button data-acao="larg" data-l="${k}" class="${larg === k ? 'ativo' : ''}" title="${LARG_TIT[k]}">${r}</button>`).join('')}</span>` : ''}
         <button data-acao="esq" title="Mover para a esquerda" ${i === 0 ? 'disabled' : ''}>←</button>
         <button data-acao="dir" title="Mover para a direita" ${i === sec.length - 1 ? 'disabled' : ''}>→</button>
         ${s.tipo === 'imagem' ? '<button data-acao="trocar" title="Trocar imagem">Trocar</button>' : ''}
-        <button data-acao="excluir" class="perigo" title="Excluir">✕</button>
+        <button data-acao="excluir" class="perigo" title="${s.tipo === 'imagem' ? 'Tirar da sequência (continua no banco)' : 'Excluir texto'}">✕</button>
       </div>`;
     if (s.tipo === 'texto') {
-      return entre(i) + `<div class="caixa caixa--texto" data-i="${i}">${barra}
+      return entre(i) + `<div class="caixa caixa--texto larg-${larg}" data-i="${i}">${barra}
         <div class="caixa-corpo"><textarea data-campo="texto" placeholder="Escreva o texto. Cada Enter abre um novo parágrafo.">${esc(s.texto)}</textarea></div>
-        <small>Cada Enter vira um parágrafo no site.</small></div>`;
+        <small>Cada Enter vira um parágrafo no site.${larg === 'g' ? ' No site, este texto corre em duas colunas.' : ''}</small></div>`;
     }
-    const src = s._preview || (s.ref ? imgUrl(s.ref) : '');
+    const src = srcDe(s);
     return entre(i) + `<div class="caixa caixa--imagem" data-i="${i}"${s.w ? ` style="--r:${(s.w / s.h).toFixed(4)}"` : ''}>${barra}
-      <div class="caixa-corpo">${src ? `<img src="${src}" alt="">` : '<button class="sem-img" data-acao="trocar">Escolher imagem</button>'}
+      <div class="caixa-corpo">${src ? `<img src="${src}" alt="" draggable="false">` : '<button class="sem-img" data-acao="trocar">Escolher imagem</button>'}
       ${s._enviando ? '<div class="enviando">Enviando…</div>' : ''}</div>
       <input class="alt" data-campo="alt" placeholder="Descrição da imagem (acessibilidade)" value="${esc(s.alt)}"></div>`;
   }).join('') + entre(sec.length);
@@ -421,58 +543,101 @@ $('#esteira').addEventListener('load', (e) => {
 }, true);
 
 // ações nas caixas
-let alvoArquivo = null; // { pos, substituir }
+let alvoArquivo = null; // { pos: número | null (só banco), substituir }
 $('#esteira').addEventListener('click', (e) => {
   const b = e.target.closest('[data-acao]');
-  if (!b) {
-    if (ed.menuEntre && !e.target.closest('.menu-entre')) fecharMenuEntre();
-    return;
-  }
+  if (!b) return;
   const acao = b.dataset.acao;
-  if (acao === 'inserir') return abrirMenuEntre(b.closest('.entre'));
-  if (acao === 'novo-img') { alvoArquivo = { pos: +b.closest('.entre').dataset.pos }; fecharMenuEntre(); return $('#arquivo').click(); }
-  if (acao === 'novo-txt') { const pos = +b.closest('.entre').dataset.pos; fecharMenuEntre(); return inserirTexto(pos); }
+  if (acao === 'inserir') return abrirSeletor(b, { pos: +b.closest('.entre').dataset.pos });
   const caixa = b.closest('.caixa');
   if (!caixa) return;
   const i = +caixa.dataset.i;
   const sec = ed.p.secoes;
   if (acao === 'esq' && i > 0) [sec[i - 1], sec[i]] = [sec[i], sec[i - 1]];
   else if (acao === 'dir' && i < sec.length - 1) [sec[i + 1], sec[i]] = [sec[i], sec[i + 1]];
+  else if (acao === 'larg') { if (sec[i].largura === b.dataset.l || (!sec[i].largura && b.dataset.l === 'p')) return; sec[i].largura = b.dataset.l; }
   else if (acao === 'excluir') {
     const s = sec[i];
-    const vazio = s.tipo === 'texto' ? !s.texto?.trim() : !s.ref;
-    if (!vazio && !confirm(s.tipo === 'imagem' ? 'Excluir esta imagem do projeto?' : 'Excluir este texto?')) return;
-    sec.splice(i, 1);
-    if (ed.p.capa && s.ref === ed.p.capa.ref) ed.p.capa = null;
-  } else if (acao === 'trocar') { alvoArquivo = { pos: i, substituir: true }; return $('#arquivo').click(); }
+    if (s.tipo === 'texto' && s.texto?.trim() && !confirm('Excluir este texto?')) return;
+    sec.splice(i, 1); // imagem: sai só da sequência, continua no banco
+  } else if (acao === 'trocar') return abrirSeletor(b, { trocar: i });
   else return;
   desenharEditor();
   mudou();
 });
 
-function abrirMenuEntre(el) {
-  fecharMenuEntre();
-  el.insertAdjacentHTML('beforeend', '<div class="menu-entre"><button data-acao="novo-img">+ Imagem</button><button data-acao="novo-txt">+ Texto</button></div>');
-  ed.menuEntre = el;
-}
-function fecharMenuEntre() {
-  ed.menuEntre?.querySelector('.menu-entre')?.remove();
-  ed.menuEntre = null;
-}
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') fecharMenuEntre();
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && vista === 'editor') { e.preventDefault(); salvar(); }
-});
-
 function inserirTexto(pos) {
-  ed.p.secoes.splice(pos, 0, { tipo: 'texto', texto: '' });
+  ed.p.secoes.splice(pos, 0, { tipo: 'texto', texto: '', largura: 'p' });
   desenharEditor();
   mudou();
   $(`.caixa[data-i="${pos}"] textarea`)?.focus();
   $(`.caixa[data-i="${pos}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
 }
 $('#btAddTxt').addEventListener('click', () => inserirTexto(ed.p.secoes.length));
-$('#btAddImg').addEventListener('click', () => { alvoArquivo = { pos: ed.p.secoes.length }; $('#arquivo').click(); });
+$('#btAddImg').addEventListener('click', (e) => abrirSeletor(e.currentTarget, { pos: ed.p.secoes.length }));
+
+// ---- seletor do "+": imagem do banco, do computador, ou texto
+let seletorModo = null; // { pos } inserir | { trocar: i }
+function abrirSeletor(ancora, modo) {
+  seletorModo = modo;
+  const sel = $('#seletor');
+  const imgs = ed.p.banco.filter((b) => b.ref);
+  const trocar = modo.trocar !== undefined;
+  sel.innerHTML = `
+    <div class="seletor-cab">${trocar ? 'Trocar por uma imagem do banco' : 'Imagem do banco'}</div>
+    ${imgs.length ? `<div class="seletor-grade">${imgs.map((b) => {
+      const pos = posicoesDe(b.ref);
+      return `<button data-ref="${b.ref}" class="${pos.length ? 'em-uso' : ''}" title="${pos.length ? 'Já na sequência: ' + pos.join(', ') : 'Fora da sequência'}"><img src="${srcDe(b)}" alt="" loading="lazy">${pos.length ? `<span>${pos.join('·')}</span>` : ''}</button>`;
+    }).join('')}</div>` : '<p class="seletor-vazio">O banco está vazio — envie imagens pela coluna da direita ou do computador.</p>'}
+    <div class="seletor-acoes">
+      <button data-sel="pc">Do computador…</button>
+      ${trocar ? '' : '<button data-sel="txt">+ Texto</button>'}
+    </div>`;
+  sel.hidden = false;
+  const r = ancora.getBoundingClientRect();
+  const w = sel.offsetWidth, h = sel.offsetHeight;
+  let x = r.left + r.width / 2 - w / 2;
+  let y = r.bottom + 8;
+  if (y + h > innerHeight - 12) y = Math.max(12, r.top - h - 8);
+  x = Math.max(12, Math.min(innerWidth - w - 12, x));
+  sel.style.left = `${x}px`;
+  sel.style.top = `${y}px`;
+}
+function fecharSeletor() {
+  const sel = $('#seletor');
+  if (sel) sel.hidden = true;
+  seletorModo = null;
+}
+$('#seletor').addEventListener('click', (e) => {
+  const modo = seletorModo;
+  if (!modo) return;
+  const img = e.target.closest('[data-ref]');
+  const op = e.target.closest('[data-sel]')?.dataset.sel;
+  if (img) {
+    const b = ed.p.banco.find((x) => x.ref === img.dataset.ref);
+    fecharSeletor();
+    if (!b) return;
+    return modo.trocar !== undefined ? trocarPeloBanco(b, modo.trocar) : inserirDoBanco(b, modo.pos);
+  }
+  if (op === 'pc') {
+    fecharSeletor();
+    alvoArquivo = modo.trocar !== undefined ? { pos: modo.trocar, substituir: true } : { pos: modo.pos };
+    return $('#arquivo').click();
+  }
+  if (op === 'txt') { fecharSeletor(); inserirTexto(modo.pos); }
+});
+document.addEventListener('mousedown', (e) => {
+  if (seletorModo && !e.target.closest('#seletor') && !e.target.closest('[data-acao="inserir"], [data-acao="trocar"], #btAddImg')) fecharSeletor();
+});
+$('#esteira').addEventListener('scroll', fecharSeletor, { passive: true });
+window.addEventListener('resize', fecharSeletor);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') fecharSeletor();
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    if (vista === 'editor') { e.preventDefault(); salvar(); }
+    if (vista === 'pagina') { e.preventDefault(); salvarPagina(); }
+  }
+});
 
 $('#esteira').addEventListener('input', (e) => {
   const campo = e.target.dataset.campo;
@@ -490,59 +655,82 @@ $('#arquivo').addEventListener('change', (e) => {
   alvoArquivo = null;
 });
 
-async function adicionarImagens(arquivos, pos, substituir = false) {
-  const novas = arquivos.map((f) => ({ tipo: 'imagem', ref: '', alt: '', _preview: URL.createObjectURL(f), _enviando: true, _arq: f }));
-  if (substituir) {
-    const antiga = ed.p.secoes[pos];
-    novas[0].alt = antiga.alt || '';
-    if (ed.p.capa && antiga.ref === ed.p.capa.ref) ed.p.capa = null;
-    ed.p.secoes.splice(pos, 1, novas[0]);
-    novas.length = 1;
-  } else {
-    ed.p.secoes.splice(pos, 0, ...novas);
+// Envia arquivos: todos entram no banco; com `pos`, entram também na sequência
+// (com `substituir`, o primeiro troca a imagem daquela posição).
+async function adicionarImagens(arquivos, pos = null, substituir = false) {
+  const lote = arquivos.map((f) => ({ ref: '', _preview: URL.createObjectURL(f), _enviando: true, _arq: f }));
+  ed.p.banco.push(...lote);
+  let secs = [];
+  if (pos !== null && pos !== undefined) {
+    secs = lote.map((b) => ({ tipo: 'imagem', ref: '', alt: '', _preview: b._preview, _enviando: true, _banco: b }));
+    if (substituir) {
+      const antiga = ed.p.secoes[pos];
+      secs = secs.slice(0, 1);
+      secs[0].alt = antiga?.alt || '';
+      ed.p.secoes.splice(pos, 1, secs[0]);
+    } else {
+      ed.p.secoes.splice(pos, 0, ...secs);
+    }
   }
   desenharEditor();
   mudou();
-  $(`.caixa[data-i="${pos}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-  for (const s of novas) {
-    ed.enviando++;
-    estado('enviando', `Enviando ${ed.enviando} ${ed.enviando === 1 ? 'imagem' : 'imagens'}…`);
+  if (secs.length) $(`.caixa[data-i="${pos}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  else $('#banco .bimg:last-child')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  ed.enviando += lote.length;
+  estado('enviando', `Enviando ${ed.enviando} ${ed.enviando === 1 ? 'imagem' : 'imagens'}…`);
+  for (const b of lote) {
+    const ligadas = secs.filter((s) => s._banco === b);
     try {
-      Object.assign(s, await enviarImagem(s._arq));
+      const r = await enviarImagem(b._arq);
+      Object.assign(b, r);
+      ligadas.forEach((s) => Object.assign(s, r));
     } catch (err) {
       aviso(`Uma imagem não foi enviada: ${err.message}`, true);
-      ed.p.secoes.splice(ed.p.secoes.indexOf(s), 1);
+      ed.p.banco.splice(ed.p.banco.indexOf(b), 1);
+      ligadas.forEach((s) => { const i = ed.p.secoes.indexOf(s); if (i >= 0) ed.p.secoes.splice(i, 1); });
     }
-    delete s._enviando; delete s._arq;
+    delete b._enviando; delete b._arq;
+    ligadas.forEach((s) => { delete s._enviando; delete s._banco; });
     ed.enviando--;
     desenharEditor();
     estado(ed.enviando ? 'enviando' : 'pendente', ed.enviando ? `Enviando ${ed.enviando}…` : 'Alterações não salvas');
   }
 }
 
-// soltar arquivos na esteira
+// ---- arrastar e soltar
+// três tipos de arraste: arquivos do computador, imagem do banco, caixa da sequência
 const est = $('#esteira');
-est.addEventListener('dragover', (e) => {
-  if (secArrastada !== null) return;
-  if (![...e.dataTransfer.types].includes('Files')) return;
-  e.preventDefault();
-  est.classList.add('solta');
-});
-est.addEventListener('dragleave', (e) => { if (!est.contains(e.relatedTarget)) est.classList.remove('solta'); });
-est.addEventListener('drop', (e) => {
-  if (secArrastada !== null) return;
-  const arquivos = [...(e.dataTransfer.files || [])].filter((f) => f.type.startsWith('image/'));
-  est.classList.remove('solta');
-  if (!arquivos.length) return;
-  e.preventDefault();
-  const entreEl = e.target.closest('.entre');
-  const caixa = e.target.closest('.caixa');
-  const pos = entreEl ? +entreEl.dataset.pos : caixa ? +caixa.dataset.i + 1 : ed.p.secoes.length;
-  adicionarImagens(arquivos, pos);
-});
+const banco = $('#bancoLado');
+let secArrastada = null;   // índice da caixa da sequência sendo arrastada
+let bancoArrastado = null; // índice da imagem do banco sendo arrastada
+const temArquivos = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
 
-// reordenar caixas arrastando pelo rótulo
-let secArrastada = null;
+function posicaoSoltar(e) {
+  // a fresta mais próxima do cursor
+  let melhor = ed.p.secoes.length, dist = Infinity;
+  for (const x of $$('.entre', est)) {
+    const r = x.getBoundingClientRect();
+    const d = Math.abs(e.clientX - (r.left + r.width / 2));
+    if (d < dist) { dist = d; melhor = +x.dataset.pos; }
+  }
+  return melhor;
+}
+function limparAlvos() {
+  est.classList.remove('solta');
+  banco.classList.remove('solta', 'tirar');
+  $$('.entre', est).forEach((x) => x.classList.remove('alvo'));
+}
+
+banco.addEventListener('dragstart', (e) => {
+  const item = e.target.closest?.('.bimg');
+  if (!item || item.getAttribute('draggable') !== 'true') return;
+  bancoArrastado = +item.dataset.k;
+  item.classList.add('arrastando');
+  e.dataTransfer.effectAllowed = 'copy';
+  e.dataTransfer.setData('text/plain', 'banco');
+  const img = item.querySelector('img');
+  if (img) e.dataTransfer.setDragImage(img, 30, 30);
+});
 est.addEventListener('dragstart', (e) => {
   const rot = e.target.closest?.('.tipo');
   if (!rot) return;
@@ -553,38 +741,70 @@ est.addEventListener('dragstart', (e) => {
   e.dataTransfer.setData('text/plain', 'secao');
   e.dataTransfer.setDragImage(caixa, 20, 20);
 });
+document.addEventListener('dragend', () => {
+  secArrastada = null;
+  bancoArrastado = null;
+  $$('.caixa, .bimg').forEach((x) => x.classList.remove('arrastando'));
+  limparAlvos();
+});
+
 est.addEventListener('dragover', (e) => {
-  if (secArrastada === null) return;
+  const arquivos = temArquivos(e);
+  if (secArrastada === null && bancoArrastado === null && !arquivos) return;
   e.preventDefault();
+  e.dataTransfer.dropEffect = secArrastada !== null ? 'move' : 'copy';
   const alvo = posicaoSoltar(e);
+  est.classList.toggle('solta', arquivos || bancoArrastado !== null);
   $$('.entre', est).forEach((x) => x.classList.toggle('alvo', +x.dataset.pos === alvo));
 });
+est.addEventListener('dragleave', (e) => { if (!est.contains(e.relatedTarget)) limparAlvos(); });
 est.addEventListener('drop', (e) => {
-  if (secArrastada === null) return;
+  const arquivos = [...(e.dataTransfer.files || [])].filter((f) => f.type.startsWith('image/'));
+  if (secArrastada === null && bancoArrastado === null && !arquivos.length) return;
   e.preventDefault();
   let para = posicaoSoltar(e);
-  const [s] = ed.p.secoes.splice(secArrastada, 1);
-  if (para > secArrastada) para--;
-  ed.p.secoes.splice(para, 0, s);
-  secArrastada = null;
-  desenharEditor();
-  mudou();
-});
-est.addEventListener('dragend', () => {
-  secArrastada = null;
-  $$('.caixa', est).forEach((x) => x.classList.remove('arrastando'));
-  $$('.entre', est).forEach((x) => x.classList.remove('alvo'));
-});
-function posicaoSoltar(e) {
-  // a fresta mais próxima do cursor
-  let melhor = 0, dist = Infinity;
-  for (const x of $$('.entre', est)) {
-    const r = x.getBoundingClientRect();
-    const d = Math.abs(e.clientX - (r.left + r.width / 2));
-    if (d < dist) { dist = d; melhor = +x.dataset.pos; }
+  if (secArrastada !== null) {
+    const [s] = ed.p.secoes.splice(secArrastada, 1);
+    if (para > secArrastada) para--;
+    ed.p.secoes.splice(para, 0, s);
+    secArrastada = null;
+    limparAlvos();
+    desenharEditor();
+    mudou();
+  } else if (bancoArrastado !== null) {
+    const b = ed.p.banco[bancoArrastado];
+    bancoArrastado = null;
+    limparAlvos();
+    if (b?.ref) inserirDoBanco(b, para);
+  } else {
+    limparAlvos();
+    adicionarImagens(arquivos, para);
   }
-  return melhor;
-}
+});
+
+// soltar no banco: arquivos entram no banco; uma imagem da sequência sai da sequência
+banco.addEventListener('dragover', (e) => {
+  const caixaImg = secArrastada !== null && ed.p.secoes[secArrastada]?.tipo === 'imagem';
+  if (!temArquivos(e) && !caixaImg) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = caixaImg ? 'move' : 'copy';
+  banco.classList.add(caixaImg ? 'tirar' : 'solta');
+});
+banco.addEventListener('dragleave', (e) => { if (!banco.contains(e.relatedTarget)) banco.classList.remove('solta', 'tirar'); });
+banco.addEventListener('drop', (e) => {
+  const caixaImg = secArrastada !== null && ed.p.secoes[secArrastada]?.tipo === 'imagem';
+  const arquivos = [...(e.dataTransfer.files || [])].filter((f) => f.type.startsWith('image/'));
+  if (!caixaImg && !arquivos.length) return;
+  e.preventDefault();
+  limparAlvos();
+  if (caixaImg) {
+    ed.p.secoes.splice(secArrastada, 1);
+    secArrastada = null;
+    desenharEditor();
+    mudou();
+    aviso('Imagem tirada da sequência — continua no banco.');
+  } else adicionarImagens(arquivos, null);
+});
 
 // campos de informação
 for (const [campo, chave] of Object.entries(CAMPOS)) {
@@ -612,9 +832,12 @@ async function salvar() {
   if (!p.slug) { aviso('O endereço do projeto está vazio.', true); return; }
   const limpo = {
     ...p,
+    banco: p.banco.filter((b) => b.ref).map((b) => ({ ref: b.ref, w: b.w, h: b.h })),
     secoes: p.secoes
       .filter((s) => (s.tipo === 'imagem' ? s.ref : (s.texto || '').trim()))
-      .map((s) => (s.tipo === 'imagem' ? { tipo: 'imagem', ref: s.ref, w: s.w, h: s.h, alt: (s.alt || '').trim() } : { tipo: 'texto', texto: s.texto.trim() })),
+      .map((s) => (s.tipo === 'imagem'
+        ? { tipo: 'imagem', ref: s.ref, w: s.w, h: s.h, alt: (s.alt || '').trim() }
+        : { tipo: 'texto', texto: s.texto.trim(), ...(s.largura === 'm' || s.largura === 'g' ? { largura: s.largura } : {}) })),
   };
   for (const k of Object.values(CAMPOS)) if (typeof limpo[k] === 'string') limpo[k] = limpo[k].trim();
   estado('salvando', 'Salvando…');
@@ -635,6 +858,245 @@ async function salvar() {
   }
 }
 $('#btSalvar').addEventListener('click', salvar);
+
+// ------------------------------------------------------------------ páginas (Sobre e Contato)
+// O conteúdo fica na nuvem (pagina:sobre, pagina:contato). Enquanto uma página
+// nunca foi salva pelo painel, o formulário abre com o conteúdo que está hoje
+// no site (paginas-semente.json, gerado de _data/paginas.json).
+const pg = { nome: '', d: null, sujo: false, enviando: 0, alvoImg: null };
+const PAG_NOME = { sobre: 'Sobre', contato: 'Contato' };
+
+const pegarCaminho = (obj, cam) => cam.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
+function porCaminho(obj, cam, v) {
+  const ks = cam.split('.');
+  const ult = ks.pop();
+  const alvo = ks.reduce((o, k) => (o[k] ??= /^\d+$/.test(k) ? [] : {}), obj);
+  alvo[ult] = v;
+}
+
+async function abrirPagina(nome) {
+  pg.nome = nome;
+  pg.sujo = false;
+  pg.enviando = 0;
+  $('#pagTitulo').textContent = PAG_NOME[nome];
+  $('#pagVer').href = `/${nome}/`;
+  $('#pagInfo').textContent = '';
+  $('#pagForm').innerHTML = '<p class="vazio">Carregando…</p>';
+  estadoPag('pronto');
+  let semente = false;
+  try {
+    pg.d = await nuvem.pagina(nome);
+  } catch (err) {
+    if (err.status !== 404) {
+      $('#pagForm').innerHTML = `<p class="vazio">Não foi possível carregar a página: ${esc(err.message)}</p>`;
+      return;
+    }
+    try {
+      pg.d = (await (await fetch('paginas-semente.json', { cache: 'no-store' })).json())[nome];
+      semente = true;
+    } catch {
+      $('#pagForm').innerHTML = '<p class="vazio">Não encontrei o conteúdo atual da página.</p>';
+      return;
+    }
+  }
+  if (pg.nome !== nome) return;
+  desenharPagina();
+  $('#pagInfo').textContent = semente
+    ? 'Este é o conteúdo que está hoje no site. Ao salvar, a página passa a ser editada só por aqui.'
+    : pg.d.atualizado ? `Última alteração em ${new Date(pg.d.atualizado).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.` : '';
+  if (semente) estadoPag('pendente', 'Ainda não salva na nuvem');
+}
+
+function estadoPag(e, txt) {
+  $('#pagSinc').dataset.estado = e;
+  $('#pagSincTxt').textContent = txt || '';
+  $('#pagSalvar').disabled = pg.enviando > 0 || e === 'salvando';
+}
+function pagMudou() {
+  pg.sujo = true;
+  estadoPag(pg.enviando ? 'enviando' : 'pendente', pg.enviando ? 'Enviando imagem…' : 'Alterações não salvas');
+}
+
+// ---- peças do formulário
+const fLinha = (cam, rot, opc = {}) => `<label class="campo"><span>${rot}</span>
+  <input type="text" data-cam="${cam}" value="${esc(pegarCaminho(pg.d, cam))}"${opc.ph ? ` placeholder="${esc(opc.ph)}"` : ''}>${opc.dica ? `<small>${opc.dica}</small>` : ''}</label>`;
+const fArea = (cam, rot, opc = {}) => `<label class="campo"><span>${rot}</span>
+  <textarea data-cam="${cam}" rows="${opc.linhas || 4}"${opc.ph ? ` placeholder="${esc(opc.ph)}"` : ''}>${esc(pegarCaminho(pg.d, cam))}</textarea>${opc.dica ? `<small>${opc.dica}</small>` : ''}</label>`;
+function fImagem(cam, rot, opc = {}) {
+  const v = pegarCaminho(pg.d, cam) || {};
+  const src = v._preview || (v.ref ? imgUrl(v.ref) : v.src || '');
+  return `<div class="campo campo-img${opc.quadrada ? ' quadrada' : ''}"><span>${rot}</span>
+    <div class="img-campo">
+      <div class="img-previa">${src ? `<img src="${esc(src)}" alt="">` : '<em>Sem imagem</em>'}${v._enviando ? '<b>Enviando…</b>' : ''}</div>
+      <button class="bt" data-acao="img" data-cam="${cam}">${src ? 'Trocar imagem' : 'Escolher imagem'}</button>
+    </div></div>`;
+}
+const fTitulo = (chave, padrao) => `<label class="campo campo-rotulo"><span>Título da seção no site</span>
+  <input type="text" data-cam="titulos.${chave}" value="${esc(pegarCaminho(pg.d, 'titulos.' + chave) ?? padrao)}"></label>`;
+
+function fLista(cam, rotItem, corpo, opc = {}) {
+  const itens = pegarCaminho(pg.d, cam) || [];
+  return `<div class="lista-ed${opc.compacta ? ' compacta' : ''}">` + itens.map((it, i) => `
+    <div class="item-ed">
+      <div class="item-cab"><b>${esc(opc.nome?.(it) || `${rotItem} ${i + 1}`)}</b>
+        <button class="bt ico" data-acao="item-subir" data-lista="${cam}" data-i="${i}" title="Subir" ${i === 0 ? 'disabled' : ''}>↑</button>
+        <button class="bt ico" data-acao="item-descer" data-lista="${cam}" data-i="${i}" title="Descer" ${i === itens.length - 1 ? 'disabled' : ''}>↓</button>
+        <button class="bt ico perigo" data-acao="item-apagar" data-lista="${cam}" data-i="${i}" title="Excluir">✕</button>
+      </div>
+      <div class="item-corpo">${corpo(`${cam}.${i}`, it, i)}</div>
+    </div>`).join('') +
+    `<button class="bt add-item" data-acao="item-novo" data-lista="${cam}">+ ${opc.add || rotItem}</button></div>`;
+}
+
+const NOVOS = {
+  nucleos: () => ({ nome: '', link_texto: '', link_url: '', descricao: '' }),
+  premiacoes: () => ({ ano: String(new Date().getFullYear()), descricao: '' }),
+  publicacoes: () => ({ ano: String(new Date().getFullYear()), descricao: '' }),
+  equipe: () => ({ nome: '', cargo: '', foto: null, bio: '' }),
+  secoes: () => ({ titulo: '', texto: '' }),
+};
+
+function formSobre() {
+  const anoDesc = (c) => `<div class="ano-desc">${fLinha(c + '.ano', 'Ano')}${fLinha(c + '.descricao', 'Descrição')}</div>`;
+  return `
+  <section class="bloco-ed"><h2>Abertura</h2>
+    ${fTitulo('sobre', 'Sobre')}
+    ${fImagem('foto', 'Foto do estúdio')}
+    ${fArea('descricao', 'Texto de apresentação', { linhas: 14, dica: 'Uma linha em branco separa os parágrafos.' })}
+  </section>
+  <section class="bloco-ed"><h2>Núcleos</h2>
+    ${fTitulo('nucleos', 'Núcleos')}
+    ${fLista('nucleos', 'Núcleo', (c) => `
+      ${fLinha(c + '.nome', 'Nome')}
+      <div class="duas">${fLinha(c + '.link_texto', 'Texto do link', { ph: 'Visite nossa loja' })}${fLinha(c + '.link_url', 'Endereço do link', { ph: 'https://…' })}</div>
+      ${fArea(c + '.descricao', 'Descrição', { linhas: 3 })}`, { nome: (it) => it.nome })}
+  </section>
+  <section class="bloco-ed"><h2>Premiações</h2>
+    ${fTitulo('premiacoes', 'Premiações')}
+    ${fLista('premiacoes', 'Prêmio', anoDesc, { compacta: true, nome: (it) => [it.ano, it.descricao].filter(Boolean).join(' — ') })}
+  </section>
+  <section class="bloco-ed"><h2>Publicações</h2>
+    ${fTitulo('publicacoes', 'Publicações')}
+    <p class="nota-ed">Sem nenhum item, a seção não aparece no site.</p>
+    ${fLista('publicacoes', 'Publicação', anoDesc, { compacta: true, nome: (it) => [it.ano, it.descricao].filter(Boolean).join(' — ') })}
+  </section>
+  <section class="bloco-ed"><h2>Equipe</h2>
+    ${fTitulo('equipe', 'Equipe')}
+    ${fLista('equipe', 'Pessoa', (c) => `
+      <div class="pessoa-ed">${fImagem(c + '.foto', 'Foto', { quadrada: true })}
+        <div>${fLinha(c + '.nome', 'Nome')}${fLinha(c + '.cargo', 'Cargo')}${fArea(c + '.bio', 'Apresentação', { linhas: 5 })}</div>
+      </div>`, { nome: (it) => it.nome, add: 'Pessoa' })}
+  </section>`;
+}
+
+function formContato() {
+  return `
+  <section class="bloco-ed"><h2>Seções</h2>
+    <p class="nota-ed">Cada seção é um título e um texto, nesta ordem. A primeira abre a página.</p>
+    ${fLista('secoes', 'Seção', (c) => `${fLinha(c + '.titulo', 'Título')}${fArea(c + '.texto', 'Texto', { linhas: 5 })}`, { nome: (it) => it.titulo })}
+  </section>`;
+}
+
+function desenharPagina() {
+  const rolagem = $('#paginaEd').scrollTop;
+  $('#pagForm').innerHTML = pg.nome === 'sobre' ? formSobre() : formContato();
+  $('#paginaEd').scrollTop = rolagem;
+}
+
+$('#pagForm').addEventListener('input', (e) => {
+  const cam = e.target.dataset.cam;
+  if (!cam) return;
+  porCaminho(pg.d, cam, e.target.value);
+  // o nome do item no cabeçalho do cartão acompanha o que é digitado
+  const cab = e.target.closest('.item-ed')?.querySelector('.item-cab b');
+  if (cab && /\.(nome|titulo|ano|descricao)$/.test(cam) && !e.target.closest('textarea')) {
+    const base = cam.replace(/\.[^.]+$/, '');
+    const it = pegarCaminho(pg.d, base);
+    const lista = base.replace(/\.\d+$/, '');
+    if (lista === 'premiacoes' || lista === 'publicacoes') cab.textContent = [it.ano, it.descricao].filter(Boolean).join(' — ');
+    else if (/\.(nome|titulo)$/.test(cam)) cab.textContent = e.target.value;
+  }
+  pagMudou();
+});
+
+$('#pagForm').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-acao]');
+  if (!b) return;
+  const acao = b.dataset.acao;
+  if (acao === 'img') { pg.alvoImg = b.dataset.cam; return $('#pagArquivo').click(); }
+  const cam = b.dataset.lista;
+  const lista = pegarCaminho(pg.d, cam) || [];
+  const i = +b.dataset.i;
+  if (acao === 'item-novo') { lista.push(NOVOS[cam.split('.').pop()]()); porCaminho(pg.d, cam, lista); }
+  else if (acao === 'item-subir' && i > 0) [lista[i - 1], lista[i]] = [lista[i], lista[i - 1]];
+  else if (acao === 'item-descer' && i < lista.length - 1) [lista[i + 1], lista[i]] = [lista[i], lista[i + 1]];
+  else if (acao === 'item-apagar') {
+    const it = lista[i];
+    const nome = it?.nome || it?.titulo || it?.descricao || '';
+    if (!confirm(`Excluir ${nome ? `“${nome}”` : 'este item'}?`)) return;
+    lista.splice(i, 1);
+  } else return;
+  desenharPagina();
+  pagMudou();
+  if (acao === 'item-novo') {
+    const itens = $$(`[data-lista="${cam}"][data-acao="item-apagar"]`);
+    itens.at(-1)?.closest('.item-ed')?.querySelector('input, textarea')?.focus();
+  }
+});
+
+$('#pagArquivo').addEventListener('change', async (e) => {
+  const arq = e.target.files[0];
+  e.target.value = '';
+  const cam = pg.alvoImg;
+  if (!arq || !cam) return;
+  const nome = pg.nome;
+  const temp = { _preview: URL.createObjectURL(arq), _enviando: true };
+  porCaminho(pg.d, cam, temp);
+  pg.enviando++;
+  desenharPagina();
+  pagMudou();
+  try {
+    const r = await enviarImagem(arq);
+    if (pg.nome === nome && pegarCaminho(pg.d, cam) === temp) porCaminho(pg.d, cam, r);
+  } catch (err) {
+    aviso(`A imagem não foi enviada: ${err.message}`, true);
+    if (pegarCaminho(pg.d, cam) === temp) porCaminho(pg.d, cam, null);
+  }
+  pg.enviando--;
+  if (pg.nome === nome) { desenharPagina(); pagMudou(); }
+});
+
+// tira campos internos (_preview, _enviando) e imagens ainda sem envio
+function limparPagina(v) {
+  if (Array.isArray(v)) return v.map(limparPagina);
+  if (v && typeof v === 'object') {
+    if (v._enviando) return null;
+    const o = {};
+    for (const [k, x] of Object.entries(v)) if (!k.startsWith('_') && k !== 'atualizado') o[k] = limparPagina(x);
+    return o;
+  }
+  return typeof v === 'string' ? v.replace(/\r\n/g, '\n') : v;
+}
+
+async function salvarPagina() {
+  if (vista !== 'pagina' || pg.enviando || !pg.d) return;
+  const nome = pg.nome;
+  estadoPag('salvando', 'Salvando…');
+  try {
+    const res = await nuvem.gravarPagina(nome, limparPagina(pg.d));
+    if (pg.nome !== nome) return;
+    pg.d.atualizado = res.atualizado;
+    pg.sujo = false;
+    const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    estadoPag('salvo', `Salvo às ${hora}`);
+    $('#pagInfo').textContent = `Última alteração em ${new Date(res.atualizado).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.`;
+    aviso('Salvo. O site atualiza em até 1 minuto.');
+  } catch (err) {
+    estadoPag('erro', 'Não salvo');
+    aviso(`Não foi possível salvar: ${err.message}`, true);
+  }
+}
+$('#pagSalvar').addEventListener('click', salvarPagina);
 
 // ------------------------------------------------------------------ métricas
 let dias = 30;

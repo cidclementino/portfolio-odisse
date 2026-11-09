@@ -97,7 +97,8 @@
   function spreads(p) {
     return (p.secoes || []).map(function (s) {
       if (s.tipo === 'texto') {
-        return '<div class="spread spread--texto"><div class="texto-bloco">' + paragrafos(s.texto) + '</div></div>';
+        var larg = s.largura === 'm' || s.largura === 'g' ? ' spread--texto-' + s.largura : '';
+        return '<div class="spread spread--texto' + larg + '"><div class="texto-bloco">' + paragrafos(s.texto) + '</div></div>';
       }
       if (s.src) {
         return '<div class="spread spread--imagem"><div class="frame"><img src="' + esc(s.src) + '" alt="' + esc(s.alt || p.titulo) + '" decoding="async" draggable="false"></div></div>';

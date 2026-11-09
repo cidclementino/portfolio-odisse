@@ -4,39 +4,16 @@ title: Contato — Odisse
 pagina: contato
 description: Fale com o estúdio Odisse — Arquitetura & Design, João Pessoa.
 ---
-<section class="contato">
+{% comment %}
+  O conteúdo é editado no painel (/admin/ → Contato) e vem da nuvem: assets/js/paginas.js
+  redesenha esta seção com ele. O que está abaixo é a versão de reserva, gerada de
+  _data/paginas.json. A marcação precisa continuar igual à de paginas.js.
+{% endcomment %}
+<section class="contato" data-conteudo="contato">
   <div class="contato__doc">
-    <p class="eyebrow">Contato</p>
-
-    <p>
-      <a href="mailto:{{ site.data.contato.email }}">{{ site.data.contato.email }}</a><br>
-      {{ site.data.contato.telefone }}
-    </p>
-    <p>Fale com a gente também pelo <a href="{{ site.data.contato.whatsapp }}" target="_blank" rel="noopener">WhatsApp</a>.</p>
-
-    <h3>Trabalhe conosco</h3>
-    <p>Estamos sempre atentos a pessoas que compartilham nossa forma de olhar a Arquitetura e o Design.</p>
-    <p>Para se candidatar, responda nosso <a href="{{ site.data.contato.formulario_candidatura }}">Formulário de Candidatura</a>.</p>
-
-    <h3>Endereço</h3>
-    <p>
-      {{ site.data.contato.endereco.linha1 }}<br>
-      {{ site.data.contato.endereco.linha2 }}<br>
-      {{ site.data.contato.endereco.linha3 }}<br>
-      CEP: {{ site.data.contato.endereco.cep }}
-    </p>
-
-    <h3>Redes sociais</h3>
-    <p><a href="{{ site.data.contato.redes.instagram }}" target="_blank" rel="noopener">Instagram</a></p>
-    <p><a href="{{ site.data.contato.redes.tiktok }}" target="_blank" rel="noopener">TikTok</a></p>
-    <p><a href="{{ site.data.contato.redes.youtube }}" target="_blank" rel="noopener">YouTube</a></p>
-
-    <h3>Elaia</h3>
-    <p>Elaia é o braço editorial do Odisse — nosso espaço de pesquisa e escrita sobre arquitetura, design e os arquétipos que atravessam o que construímos.</p>
-    <p><a href="{{ site.data.contato.elaia }}" target="_blank" rel="noopener">Leia Elaia</a></p>
-
-    <h3>Também em</h3>
-    <p>Criamos Arquitetura em diferentes escopos. Saiba mais sobre <a href="{{ site.data.contato.servicos }}" target="_blank" rel="noopener">nossos serviços</a>.</p>
-    <p>Para adquirir nossas peças autorais, visite <a href="{{ site.data.contato.objetos }}">Odisse Objetos</a>.</p>
+    {% for secao in site.data.paginas.contato.secoes %}
+    {% if secao.titulo != '' %}{% if forloop.first %}<p class="eyebrow">{{ secao.titulo }}</p>{% else %}<h3>{{ secao.titulo }}</h3>{% endif %}{% endif %}
+    {{ secao.texto | markdownify }}
+    {% endfor %}
   </div>
 </section>

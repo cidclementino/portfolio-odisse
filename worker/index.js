@@ -3,6 +3,7 @@
 // Binding (wrangler.toml): KV Namespace `SITE`
 //   indice           -> lista ordenada de resumos dos projetos (a ordem da lista é a ordem no site)
 //   projeto:<id>     -> projeto completo (JSON)
+//   pagina:<nome>    -> conteúdo das páginas Sobre e Contato (JSON)
 //   img:<ref>        -> imagem (binário; content-type nos metadados). <ref>-m = versão média (1200 px)
 //   ev:<dia>:<id>    -> uma visita (dados nos metadados da chave; expira em 400 dias)
 // Secret: SITE_SENHA -> senha do painel (Authorization: Bearer <senha>)
@@ -10,6 +11,7 @@
 // Rotas públicas
 //   GET  /api/projetos               -> projetos visíveis, na ordem do site
 //   GET  /api/projetos/:slug         -> projeto visível completo
+//   GET  /api/paginas/:nome          -> conteúdo de Sobre ou Contato (404 = ainda não editado)
 //   GET  /img/:ref                   -> imagem
 //   POST /api/coleta                 -> registra uma visita (enviado pelo próprio site)
 // Rotas do painel (senha)
@@ -18,6 +20,8 @@
 //   PUT    /api/admin/projetos/:id   -> grava projeto
 //   DELETE /api/admin/projetos/:id   -> apaga projeto e as imagens que só ele usava
 //   PUT    /api/admin/ordem          -> grava a ordem (lista de ids)
+//   GET    /api/admin/paginas/:nome  -> conteúdo de Sobre ou Contato
+//   PUT    /api/admin/paginas/:nome  -> grava o conteúdo
 //   PUT    /api/admin/imagens/:ref   -> grava imagem (corpo binário)
 //   GET    /api/admin/metricas?dias= -> painel de métricas do período (e do período anterior)
 
@@ -30,6 +34,8 @@ const CORS = {
 const MAX_IMG = 20 * 1024 * 1024;
 const ID = /^[a-z0-9_-]{4,64}$/i;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const PAGINAS = new Set(['sobre', 'contato']);
+const MAX_PAGINA = 200 * 1024;
 const TZ = 'America/Sao_Paulo';
 const ORIGENS = /^https?:\/\/(www\.)?odisse\.com\.br$|^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const ROBOS = /bot|crawl|spider|slurp|preview|headless|lighthouse|facebookexternalhit|whatsapp|telegram|discord|curl|wget|python|axios|node-fetch|monitor/i;
@@ -57,6 +63,17 @@ function refsDe(p) {
   const refs = new Set();
   if (p?.capa?.ref) refs.add(p.capa.ref);
   for (const s of p?.secoes || []) if (s.tipo === 'imagem' && s.ref) refs.add(s.ref);
+  for (const b of p?.banco || []) if (b?.ref) refs.add(b.ref); // banco de imagens do projeto
+  return refs;
+}
+
+// imagens usadas numa página (qualquer objeto { ref } em qualquer profundidade)
+function refsPagina(obj, refs = new Set()) {
+  if (Array.isArray(obj)) obj.forEach((x) => refsPagina(x, refs));
+  else if (obj && typeof obj === 'object') {
+    if (typeof obj.ref === 'string' && obj.ref) refs.add(obj.ref);
+    Object.values(obj).forEach((x) => refsPagina(x, refs));
+  }
   return refs;
 }
 
@@ -82,8 +99,8 @@ function resumo(p) {
   };
 }
 
-// versão pública: sem campos internos
-const publico = ({ visivel, criado, ...resto }) => ({ ...resto, capa: capaDe(resto) });
+// versão pública: sem campos internos (o banco de imagens é só do painel)
+const publico = ({ visivel, criado, banco, ...resto }) => ({ ...resto, capa: capaDe(resto) });
 
 function validar(p, id) {
   if (!p || p.id !== id) return 'id não confere';
@@ -93,16 +110,27 @@ function validar(p, id) {
   for (const s of p.secoes) {
     if (s.tipo === 'imagem' && s.ref && !ID.test(s.ref)) return 'imagem inválida';
     if (s.tipo !== 'imagem' && s.tipo !== 'texto') return 'tipo de seção inválido';
+    if (s.tipo === 'texto' && s.largura && !['p', 'm', 'g'].includes(s.largura)) return 'largura de texto inválida';
+  }
+  if (p.banco !== undefined) {
+    if (!Array.isArray(p.banco)) return 'banco de imagens inválido';
+    for (const b of p.banco) if (!b || !ID.test(b.ref || '')) return 'imagem do banco inválida';
   }
   return null;
 }
 
-async function apagarOrfas(kv, refs, ignorarId) {
+// apaga as imagens que ninguém mais usa — nem outro projeto, nem as páginas.
+// ignorar: { projeto: id } ou { pagina: nome } (quem está sendo regravado)
+async function apagarOrfas(kv, refs, ignorar = {}) {
   if (!refs.size) return;
   const usadas = new Set();
   for (const r of await lerIndice(kv)) {
-    if (r.id === ignorarId) continue;
+    if (r.id === ignorar.projeto) continue;
     for (const ref of refsDe(await kv.get(`projeto:${r.id}`, 'json'))) usadas.add(ref);
+  }
+  for (const nome of PAGINAS) {
+    if (nome === ignorar.pagina) continue;
+    refsPagina(await kv.get(`pagina:${nome}`, 'json'), usadas);
   }
   const apagar = [...refs].filter((r) => !usadas.has(r));
   await Promise.all(apagar.flatMap((r) => [kv.delete(`img:${r}`), kv.delete(`img:${r}-m`)]));
@@ -331,10 +359,39 @@ export default {
       return p ? json(publico(p), 200, cache) : erro('não encontrado', 404);
     }
 
+    if (partes[1] === 'paginas' && PAGINAS.has(partes[2]) && request.method === 'GET') {
+      const pg = await kv.get(`pagina:${partes[2]}`, { type: 'json', cacheTtl: 60 });
+      return pg ? json(pg, 200, { 'Cache-Control': 'public, max-age=60' }) : erro('ainda não editada', 404);
+    }
+
     // ---- painel
     if (partes[1] !== 'admin') return erro('rota não encontrada', 404);
     if (!autorizado(request, env)) return erro('não autorizado', 401);
     const [, , recurso, id] = partes;
+
+    if (recurso === 'paginas') {
+      if (!PAGINAS.has(id)) return erro('página inválida', 404);
+      if (request.method === 'GET') {
+        const pg = await kv.get(`pagina:${id}`, 'json');
+        return pg ? json(pg) : erro('ainda não editada', 404);
+      }
+      if (request.method === 'PUT') {
+        const txt = await request.text();
+        if (txt.length > MAX_PAGINA) return erro('conteúdo grande demais', 413);
+        let pg;
+        try { pg = JSON.parse(txt); } catch { return erro('JSON inválido', 400); }
+        if (!pg || typeof pg !== 'object' || Array.isArray(pg)) return erro('conteúdo inválido', 400);
+        const novas = refsPagina(pg);
+        if ([...novas].some((r) => !ID.test(r))) return erro('imagem inválida', 400);
+        const antiga = await kv.get(`pagina:${id}`, 'json');
+        pg.atualizado = new Date().toISOString();
+        await kv.put(`pagina:${id}`, JSON.stringify(pg));
+        const removidas = new Set([...refsPagina(antiga)].filter((r) => !novas.has(r)));
+        ctx.waitUntil(apagarOrfas(kv, removidas, { pagina: id }));
+        return json({ ok: true, atualizado: pg.atualizado });
+      }
+    }
+
     if (id && !ID.test(id)) return erro('id inválido', 400);
 
     if (recurso === 'projetos') {
@@ -361,7 +418,7 @@ export default {
         if (antigo) {
           const novas = refsDe(p);
           const removidas = new Set([...refsDe(antigo)].filter((r) => !novas.has(r)));
-          ctx.waitUntil(apagarOrfas(kv, removidas, id));
+          ctx.waitUntil(apagarOrfas(kv, removidas, { projeto: id }));
         }
         return json({ ok: true, atualizado: p.atualizado, resumo: resumo(p) });
       }
@@ -369,7 +426,7 @@ export default {
         const p = await kv.get(`projeto:${id}`, 'json');
         await kv.delete(`projeto:${id}`);
         await kv.put('indice', JSON.stringify((await lerIndice(kv)).filter((r) => r.id !== id)));
-        ctx.waitUntil(apagarOrfas(kv, refsDe(p), id));
+        ctx.waitUntil(apagarOrfas(kv, refsDe(p), { projeto: id }));
         return json({ ok: true });
       }
     }

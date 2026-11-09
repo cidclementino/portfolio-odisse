@@ -24,3 +24,9 @@ defaults:
 exclude:
   - README.md
   - worker/
+
+# Textos de Sobre e Contato (_data/paginas.json): Enter quebra a linha,
+# linha em branco abre parágrafo — igual ao que o painel mostra.
+kramdown:
+  input: GFM
+  hard_wrap: true
