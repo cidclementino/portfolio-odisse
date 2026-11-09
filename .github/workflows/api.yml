@@ -1,0 +1,51 @@
+name: Publicar API (Cloudflare Worker)
+
+on:
+  push:
+    branches: [main]
+    paths: ['worker/**', '.github/workflows/api.yml']
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SITE_SENHA: ${{ secrets.SITE_SENHA }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verificar secrets
+        run: |
+          for s in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID SITE_SENHA; do
+            if [ -z "${!s}" ]; then echo "::error::Falta o secret $s (Settings → Secrets and variables → Actions)."; exit 1; fi
+          done
+
+      - name: Instalar Wrangler
+        run: npm install --no-save --prefix "$RUNNER_TEMP/wr" wrangler@4
+
+      - name: Namespace KV (cria na primeira vez)
+        run: |
+          W="$RUNNER_TEMP/wr/node_modules/.bin/wrangler"
+          cd "$RUNNER_TEMP"
+          achar() { "$W" kv namespace list | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const i=s.indexOf("[");const l=JSON.parse(s.slice(i));const n=l.find(x=>x.title==="SITE_ODISSE");process.stdout.write(n?n.id:"")})'; }
+          ID=$(achar)
+          if [ -z "$ID" ]; then
+            "$W" kv namespace create SITE_ODISSE
+            ID=$(achar)
+          fi
+          if [ -z "$ID" ]; then echo "::error::Não consegui criar/encontrar o namespace KV SITE_ODISSE."; exit 1; fi
+          echo "Namespace SITE_ODISSE: $ID"
+          sed -i "s/__KV_ID__/$ID/" "$GITHUB_WORKSPACE/worker/wrangler.toml"
+
+      - name: Publicar Worker
+        working-directory: worker
+        run: |
+          W="$RUNNER_TEMP/wr/node_modules/.bin/wrangler"
+          "$W" deploy
+          printf '%s' "$SITE_SENHA" | "$W" secret put SITE_SENHA

@@ -1,7 +1,7 @@
 <footer{% if page.url contains 'sobre' or page.url contains 'contato' %} class="footer--dark"{% endif %}>
   <div class="wrap">
-    <span class="mark">Creative <span class="dot">·</span> Reserve</span>
-    <div class="footer__logo" aria-hidden="true"></div>
+    <span class="footer__selo">{% include selo-mao.svg %}</span>
+    <a class="footer__marca" href="{{ '/' | relative_url }}" aria-label="Odisse — início">{% include marca-odisse.svg %}</a>
     <ul>
       <li><a href="{{ '/sobre/' | relative_url }}">Sobre</a></li>
       <li><a href="{{ '/' | relative_url }}">Projetos</a></li>

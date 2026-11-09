@@ -1,166 +1,83 @@
-# Odisse — Portfólio Institucional
+# Odisse — site institucional (odisse.com.br)
 
-Site institucional em **Jekyll** — o mesmo motor de template do repositório
-`projetos-odisse` (as LPs). GitHub Pages builda Jekyll automaticamente,
-sem você precisar instalar nada (Ruby, gems etc.) — basta fazer o push.
+Site em **Jekyll** no GitHub Pages, com os **projetos na nuvem**: a lista,
+a ordem, os textos e as imagens ficam numa API própria na Cloudflare
+(Worker + KV, a mesma solução do Universo em `marketing-odisse`) e são
+geridos pelo painel **odisse.com.br/admin/**, protegido por senha.
 
-Continua sendo um repositório próprio, separado do `projetos-odisse`.
+## Painel (odisse.com.br/admin/)
 
-## O que mudou nessa rodada
+Entrada por senha (o secret `SITE_SENHA`). A senha fica lembrada no
+navegador até clicar em **Sair**. Duas abas:
 
-Antes, cada projeto era um arquivo HTML inteiro escrito à mão. Agora, cada
-projeto é só **front matter YAML** — os mesmos dados que antes estavam
-espalhados no HTML agora ficam num bloco de metadados no topo do arquivo,
-e o layout (`_layouts/projeto.html`) é quem desenha a página a partir
-desses dados. Isso é o mesmo padrão de `_data/*.yml` do `projetos-odisse`,
-só que usando front matter de uma collection ao invés de um arquivo `_data`
-separado (mais prático aqui porque cada projeto também precisa virar uma
-página própria, o que uma collection já resolve sozinha).
+**Projetos**
+- A ordem da lista é a ordem da Home: arraste pela alça (⋮⋮) ou use ↑ ↓.
+- A chave **No site / Oculto** mostra ou esconde o projeto sem apagá-lo.
+- **Editar** abre o projeto: informações à esquerda (título, endereço,
+  local, ano, área, cliente, tipologia, status, capa da Home) e, ao centro,
+  a **sequência** de caixas de imagem e de texto, na ordem em que aparecem
+  no site. Arraste pelo rótulo da caixa para reordenar, use ← →, insira
+  entre caixas pelo **+**, ou solte arquivos de imagem direto na sequência.
+- Imagens são convertidas no navegador para WebP em dois tamanhos
+  (2400 px e 1200 px) antes de subir.
+- Texto: cada Enter vira um parágrafo. Campos vazios não aparecem no site.
+- **Salvar** (ou Ctrl/Cmd + S). O site atualiza em até 1 minuto.
 
-## Estrutura de arquivos
+**Métricas**
+- Visitantes, páginas vistas, projetos abertos, tempo médio, cliques de
+  contato (WhatsApp, e-mail, telefone) e quem saiu na primeira página,
+  comparados ao período anterior (7, 30 ou 90 dias).
+- Visitantes por dia, desempenho de cada projeto (aberturas, pela Home,
+  tempo médio, % que viu a sequência até o fim), origens, cliques de saída,
+  páginas, cidades, dispositivos e horários.
+- Contagem própria, sem cookies: cada pessoa é reconhecida só dentro do
+  mesmo dia, por um código anônimo. Robôs e navegadores com o painel
+  aberto não entram. O Google Analytics continua ativo (`analytics.js`).
+
+## API (pasta `worker/`)
+
+Worker `site-odisse`, publicado pelo workflow **Publicar API** a cada
+mudança em `worker/`. Na primeira publicação ele cria sozinho o namespace
+KV `SITE_ODISSE`. Precisa de três secrets no repositório
+(Settings → Secrets and variables → Actions):
+
+| Secret | O que é |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | o mesmo token usado no `marketing-odisse` (Workers + KV: editar) |
+| `CLOUDFLARE_ACCOUNT_ID` | o mesmo id de conta do `marketing-odisse` |
+| `SITE_SENHA` | a senha do painel |
+
+Endereço: `https://site-odisse.reservaprojectbasework.workers.dev`
+(configurado em `assets/js/config.js`).
+
+Limites do plano gratuito da Cloudflare que importam aqui: 1.000 gravações
+por dia no KV (cada página vista grava um registro de métrica) e 100.000
+leituras. Se o site passar de ~800 páginas vistas por dia, vale ativar o
+plano Workers Paid (US$ 5/mês) — nada no código muda.
+
+## Estrutura
 
 ```
-_config.yml          → configuração do Jekyll (baseurl, collection de projetos)
-_layouts/
-  default.html        → casca compartilhada: nav + conteúdo + footer (Home/Sobre/Contato)
-  projeto.html         → desenha a página de um projeto a partir do front matter
-_includes/
-  nav.html             → navegação (usada pelo default.html)
-  footer.html           → rodapé (usado pelo default.html)
-_projetos/               → um arquivo por projeto (front matter puro, sem HTML)
-  yvc.html
-  dcmcc.html
-  altavista.html
-images/{slug}/  → imagens de cada projeto (capa.jpg, 01.jpg, 02.jpg...)
-index.html            → Home (front matter + loop automático nos projetos)
-sobre.html             → Sobre (front matter + conteúdo)
-contato.html            → Contato (front matter + conteúdo)
-styles.css              → todo o CSS
-script.js               → ano do rodapé + animação da linha de assinatura (Sobre)
-project.js               → navegação horizontal quando o projeto abre em página própria
-gallery.js                → dinâmica de expandir/recolher (accordion) na Home
-analytics.js               → GA + Google Ads
+_config.yml            configuração do Jekyll
+_layouts/default.html  casca: nav + conteúdo + rodapé (Home, Sobre, Contato)
+_includes/             head, nav, rodapé, logos em SVG (marca-odisse, selo-mao)
+_data/                 sobre.yml e contato.yml (textos dessas páginas)
+index.html             Home — galeria montada por gallery.js com os projetos da nuvem
+projeto.html           página do projeto (/projeto/?p=<endereço>), montada por project.js
+404.html               redireciona endereços antigos (/projetos/<slug>/) para /projeto/?p=<slug>
+admin/                 painel (index.html, app.js, admin.css, semente.json para importar)
+assets/js/             config (endereço da API), projetos (leitura e desenho),
+                       metricas (coleta), pontos (pontos laterais), marks (logos)
+assets/fonts/          Inter variável (com eixo óptico)
+assets/brand/          favicon e logos (SVG e PNG)
+styles.css             todo o CSS do site
+worker/                API Cloudflare Worker + KV
 ```
 
-## Como editar um projeto existente
+## Identidade
 
-Abra o arquivo dele em `_projetos/` — por exemplo `_projetos/yvc.html`:
-
-```yaml
----
-titulo: "Residência YVC"
-local: "João Pessoa, Brasil"
-ano: 2024
-cliente: "Privado"
-tipologia: "Residencial"
-area: "—"
-status: "Concluído"
-capa: /images/yvc/capa.jpg
-ordem: 1
-secoes:
-  - tipo: imagem
-    imagem: /images/yvc/01.jpg
-    alt: "Residência YVC — fachada"
-
-  - tipo: texto
-    texto: >
-      Seu texto aqui. Pode ter mais de um parágrafo — só dar uma linha
-      em branco entre eles, como neste exemplo.
-
-  - tipo: imagem
-    imagem: /images/yvc/02.jpg
----
-```
-
-- **Metadados** (`titulo`, `local`, `ano`, `cliente`, `tipologia`, `area`,
-  `status`) aparecem na barra lateral da página do projeto. Qualquer um
-  deles pode ficar de fora (some da lista automaticamente).
-- **`secoes`** é a lista de "compartimentos" que aparecem deslizando na
-  horizontal, na ordem em que estão escritos. Existem só 2 tipos:
-  - **`imagem`** — uma imagem em tela cheia. Campos: `imagem` (caminho do
-    arquivo) e `alt` (texto alternativo, opcional).
-  - **`texto`** — um bloco de texto ocupando metade da largura da tela,
-    alinhado à esquerda. Campo: `texto`.
-- **Adicionar ou remover um compartimento** é só adicionar ou apagar um
-  item da lista `secoes:` — nada de HTML ou JS pra tocar.
-- **`ordem`** controla a posição do projeto na Home (menor número aparece
-  primeiro).
-- **`capa`** é a imagem usada na galeria da Home.
-
-## Como adicionar um projeto novo
-
-1. Duplique um arquivo de `_projetos/` (ex.: `_projetos/yvc.html`) com um
-   nome novo, ex.: `_projetos/nome-do-projeto.html`
-2. Preencha o front matter (metadados + `secoes`)
-3. Coloque as imagens em `images/nome-do-projeto/`
-4. Pronto — o projeto aparece sozinho na Home (a Home faz um loop
-   automático em todos os arquivos de `_projetos/`) e ganha uma página
-   própria em `/projetos/nome-do-projeto.html`
-
-Não precisa mexer em `index.html` nem duplicar nada lá.
-
-## Painel de edição (odisse.com.br/admin/)
-
-Projetos também podem ser criados e editados direto pelo site, em
-`/admin/`, sem abrir o GitHub. O painel (Sveltia CMS) grava os arquivos
-em `_projetos/` e as imagens em `images/{slug}/`, no mesmo formato
-descrito acima. Cada "Salvar" vira um commit na `main`, e o site
-atualiza em 1–2 minutos.
-
-- **Acesso:** botão "Sign In with Token", com um token fine-grained do
-  GitHub restrito a este repositório (permissões *Contents* e *Pull
-  requests*: leitura e escrita). O token fica salvo só no navegador
-  usado.
-- **Imagens:** convertidas para WebP no envio (máx. 2400 px, qualidade 82).
-- **Texto:** cada quebra de linha (Enter) vira um parágrafo.
-- **Campos e listas** (status, seções etc.) ficam em `admin/config.yml`.
-
-## Sobre as imagens
-
-Os três projetos atuais (YVC, DCMCC, Altavista) estão com **imagens
-placeholder geradas** (retângulo com o padrão listrado de identidade visual
-+ nome do arquivo) só pra não aparecer ícone de imagem quebrada. Substitua
-os arquivos em `images/{slug}/` pelos renders reais, mantendo os
-mesmos nomes de arquivo (ou trocando o campo `imagem`/`capa` no front
-matter se preferir nomes diferentes).
-
-## Deploy em repositório novo (passo a passo)
-
-1. No GitHub (conta `cidclementino`), criar um repositório novo (ou
-   reaproveitar o `portfolio-odisse` que você já publicou — nesse caso é
-   só substituir todos os arquivos pela estrutura acima)
-2. Subir **todos** os arquivos e pastas mantendo a estrutura exata
-   (incluindo as pastas que começam com `_`, que são as mais importantes
-   — é isso que o Jekyll processa)
-3. Em **Settings → Pages**, source: `Deploy from a branch`, branch `main`,
-   pasta `/ (root)` — o Jekyll builda sozinho, sem passo extra
-4. Publica em `https://cidclementino.github.io/portfolio-odisse/`
-
-**Se o nome do repositório mudar:** abra `_config.yml` e ajuste a linha
-`baseurl: "/portfolio-odisse"` para `/nome-do-novo-repositorio`.
-
-**Se um domínio próprio for configurado depois (CNAME):** troque
-`baseurl` para uma string vazia (`baseurl: ""`), porque nesse caso o site
-passa a viver na raiz do domínio, não mais num subdiretório.
-
-## Domínio próprio (opcional)
-
-1. Criar um arquivo `CNAME` (sem extensão) na raiz do repo contendo só o
-   domínio escolhido, ex.: `portfolio.odisse.com.br`
-2. No painel de DNS da Wix, criar um CNAME apontando o subdomínio
-   escolhido para `cidclementino.github.io`
-3. Em **Settings → Pages**, campo "Custom domain", inserir o mesmo
-   domínio e aguardar a verificação do HTTPS
-4. Lembrar de zerar o `baseurl` no `_config.yml` (ver acima)
-
-## Se o site não aparecer certo depois do push
-
-Como o Jekyll builda no servidor do GitHub (não dá pra testar isso aqui
-antes de você subir), se algo sair diferente do esperado:
-
-- **Settings → Pages** mostra o status do último build; se der erro, ele
-  aparece ali
-- Confira se as pastas `_layouts`, `_includes` e `_projetos` foram
-  realmente enviadas (às vezes o upload pela interface web do GitHub
-  ignora pastas que começam com `_` dependendo de como os arquivos são
-  arrastados — o mais seguro é subir via `git push` de um clone local)
+- **Inter** em todo o site (Manual do sistema Odisse), servida localmente.
+- Palavra **ODISSE** no topo e no rodapé, **selo da mão** no rodapé e no favicon.
+- **Pontos laterais**: três de cada lado, centrados na margem, alinhados à
+  marca do cabeçalho, ao meio da tela e ao pé — o mesmo sistema dos posts
+  3:4. Ardósia sobre fundo claro, claros sobre imagem ou fundo escuro.

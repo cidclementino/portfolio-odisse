@@ -2,18 +2,34 @@
 // enquanto o bloco título/local é FISICAMENTE MOVIDO — o mesmo elemento
 // do DOM, não uma cópia — pra dentro da barra lateral que aparece abaixo.
 // Só os metadados complementares (ano, cliente...) e as imagens/textos
-// do projeto são conteúdo novo, buscado (fetch) da página do projeto.
+// do projeto são conteúdo novo, buscado da nuvem (API — ver projetos.js).
 //
-// Um projeto aberto por vez (accordion).
-//
-// Requer ser servido via http/https (GitHub Pages funciona; abrir o
-// index.html direto do disco via file:// não funciona, pois fetch()
-// não roda em file://).
+// Um projeto aberto por vez (accordion). A lista de projetos também vem
+// da nuvem: a galeria é montada aqui e só depois ganha a dinâmica.
 
 var ROW_COLLAPSE_MS = 450;
 var SCROLL_MAX_WAIT_MS = 600;
 
 document.addEventListener('DOMContentLoaded', function () {
+  var P = window.Odisse.projetos;
+  var galeria = document.querySelector('.gallery');
+  if (!galeria) return;
+
+  P.lista().then(function (lista) {
+    if (!lista.length) {
+      galeria.innerHTML = '<p class="gallery__aviso">Em breve, novos projetos.</p>';
+      return;
+    }
+    galeria.innerHTML = lista.map(P.itemGaleria).join('');
+    galeria.classList.add('is-ready');
+    ligar();
+    if (window.Odisse.pontos) window.Odisse.pontos.atualizar();
+  }).catch(function (err) {
+    console.error(err);
+    galeria.innerHTML = '<p class="gallery__aviso">Não foi possível carregar os projetos agora. Tente recarregar a página.</p>';
+  });
+
+  function ligar() {
   var items = document.querySelectorAll('.gallery__item');
   if (!items.length) return;
 
@@ -27,6 +43,7 @@ document.addEventListener('DOMContentLoaded', function () {
     item._info = row.querySelector('.gallery__info');
     item._thumb = row.querySelector('.gallery__thumb');
     item._url = row.getAttribute('href');
+    item._slug = item.getAttribute('data-slug');
 
     row.addEventListener('click', function (e) {
       e.preventDefault();
@@ -67,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
       // tela — só depois disso a animação de abertura começa
       row.scrollIntoView({ behavior: 'smooth', block: 'center' });
       waitForScrollEnd(SCROLL_MAX_WAIT_MS).then(function () {
-        openProject(row, panel, item._info, item._thumb, item._url);
+        openProject(row, panel, item._info, item._thumb, item._url, item._slug);
       });
     }
   });
@@ -88,7 +105,9 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  function openProject(row, panel, info, thumb, url) {
+  } // fim de ligar()
+
+  function openProject(row, panel, info, thumb, url, slug) {
     row.setAttribute('aria-expanded', 'true');
     var isMobile = window.innerWidth <= 640;
 
@@ -109,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // o painel começa a abrir NA HORA, junto com a capa saindo — não
     // depois. É isso que evita a sensação de "recolhe, para, e uma
     // caixa aparece" (popup)
-    var panelReady = openPanel(panel, url);
+    var panelReady = openPanel(panel, url, slug);
     var rowSettled = new Promise(function (resolve) {
       window.setTimeout(resolve, ROW_COLLAPSE_MS);
     });
@@ -163,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function closePanel(panel) {
+    if (panel._registro) { panel._registro.fim(); panel._registro = null; }
     panel.classList.remove('is-open', 'is-revealed');
     // limpa o conteúdo só depois da transição, pra não cortar a animação
     // (o título já foi resgatado antes de chegar aqui)
@@ -174,37 +194,25 @@ document.addEventListener('DOMContentLoaded', function () {
   // retorna uma Promise que resolve com o elemento da barra lateral
   // (ainda vazio, pronto pra receber o título) assim que o conteúdo
   // buscado estiver montado — ou null em caso de erro
-  function openPanel(panel, url) {
+  function openPanel(panel, url, slug) {
     panel.innerHTML = '<div class="panel__loading">Carregando projeto…</div>';
     panel.classList.add('is-open');
 
-    return fetch(url)
-      .then(function (res) {
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        return res.text();
-      })
-      .then(function (html) {
-        var doc = new DOMParser().parseFromString(html, 'text/html');
-        var meta = doc.querySelector('.project__meta');
-        var share = doc.querySelector('.project__share');
-        var spreads = doc.querySelector('.project__spreads');
-        if (!meta || !spreads) throw new Error('estrutura inesperada em ' + url);
-
+    return P.projeto(slug)
+      .then(function (p) {
         panel.innerHTML =
           '<div class="panel__inner">' +
             '<aside class="panel__sidebar"></aside>' +
             '<div class="panel__reveal">' +
-              '<div class="panel__spreads">' + spreads.innerHTML + '</div>' +
+              '<div class="panel__spreads">' + P.spreads(p) + '</div>' +
             '</div>' +
             '<div class="panel__dots"></div>' +
           '</div>';
 
         var sidebar = panel.querySelector('.panel__sidebar');
-        // meta/share vêm de um Document diferente (o do DOMParser) —
-        // precisam ser "importados" antes de entrar no documento atual
-        sidebar.appendChild(document.importNode(meta, true));
-        if (share) sidebar.appendChild(document.importNode(share, true));
+        sidebar.insertAdjacentHTML('beforeend', P.meta(p));
 
+        if (window.Odisse.metricas) panel._registro = window.Odisse.metricas.projeto(slug, 'home');
         wirePanel(panel);
         return sidebar;
       })
@@ -250,7 +258,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function updateActiveDot() {
-      if (!dots.length) return;
+      if (!dots.length) {
+        if (panel._registro && spreads.length) panel._registro.sequencia(1, 1);
+        return;
+      }
       // acha o spread cujo CENTRO está mais próximo do centro visível
       // atual da esteira (equivalente ao ponto de "encaixe" dos pontinhos)
       var currentCenter = track.scrollLeft + track.clientWidth / 2;
@@ -264,6 +275,7 @@ document.addEventListener('DOMContentLoaded', function () {
       dots.forEach(function (dot, i) {
         dot.classList.toggle('is-active', i === current);
       });
+      if (panel._registro) panel._registro.sequencia(current + 1, spreads.length);
     }
 
     track.addEventListener('wheel', function (e) {

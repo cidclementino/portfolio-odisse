@@ -7,22 +7,11 @@ description: >
 baseurl: ""
 url: "https://www.odisse.com.br"
 
-collections:
-  projetos:
-    output: true
-    permalink: /projetos/:name/
-    sort_by: ordem
-
 defaults:
   - scope:
       path: ""
     values:
       layout: "default"
-  - scope:
-      path: ""
-      type: "projetos"
-    values:
-      layout: "projeto"
   - scope:
       path: "sobre.html"
     values:
@@ -34,3 +23,4 @@ defaults:
 
 exclude:
   - README.md
+  - worker/

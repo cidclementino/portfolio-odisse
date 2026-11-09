@@ -1,0 +1,37 @@
+---
+layout: null
+permalink: /projeto/
+---
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<title>Projeto — Odisse</title>
+<meta name="description" content="Projeto de Odisse Arquitetos.">
+{% include head.html %}
+</head>
+<body data-pagina="projeto">
+
+<a class="project__back" href="{{ '/' | relative_url }}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  Projetos
+</a>
+
+<!-- Projeto vindo da nuvem (/projeto/?p=<slug>) — montado por project.js -->
+<div class="project">
+  <aside class="project__sidebar">
+    <div>
+      <div class="project__title project__title--carregando"><h1>&nbsp;</h1><span class="place">&nbsp;</span></div>
+    </div>
+  </aside>
+
+  <div class="project__spreads"></div>
+
+  <div class="project__dots"></div>
+</div>
+
+<script src="{{ '/script.js' | relative_url }}" defer></script>
+<script src="{{ '/transitions.js' | relative_url }}" defer></script>
+<script src="{{ '/assets/js/projetos.js' | relative_url }}" defer></script>
+<script src="{{ '/project.js' | relative_url }}" defer></script>
+</body>
+</html>

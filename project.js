@@ -1,11 +1,35 @@
-// Lógica das páginas de projeto: converte a rolagem vertical do mouse em
-// deslocamento horizontal entre spreads, monta os pontinhos de navegação
-// (um por spread, clicáveis, centralizando o conteúdo na tela) e permite
-// arrastar com o mouse.
+// Página do projeto (/projeto/?p=<slug>): busca o projeto na nuvem, desenha a
+// barra lateral e a esteira de imagens/textos, e então converte a rolagem
+// vertical do mouse em deslocamento horizontal entre spreads, monta os
+// pontinhos de navegação (um por spread, clicáveis, centralizando o
+// conteúdo na tela) e permite arrastar com o mouse.
 
 document.addEventListener('DOMContentLoaded', function () {
+  var P = window.Odisse.projetos;
   var track = document.querySelector('.project__spreads');
-  if (!track) return;
+  var lateral = document.querySelector('.project__sidebar > div');
+  if (!track || !lateral) return;
+
+  var slug = new URLSearchParams(location.search).get('p') || '';
+  if (!slug) { location.replace('/'); return; }
+
+  P.projeto(slug).then(function (p) {
+    document.title = p.titulo + ' — Odisse';
+    var desc = document.querySelector('meta[name="description"]');
+    if (desc) desc.setAttribute('content', p.titulo + (p.local ? ' — ' + p.local : '') + '. Projeto de Odisse Arquitetos.');
+    lateral.innerHTML = P.titulo(p) + P.meta(p);
+    track.innerHTML = P.spreads(p);
+    document.querySelector('.project').classList.add('is-ready');
+    var registro = window.Odisse.metricas ? window.Odisse.metricas.projeto(slug, '') : null;
+    ligar(registro);
+    if (window.Odisse.pontos) window.Odisse.pontos.atualizar();
+  }).catch(function (err) {
+    console.error(err);
+    lateral.innerHTML = '<div class="project__title"><h1>Projeto não encontrado</h1>' +
+      '<span class="place"><a href="/">Ver todos os projetos</a></span></div>';
+  });
+
+  function ligar(registro) {
 
   var dotsWrap = document.querySelector('.project__dots');
 
@@ -36,7 +60,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function updateActiveDot() {
-    if (!dots.length) return;
+    if (!dots.length) {
+      if (registro && spreads.length) registro.sequencia(1, 1);
+      return;
+    }
     // acha o spread cujo CENTRO está mais próximo do centro visível
     // atual da esteira (equivalente ao ponto de "encaixe" dos pontinhos)
     var currentCenter = track.scrollLeft + track.clientWidth / 2;
@@ -50,6 +77,7 @@ document.addEventListener('DOMContentLoaded', function () {
     dots.forEach(function (dot, i) {
       dot.classList.toggle('is-active', i === current);
     });
+    if (registro) registro.sequencia(current + 1, spreads.length);
   }
 
   // Roda do mouse (trackpads já mandam deltaX naturalmente; mouse comum só
@@ -106,4 +134,5 @@ document.addEventListener('DOMContentLoaded', function () {
   track.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
 
   updateActiveDot();
+  } // fim de ligar()
 });

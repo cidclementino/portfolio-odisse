@@ -1,0 +1,13 @@
+name = "site-odisse"
+main = "index.js"
+compatibility_date = "2026-07-01"
+
+# Namespace KV "SITE_ODISSE". O workflow "Publicar API" cria o namespace
+# na primeira publicação (se ainda não existir) e troca o marcador abaixo
+# pelo id verdadeiro antes de publicar — não é preciso editar nada aqui.
+kv_namespaces = [
+  { binding = "SITE", id = "__KV_ID__" },
+]
+
+# A senha do painel (SITE_SENHA) é enviada pelo GitHub Actions a partir do
+# secret do repositório — nunca coloque o valor aqui.

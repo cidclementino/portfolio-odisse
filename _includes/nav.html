@@ -1,5 +1,5 @@
 <nav class="nav{% if page.url contains 'sobre' or page.url contains 'contato' %} nav--on-dark{% endif %}">
-  <a class="nav__mark" href="{{ '/' | relative_url }}">Odisse</a>
+  <a class="nav__mark" href="{{ '/' | relative_url }}" aria-label="Odisse — início">{% include marca-odisse.svg %}</a>
   <ul class="nav__links">
     <li><a href="{{ '/' | relative_url }}"{% if page.url == '/' %} aria-current="page"{% endif %}>Projetos</a></li>
     <li><a href="{{ '/sobre/' | relative_url }}"{% if page.url contains 'sobre' %} aria-current="page"{% endif %}>Sobre</a></li>

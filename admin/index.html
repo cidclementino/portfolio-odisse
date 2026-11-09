@@ -1,12 +1,140 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
-  <title>Odisse — Painel</title>
+  <title>Odisse · Painel do site</title>
+  <link rel="icon" href="../assets/brand/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="admin.css">
+  <script src="../assets/js/config.js"></script>
 </head>
-<body>
-  <script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>
+<body class="vista-login">
+  <header class="topo">
+    <a class="marca" href="#/projetos">
+      <span class="marca-selo" data-marca="mao"></span>
+      <span class="marca-nome" data-marca="odisse"></span>
+      <span class="marca-sub">Site</span>
+    </a>
+    <nav class="menu" aria-label="Menu do painel">
+      <a href="#/projetos" data-menu="projetos">Projetos</a>
+      <a href="#/metricas" data-menu="metricas">Métricas</a>
+    </nav>
+    <div class="topo-acoes">
+      <a class="ver-site" href="/" target="_blank" rel="noopener">Ver o site ↗</a>
+      <button class="sair" id="btSair" title="Sair deste computador">Sair</button>
+    </div>
+  </header>
+
+  <!-- ===================== ENTRADA ===================== -->
+  <main class="login" id="login">
+    <form class="login-caixa" id="formLogin">
+      <span class="login-selo" data-marca="mao"></span>
+      <h1>Painel do site</h1>
+      <p>Projetos e métricas de odisse.com.br.</p>
+      <label class="campo"><span>Senha</span><input type="password" id="loginSenha" autocomplete="current-password" required></label>
+      <p class="erro" id="loginErro" role="alert"></p>
+      <button type="submit" class="bt-forte" id="btEntrar">Entrar</button>
+    </form>
+  </main>
+
+  <!-- ===================== PROJETOS ===================== -->
+  <main class="pagina" id="projetos">
+    <div class="sec-cab linha">
+      <div>
+        <h1>Projetos</h1>
+        <p id="projInfo"></p>
+      </div>
+      <button class="bt-forte" id="btNovo">+ Novo projeto</button>
+    </div>
+    <div class="aviso-nuvem" id="avisoImportar" hidden>
+      <span>A nuvem ainda está vazia. Importe os três projetos que estavam no site (YVC, DCMCC e Altavista) para começar a partir deles.</span>
+      <button class="bt-forte" id="btImportar">Importar projetos atuais</button>
+    </div>
+    <div class="lista" id="lista"></div>
+  </main>
+
+  <!-- ===================== EDITOR ===================== -->
+  <div class="ed-barra" id="edBarra">
+    <a class="voltar" href="#/projetos">← Projetos</a>
+    <span class="ed-titulo" id="edTitulo"></span>
+    <div class="ed-salvar">
+      <span class="sinc" id="sinc" data-estado="pronto"><span class="bolinha"></span><span id="sincTxt"></span></span>
+      <a class="bt" id="btVer" href="#" target="_blank" rel="noopener">Ver no site ↗</a>
+      <button class="bt-forte" id="btSalvar" title="Salvar na nuvem (Ctrl+S)">Salvar</button>
+    </div>
+  </div>
+
+  <main class="editor" id="editor">
+    <aside class="lado">
+      <div class="lado-cab"><h2>Informações</h2></div>
+      <div class="lado-corpo">
+        <div class="grupo">
+          <label class="campo"><span>Título</span><input type="text" id="fTitulo" placeholder="Residência…"></label>
+          <label class="campo"><span>Endereço</span>
+            <span class="prefixo"><em>/projeto/?p=</em><input type="text" id="fSlug" spellcheck="false"></span>
+            <small>Gerado a partir do título. Só letras minúsculas, números e hífen.</small>
+          </label>
+          <label class="campo"><span>Local</span><input type="text" id="fLocal" placeholder="João Pessoa, Brasil"></label>
+          <div class="duas">
+            <label class="campo"><span>Ano</span><input type="text" id="fAno" inputmode="numeric"></label>
+            <label class="campo"><span>Área</span><input type="text" id="fArea" placeholder="320 m²"></label>
+          </div>
+          <label class="campo"><span>Cliente</span><input type="text" id="fCliente" placeholder="Privado"></label>
+          <div class="duas">
+            <label class="campo"><span>Tipologia</span><input type="text" id="fTipologia" list="listaTipologia"></label>
+            <label class="campo"><span>Status</span><input type="text" id="fStatus" list="listaStatus"></label>
+          </div>
+          <datalist id="listaTipologia"><option>Residencial</option><option>Comercial</option><option>Corporativo</option><option>Interiores</option><option>Institucional</option><option>Retrofit</option><option>Mobiliário</option></datalist>
+          <datalist id="listaStatus"><option>Ideia</option><option>Conceito</option><option>Em projeto</option><option>Em construção</option><option>Concluído</option></datalist>
+          <small style="font-size:11px;color:var(--ardosia-2)">Campos vazios não aparecem no site.</small>
+        </div>
+        <div class="grupo">
+          <h3>Exibição</h3>
+          <label class="check"><input type="checkbox" id="fVisivel"> Visível no site</label>
+        </div>
+        <div class="grupo">
+          <h3>Capa na Home</h3>
+          <div class="capa-escolha" id="capaEscolha"></div>
+        </div>
+      </div>
+    </aside>
+
+    <section class="palco">
+      <div class="palco-barra">
+        <div>
+          <h2>Sequência</h2>
+          <p>Imagens e textos na ordem em que aparecem no projeto. Arraste pelo rótulo para reordenar; solte arquivos aqui para adicionar imagens.</p>
+        </div>
+        <div class="acoes">
+          <button class="bt" id="btAddImg">+ Imagem</button>
+          <button class="bt" id="btAddTxt">+ Texto</button>
+        </div>
+      </div>
+      <div class="esteira" id="esteira"></div>
+    </section>
+    <input type="file" id="arquivo" accept="image/*" multiple hidden>
+  </main>
+
+  <!-- ===================== MÉTRICAS ===================== -->
+  <main class="pagina" id="metricas">
+    <div class="sec-cab linha">
+      <div>
+        <h1>Métricas</h1>
+        <p id="metInfo"></p>
+      </div>
+      <div class="seg" role="group" aria-label="Período" id="periodo">
+        <button data-dias="7">7 dias</button>
+        <button data-dias="30" class="ativo">30 dias</button>
+        <button data-dias="90">90 dias</button>
+      </div>
+    </div>
+    <div id="painelMetricas"></div>
+  </main>
+
+  <div class="aviso" id="aviso" role="status"></div>
+  <div class="dica" id="dica" hidden></div>
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>
