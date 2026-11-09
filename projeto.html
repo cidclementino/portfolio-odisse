@@ -1,12 +1,20 @@
 ---
 layout: null
 permalink: /projeto/
+pagina: projeto
+noindex: true
+seo_titulo: Projeto — Odisse
+seo_descricao: Projeto do estúdio Odisse, Arquitetura e Design.
 ---
+{%- comment -%}
+  Endereço de reserva (/projeto/?p=<slug>) para projetos que ainda não ganharam a página
+  própria em /projetos/<slug>/ (o workflow "Páginas estáticas" cria em até ~20 min).
+  Fica fora do Google (noindex) para não duplicar a página própria.
+{%- endcomment -%}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<title>Projeto — Odisse</title>
-<meta name="description" content="Projeto de Odisse Arquitetos.">
+{% include seo.html %}
 {% include head.html %}
 </head>
 <body data-pagina="projeto">

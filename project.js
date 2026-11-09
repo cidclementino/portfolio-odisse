@@ -10,21 +10,30 @@ document.addEventListener('DOMContentLoaded', function () {
   var lateral = document.querySelector('.project__sidebar > div');
   if (!track || !lateral) return;
 
-  var slug = new URLSearchParams(location.search).get('p') || '';
+  // /projetos/<slug>/ (página própria, já com o conteúdo no HTML) ou /projeto/?p=<slug> (reserva)
+  var slug = document.body.dataset.slug || new URLSearchParams(location.search).get('p') || '';
   if (!slug) { location.replace('/'); return; }
-
-  P.projeto(slug).then(function (p) {
-    document.title = p.titulo + ' — Odisse';
-    var desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute('content', p.titulo + (p.local ? ' — ' + p.local : '') + '. Projeto de Odisse Arquitetos.');
-    lateral.innerHTML = P.titulo(p) + P.meta(p);
-    track.innerHTML = P.spreads(p);
-    document.querySelector('.project').classList.add('is-ready');
+  var pronto = !!document.body.dataset.atualizado && !!track.querySelector('.spread');
+  function iniciar() {
     var registro = window.Odisse.metricas ? window.Odisse.metricas.projeto(slug, '') : null;
     ligar(registro);
     if (window.Odisse.pontos) window.Odisse.pontos.atualizar();
+  }
+
+  P.projeto(slug).then(function (p) {
+    // a página própria só é redesenhada se o projeto mudou desde que ela foi gerada
+    if (!pronto || p.atualizado !== document.body.dataset.atualizado) {
+      document.title = p.titulo + ' — Odisse';
+      var desc = document.querySelector('meta[name="description"]');
+      if (desc && !pronto) desc.setAttribute('content', p.descricao || (p.titulo + (p.local ? ' — ' + p.local : '') + '. Projeto do estúdio Odisse.'));
+      lateral.innerHTML = P.titulo(p) + P.meta(p);
+      track.innerHTML = P.spreads(p);
+    }
+    document.querySelector('.project').classList.add('is-ready');
+    iniciar();
   }).catch(function (err) {
     console.error(err);
+    if (pronto) return iniciar(); // sem nuvem, fica a versão da página
     lateral.innerHTML = '<div class="project__title"><h1>Projeto não encontrado</h1>' +
       '<span class="place"><a href="/">Ver todos os projetos</a></span></div>';
   });

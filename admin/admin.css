@@ -511,3 +511,17 @@ body:not(.vista-editor) .ed-barra { display: none; }
 .proj.oculto .relev { opacity: .55; }
 .campo-relev { margin-top: 12px; }
 @media (max-width: 820px) { .proj .relev { grid-column: 2 / -1; justify-self: start; } }
+
+/* aba Busca */
+#paginaEd[data-nome="busca"] .formato { display: none; }
+small.conta { display: block; font-size: 11px; color: var(--ardosia-3); margin: -6px 0 10px; font-variant-numeric: tabular-nums; }
+small.conta.passou { color: var(--ocre); }
+.sub-ed { font-size: 11px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--ardosia-2); margin: 18px 0 8px; }
+
+/* descrição das imagens na Galeria */
+.gimg { display: flex; flex-direction: column; gap: 6px; }
+.galt { width: 100%; border: 1px solid var(--linha-2); border-radius: 5px; padding: 6px 8px; font: inherit; font-size: 12px; line-height: 1.45; background: #fff; resize: vertical; color: var(--ardosia); }
+.galt:focus { outline: 2px solid var(--azul); outline-offset: -1px; border-color: transparent; }
+.galt.vazia { border-style: dashed; }
+.galeria-alt { font-weight: 600; }
+.galeria-alt.falta { color: var(--ocre); }

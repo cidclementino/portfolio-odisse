@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+{% include seo.html %}
+{% include head.html %}
+</head>
+<body data-pagina="projeto" data-slug="{{ page.slug }}" data-atualizado="{{ page.atualizado }}">
+{%- comment -%}
+  Página própria de um projeto, gerada pelo workflow "Páginas estáticas"
+  (scripts/gerar-estaticas.mjs) com o conteúdo já no HTML — para o Google e os
+  previews de link. project.js confere na nuvem e redesenha só se houver mudança.
+{%- endcomment %}
+
+<a class="project__back" href="{{ '/' | relative_url }}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  Projetos
+</a>
+
+{{ content }}
+
+<script src="{{ '/script.js' | relative_url }}" defer></script>
+<script src="{{ '/transitions.js' | relative_url }}" defer></script>
+<script src="{{ '/assets/js/projetos.js' | relative_url }}" defer></script>
+<script src="{{ '/project.js' | relative_url }}" defer></script>
+</body>
+</html>

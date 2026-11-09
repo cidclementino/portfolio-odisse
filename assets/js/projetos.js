@@ -94,8 +94,10 @@
     return img(ref, 'm') + ' 1200w, ' + img(ref) + ' 2400w';
   }
 
+  // página própria do projeto (gerada pelo workflow "Páginas estáticas"); enquanto
+  // ela não existe, o 404.html leva para a página de reserva /projeto/?p=<slug>
   function url(slug) {
-    return '/projeto/?p=' + encodeURIComponent(slug);
+    return '/projetos/' + encodeURIComponent(slug) + '/';
   }
 
   function paragrafos(texto) {

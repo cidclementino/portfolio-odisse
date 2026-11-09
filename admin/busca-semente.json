@@ -1,0 +1,59 @@
+{
+  "estudio": {
+    "nome": "Odisse, Estúdio de Arquitetura e Design",
+    "descricao": "Estúdio de arquitetura e design em João Pessoa. Projetos de arquitetura, interiores, objetos autorais e pesquisa editorial.",
+    "telefone": "+55 83 99122-3088",
+    "email": "contato@odisse.com.br",
+    "endereco": {
+      "rua": "Rua Bananeiras, 361 – Sala 107",
+      "bairro": "Manaíra",
+      "cidade": "João Pessoa",
+      "uf": "PB",
+      "cep": "58038-170"
+    },
+    "atende": "João Pessoa, Paraíba e outras cidades do Brasil",
+    "fundacao": "",
+    "fundadores": "Cid Clementino, Nathalia Linhares",
+    "redes": [
+      {
+        "nome": "Instagram",
+        "url": "https://www.instagram.com/odisseestudio/"
+      },
+      {
+        "nome": "TikTok",
+        "url": "https://www.tiktok.com/@odisseestudio"
+      },
+      {
+        "nome": "YouTube",
+        "url": "https://www.youtube.com/@odisseestudio"
+      },
+      {
+        "nome": "Elaia (Substack)",
+        "url": "https://odisse.substack.com/"
+      },
+      {
+        "nome": "Odisse Objetos",
+        "url": "https://www.odisseobjetos.com/"
+      },
+      {
+        "nome": "Serviços",
+        "url": "https://projetos.odisse.com.br"
+      }
+    ]
+  },
+  "paginas": {
+    "home": {
+      "titulo": "Odisse, Estúdio de Arquitetura e Design",
+      "descricao": "Odisse, Estúdio de Arquitetura e Design, em João Pessoa. Projetos de arquitetura, objetos autorais e pesquisa editorial."
+    },
+    "sobre": {
+      "titulo": "Sobre — Odisse",
+      "descricao": "Odisse — Estúdio de Arquitetura & Design. Arquitetura, objetos autorais e pesquisa editorial construídos na tensão entre memória e potencialidade."
+    },
+    "contato": {
+      "titulo": "Contato — Odisse",
+      "descricao": "Fale com o estúdio Odisse — Arquitetura & Design, João Pessoa."
+    }
+  },
+  "imagem": null
+}

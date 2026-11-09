@@ -1,0 +1,19 @@
+---
+layout: null
+permalink: /sitemap.xml
+---
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  <url><loc>{{ site.url }}/</loc>{% if site.data.projetos.size > 0 %}<lastmod>{{ site.data.projetos | map: 'atualizado' | sort | last | slice: 0, 10 }}</lastmod>{% endif %}</url>
+  <url><loc>{{ site.url }}/sobre/</loc></url>
+  <url><loc>{{ site.url }}/contato/</loc></url>
+{%- for p in site.data.projetos %}
+  <url>
+    <loc>{{ site.url }}/projetos/{{ p.slug }}/</loc>
+    {%- if p.atualizado %}<lastmod>{{ p.atualizado | slice: 0, 10 }}</lastmod>{% endif %}
+    {%- for im in p.imagens %}
+    <image:image><image:loc>{{ im.url | xml_escape }}</image:loc></image:image>
+    {%- endfor %}
+  </url>
+{%- endfor %}
+</urlset>

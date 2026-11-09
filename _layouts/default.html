@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<title>{% if page.title %}{{ page.title }}{% else %}{{ site.title }}{% endif %}</title>
-<meta name="description" content="{{ page.description | default: site.description }}">
+{% include seo.html %}
 {% include head.html %}
 {% if page.pagina == 'sobre' or page.pagina == 'contato' %}
 <!-- esconde o conteúdo por um instante, enquanto a versão editada no painel chega (no máximo 1,5 s) -->

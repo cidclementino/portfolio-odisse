@@ -11,7 +11,7 @@
 // Rotas públicas
 //   GET  /api/projetos               -> projetos visíveis, na ordem do site
 //   GET  /api/projetos/:slug         -> projeto visível completo
-//   GET  /api/paginas/:nome          -> conteúdo de Sobre ou Contato (404 = ainda não editado)
+//   GET  /api/paginas/:nome          -> conteúdo de Sobre, Contato ou Busca (404 = ainda não editado)
 //   GET  /img/:ref                   -> imagem
 //   POST /api/coleta                 -> registra uma visita (enviado pelo próprio site)
 // Rotas do painel (senha)
@@ -36,7 +36,8 @@ const ID = /^[a-z0-9_-]{4,64}$/i;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // relevância na Home: sorteio a cada visita, em camadas (alta → média → baixa)
 const RELEVANCIAS = ['alta', 'media', 'baixa'];
-const PAGINAS = new Set(['sobre', 'contato']);
+// busca = ficha do estúdio, títulos/descrições das páginas e imagem de compartilhamento
+const PAGINAS = new Set(['sobre', 'contato', 'busca']);
 const MAX_PAGINA = 200 * 1024;
 const TZ = 'America/Sao_Paulo';
 const ORIGENS = /^https?:\/\/(www\.)?odisse\.com\.br$|^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;

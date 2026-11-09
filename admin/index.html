@@ -20,6 +20,7 @@
       <a href="#/projetos" data-menu="projetos">Projetos</a>
       <a href="#/sobre" data-menu="sobre">Sobre</a>
       <a href="#/contato" data-menu="contato">Contato</a>
+      <a href="#/busca" data-menu="busca" title="Busca no Google e compartilhamento de links">Busca</a>
       <a href="#/metricas" data-menu="metricas">Métricas</a>
     </nav>
     <div class="topo-acoes">
@@ -92,6 +93,14 @@
           <small style="font-size:11px;color:var(--ardosia-2)">Campos vazios não aparecem no site.</small>
         </div>
         <div class="grupo">
+          <h3>Busca e compartilhamento</h3>
+          <label class="campo"><span>Descrição do projeto</span>
+            <textarea id="fDescricao" rows="4" placeholder="Uma ou duas frases sobre o projeto."></textarea>
+            <small id="fDescricaoConta"></small>
+          </label>
+          <small class="dica-lado">Aparece no Google e no preview quando o link do projeto é compartilhado. Vazia, usamos o começo do primeiro texto do projeto. A imagem do preview é a capa.</small>
+        </div>
+        <div class="grupo">
           <h3>Exibição</h3>
           <label class="check"><input type="checkbox" id="fVisivel"> Visível no site</label>
           <label class="campo campo-relev"><span>Relevância na Home</span>
@@ -116,7 +125,7 @@
             <button data-modo="sequencia" role="tab">Sequência</button>
           </div>
           <p class="so-texto">Escreva aqui todo o texto do projeto. Selecione um trecho e use <b>Criar card</b> para levá-lo à sequência — o trecho e o card ficam ligados: corrigir um corrige o outro.</p>
-          <p class="so-galeria">Todas as imagens do projeto. Envie, escolha a capa e mande para a sequência com <b>+</b>.</p>
+          <p class="so-galeria">Todas as imagens do projeto. Envie, escolha a capa e mande para a sequência com <b>+</b>. Descreva cada imagem no campo abaixo dela — é o que o Google Imagens e os leitores de tela leem. <span class="galeria-alt" id="galeriaAlt"></span></p>
           <p class="so-sequencia">Imagens e textos na ordem em que aparecem no projeto. Arraste imagens do banco para cá; arraste pelo rótulo para reordenar.</p>
         </div>
         <div class="acoes so-sequencia">

@@ -97,7 +97,7 @@ function rota() {
   const h = location.hash.replace(/^#\/?/, '');
   const [nome, id] = h.split('/');
   if (nome === 'metricas') { mostrar('metricas'); return carregarMetricas(); }
-  if (nome === 'sobre' || nome === 'contato') { mostrar('pagina', nome); return abrirPagina(nome); }
+  if (nome === 'sobre' || nome === 'contato' || nome === 'busca') { mostrar('pagina', nome); return abrirPagina(nome); }
   if (nome === 'novo') { mostrar('editor'); return abrirEditor(null); }
   if (nome === 'projeto' && id) { mostrar('editor'); return abrirEditor(id); }
   mostrar('projetos');
@@ -357,7 +357,7 @@ const ed = {
   modo: ['texto', 'galeria', 'sequencia'].includes(lerPref('odisse-painel-modo')) ? lerPref('odisse-painel-modo') : 'sequencia',
   semBanco: lerPref('odisse-painel-sem-banco') === '1',
 };
-const CAMPOS = { fTitulo: 'titulo', fSlug: 'slug', fLocal: 'local', fAno: 'ano', fArea: 'area', fCliente: 'cliente', fTipologia: 'tipologia', fStatus: 'status' };
+const CAMPOS = { fTitulo: 'titulo', fSlug: 'slug', fLocal: 'local', fAno: 'ano', fArea: 'area', fCliente: 'cliente', fTipologia: 'tipologia', fStatus: 'status', fDescricao: 'descricao' };
 const LARGURAS = { p: 'P', m: 'M', g: 'G' };
 const LARG_TIT = { p: 'Estreito — uma coluna esguia', m: 'Médio — uma coluna larga', g: 'Largo — duas colunas, para textos longos' };
 
@@ -371,10 +371,12 @@ function slugDe(txt) {
 function montarBanco(p) {
   const vistos = new Set();
   const out = [];
-  const add = (x) => { if (x?.ref && !vistos.has(x.ref)) { vistos.add(x.ref); out.push({ ref: x.ref, w: x.w, h: x.h }); } };
+  const add = (x) => { if (x?.ref && !vistos.has(x.ref)) { vistos.add(x.ref); out.push({ ref: x.ref, w: x.w, h: x.h, alt: x.alt || '' }); } };
   (p.banco || []).forEach(add);
   p.secoes.filter((s) => s.tipo === 'imagem').forEach(add);
   add(p.capa);
+  // a descrição é da imagem (vale em toda posição da sequência); projetos antigos a tinham só na sequência
+  for (const b of out) if (!b.alt) b.alt = p.secoes.find((s) => s.tipo === 'imagem' && s.ref === b.ref && s.alt)?.alt || '';
   return out;
 }
 
@@ -401,6 +403,7 @@ async function abrirEditor(id) {
   $('#redacao').dataset.p = '';
   ed.slugManual = !!id;
   for (const [campo, chave] of Object.entries(CAMPOS)) $('#' + campo).value = ed.p[chave] ?? '';
+  contarDescricao();
   $('#fVisivel').checked = ed.p.visivel !== false;
   $('#fRelevancia').value = ed.p.relevancia || 'media';
   desenharEditor();
@@ -492,6 +495,7 @@ const posicoesDe = (ref) => ed.p.secoes.reduce((a, s, i) => (s.tipo === 'imagem'
 
 function desenharBanco() {
   const banco = ed.p.banco;
+  contarSemDescricao();
   const livres = banco.filter((b) => b.ref && !posicoesDe(b.ref).length).length;
   $('#bancoInfo').textContent = banco.length
     ? `${banco.length} ${banco.length === 1 ? 'imagem' : 'imagens'} · ${livres} fora da sequência`
@@ -508,7 +512,7 @@ function desenharBanco() {
     if (!itens.length) { el.innerHTML = '<p class="banco-nada">Todas as imagens do banco já estão na sequência.</p>'; continue; }
     el.innerHTML = `<div class="${galeria ? 'galeria-grade' : 'banco-grade'}">` + itens.map(({ b, k, pos }) => {
       const capa = ed.p.capa?.ref && ed.p.capa.ref === b.ref;
-      return `
+      return `${galeria ? '<div class="gimg">' : ''}
       <div class="bimg${pos.length ? ' em-uso' : ''}${b._enviando ? ' subindo' : ''}" data-k="${k}" draggable="${b.ref && !galeria ? 'true' : 'false'}"
         ${b.w && galeria ? `style="--r:${(b.w / b.h).toFixed(4)}"` : ''}
         title="${pos.length ? `Na sequência: posição ${pos.join(', ')}` : 'Fora da sequência'}${galeria ? '' : ' — arraste para a sequência'}">
@@ -519,7 +523,8 @@ function desenharBanco() {
           ${galeria && !capa ? '<button data-acao="b-capa" title="Usar como capa na Home">Capa</button>' : ''}
           <button data-acao="b-usar" title="Pôr no fim da sequência">+</button>
           <button data-acao="b-apagar" class="perigo" title="Excluir do banco">✕</button></span>`}
-      </div>`;
+      </div>${galeria ? `<textarea class="galt${(b.alt || '').trim() ? '' : ' vazia'}" data-campo="alt" data-k="${k}" rows="2"
+        placeholder="Descreva a imagem: o que se vê, que parte do projeto é…"${b.ref ? '' : ' disabled'}>${esc(b.alt || '')}</textarea></div>` : ''}`;
     }).join('') + '</div>';
   }
 }
@@ -535,7 +540,7 @@ for (const id of ['#bancoFiltro', '#galeriaFiltro']) {
 $('#btBancoEnviar').addEventListener('click', () => { alvoArquivo = { pos: null }; $('#arquivo').click(); });
 $('#btGaleriaEnviar').addEventListener('click', () => { alvoArquivo = { pos: null }; $('#arquivo').click(); });
 
-function secaoDoBanco(b, alt = '') { return { tipo: 'imagem', ref: b.ref, w: b.w, h: b.h, alt }; }
+function secaoDoBanco(b) { return { tipo: 'imagem', ref: b.ref, w: b.w, h: b.h, alt: b.alt || '' }; }
 
 function inserirDoBanco(b, pos) {
   ed.p.secoes.splice(pos, 0, secaoDoBanco(b));
@@ -545,7 +550,7 @@ function inserirDoBanco(b, pos) {
 }
 function trocarPeloBanco(b, i) {
   const antiga = ed.p.secoes[i];
-  ed.p.secoes[i] = secaoDoBanco(b, antiga.alt || '');
+  ed.p.secoes[i] = secaoDoBanco(b);
   desenharEditor();
   mudou();
 }
@@ -771,7 +776,9 @@ $('#esteira').addEventListener('input', (e) => {
   const campo = e.target.dataset.campo;
   if (!campo) return;
   const i = +e.target.closest('.caixa').dataset.i;
-  ed.p.secoes[i][campo] = e.target.value;
+  const s = ed.p.secoes[i];
+  if (campo === 'alt' && s.ref) return descreverImagem(s.ref, e.target.value);
+  s[campo] = e.target.value;
   mudou();
 });
 
@@ -786,7 +793,7 @@ $('#arquivo').addEventListener('change', (e) => {
 // Envia arquivos: todos entram no banco; com `pos`, entram também na sequência
 // (com `substituir`, o primeiro troca a imagem daquela posição).
 async function adicionarImagens(arquivos, pos = null, substituir = false) {
-  const lote = arquivos.map((f) => ({ ref: '', _preview: URL.createObjectURL(f), _enviando: true, _arq: f }));
+  const lote = arquivos.map((f) => ({ ref: '', alt: '', _preview: URL.createObjectURL(f), _enviando: true, _arq: f }));
   ed.p.banco.push(...lote);
   let secs = [];
   if (pos !== null && pos !== undefined) {
@@ -947,6 +954,35 @@ for (const [campo, chave] of Object.entries(CAMPOS)) {
     mudou();
   });
 }
+function contarDescricao() {
+  const n = ($('#fDescricao').value || '').length;
+  const el = $('#fDescricaoConta');
+  el.textContent = `${n} caracteres · ideal até 155`;
+  el.style.color = n > 155 ? 'var(--ocre)' : '';
+}
+$('#fDescricao').addEventListener('input', contarDescricao);
+
+// descrição de uma imagem: vale para ela no banco e em toda posição da sequência
+function descreverImagem(ref, alt) {
+  const b = ed.p.banco.find((x) => x.ref === ref);
+  if (b) b.alt = alt;
+  ed.p.secoes.forEach((s) => { if (s.tipo === 'imagem' && s.ref === ref) s.alt = alt; });
+  contarSemDescricao();
+  mudou();
+}
+function contarSemDescricao() {
+  const imgs = ed.p.banco.filter((b) => b.ref);
+  const sem = imgs.filter((b) => !(b.alt || '').trim()).length;
+  $('#galeriaAlt').textContent = imgs.length ? (sem ? `${sem} de ${imgs.length} sem descrição.` : 'Todas as imagens descritas.') : '';
+  $('#galeriaAlt').classList.toggle('falta', sem > 0);
+}
+$('#galeria').addEventListener('input', (e) => {
+  if (e.target.dataset.campo !== 'alt') return;
+  const b = ed.p.banco[+e.target.dataset.k];
+  e.target.classList.toggle('vazia', !e.target.value.trim());
+  if (b?.ref) descreverImagem(b.ref, e.target.value);
+});
+
 $('#fSlug').addEventListener('change', (e) => { ed.p.slug = slugDe(e.target.value); e.target.value = ed.p.slug; });
 $('#fVisivel').addEventListener('change', (e) => { ed.p.visivel = e.target.checked; mudou(); });
 $('#fRelevancia').addEventListener('change', (e) => { ed.p.relevancia = e.target.value; mudou(); });
@@ -1316,11 +1352,11 @@ async function salvar() {
   if (!p.slug) { aviso('O endereço do projeto está vazio.', true); return; }
   const limpo = {
     ...p,
-    banco: p.banco.filter((b) => b.ref).map((b) => ({ ref: b.ref, w: b.w, h: b.h })),
+    banco: p.banco.filter((b) => b.ref).map((b) => ({ ref: b.ref, w: b.w, h: b.h, ...((b.alt || '').trim() ? { alt: b.alt.trim() } : {}) })),
     secoes: p.secoes
       .filter((s) => (s.tipo === 'imagem' ? s.ref : (s.texto || '').trim()))
       .map((s) => (s.tipo === 'imagem'
-        ? { tipo: 'imagem', ref: s.ref, w: s.w, h: s.h, alt: (s.alt || '').trim() }
+        ? { tipo: 'imagem', ref: s.ref, w: s.w, h: s.h, alt: (p.banco.find((b) => b.ref === s.ref)?.alt ?? s.alt ?? '').trim() }
         : { tipo: 'texto', id: s.id || novoId(), texto: s.texto.trim(), ...(s.largura === 'm' || s.largura === 'g' ? { largura: s.largura } : {}) })),
   };
   // a redação guarda só os vínculos com cards que vão ser gravados
@@ -1351,7 +1387,9 @@ $('#btSalvar').addEventListener('click', salvar);
 // nunca foi salva pelo painel, o formulário abre com o conteúdo que está hoje
 // no site (paginas-semente.json, gerado de _data/paginas.json).
 const pg = { nome: '', d: null, sujo: false, enviando: 0, alvoImg: null };
-const PAG_NOME = { sobre: 'Sobre', contato: 'Contato' };
+const PAG_NOME = { sobre: 'Sobre', contato: 'Contato', busca: 'Busca e compartilhamento' };
+
+
 
 const pegarCaminho = (obj, cam) => cam.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
 function porCaminho(obj, cam, v) {
@@ -1366,7 +1404,8 @@ async function abrirPagina(nome) {
   pg.sujo = false;
   pg.enviando = 0;
   $('#pagTitulo').textContent = PAG_NOME[nome];
-  $('#pagVer').href = `/${nome}/`;
+  $('#pagVer').href = nome === 'busca' ? '/' : `/${nome}/`;
+  $('#paginaEd').dataset.nome = nome;
   $('#pagInfo').textContent = '';
   $('#pagForm').innerHTML = '<p class="vazio">Carregando…</p>';
   estadoPag('pronto');
@@ -1379,7 +1418,10 @@ async function abrirPagina(nome) {
       return;
     }
     try {
-      pg.d = (await (await fetch('paginas-semente.json', { cache: 'no-store' })).json())[nome];
+      // a aba Busca parte de busca-semente.json (o mesmo que o gerador das páginas usa enquanto ela não é salva)
+      pg.d = nome === 'busca'
+        ? await (await fetch('busca-semente.json', { cache: 'no-store' })).json()
+        : (await (await fetch('paginas-semente.json', { cache: 'no-store' })).json())[nome];
       semente = true;
     } catch {
       $('#pagForm').innerHTML = '<p class="vazio">Não encontrei o conteúdo atual da página.</p>';
@@ -1389,7 +1431,7 @@ async function abrirPagina(nome) {
   if (pg.nome !== nome) return;
   desenharPagina();
   $('#pagInfo').textContent = semente
-    ? 'Este é o conteúdo que está hoje no site. Ao salvar, a página passa a ser editada só por aqui.'
+    ? (nome === 'busca' ? 'Já preenchida com o que o site usa hoje. Revise, complete e salve.' : 'Este é o conteúdo que está hoje no site. Ao salvar, a página passa a ser editada só por aqui.')
     : pg.d.atualizado ? `Última alteração em ${new Date(pg.d.atualizado).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.` : '';
   if (semente) estadoPag('pendente', 'Ainda não salva na nuvem');
 }
@@ -1441,7 +1483,54 @@ const NOVOS = {
   publicacoes: () => ({ ano: String(new Date().getFullYear()), descricao: '' }),
   equipe: () => ({ nome: '', cargo: '', foto: null, bio: '' }),
   secoes: () => ({ titulo: '', texto: '' }),
+  redes: () => ({ nome: '', url: '' }),
 };
+
+// contador de caracteres para descrições (o Google mostra ~155)
+const fConta = (cam, ideal) => {
+  const n = String(pegarCaminho(pg.d, cam) || '').length;
+  return `<small class="conta${n > ideal ? ' passou' : ''}" data-conta="${cam}" data-ideal="${ideal}">${n} caracteres · ideal até ${ideal}</small>`;
+};
+
+function formBusca() {
+  const pagina = (k, nome) => `
+    <div class="item-ed"><div class="item-cab"><b>${nome}</b></div><div class="item-corpo">
+      ${fLinha(`paginas.${k}.titulo`, 'Título (aba do navegador e resultado do Google)')}
+      ${fArea(`paginas.${k}.descricao`, 'Descrição (texto abaixo do título no Google e no preview do link)', { linhas: 3 })}
+      ${fConta(`paginas.${k}.descricao`, 155)}
+    </div></div>`;
+  return `
+  <section class="bloco-ed"><h2>Como o site aparece</h2>
+    <p class="nota-ed">O que está nesta aba não aparece como texto no site: é o que o Google e os aplicativos (WhatsApp,
+    Instagram, LinkedIn…) leem para mostrar o site nas buscas e nos previews de link. As páginas de cada projeto usam
+    a <b>descrição de busca</b> do projeto (editor do projeto, coluna Informações) e a capa; a descrição de cada imagem
+    fica na Galeria de imagens do projeto. Depois de salvar, as páginas lidas pelo Google se atualizam em até ~20 minutos.</p>
+  </section>
+  <section class="bloco-ed"><h2>Imagem de compartilhamento</h2>
+    ${fImagem('imagem', 'Imagem do preview (Home, Sobre e Contato)')}
+    <p class="nota-ed">Aparece quando alguém compartilha o endereço do site. É cortada em 1200 × 630 px (formato deitado, 1,9 : 1) —
+    o centro da imagem é o que fica. Sem imagem, usamos a capa do primeiro projeto.</p>
+  </section>
+  <section class="bloco-ed"><h2>Páginas</h2>
+    <div class="lista-ed">${pagina('home', 'Home')}${pagina('sobre', 'Sobre')}${pagina('contato', 'Contato')}</div>
+  </section>
+  <section class="bloco-ed"><h2>Ficha do estúdio</h2>
+    <p class="nota-ed">Vai para o Google como dados do negócio (nome, contato, endereço, redes). Ajuda o estúdio a aparecer
+    no quadro lateral das buscas e em buscas locais. Campos vazios ficam de fora.</p>
+    ${fLinha('estudio.nome', 'Nome')}
+    ${fArea('estudio.descricao', 'Descrição curta do estúdio', { linhas: 3 })}
+    ${fConta('estudio.descricao', 200)}
+    <div class="duas">${fLinha('estudio.telefone', 'Telefone', { ph: '+55 83 …' })}${fLinha('estudio.email', 'E-mail')}</div>
+    ${fLinha('estudio.endereco.rua', 'Rua e número')}
+    <div class="duas">${fLinha('estudio.endereco.bairro', 'Bairro')}${fLinha('estudio.endereco.cep', 'CEP')}</div>
+    <div class="duas">${fLinha('estudio.endereco.cidade', 'Cidade')}${fLinha('estudio.endereco.uf', 'Estado (sigla)', { ph: 'PB' })}</div>
+    ${fLinha('estudio.atende', 'Onde atende', { ph: 'João Pessoa, Paraíba e outras cidades do Brasil' })}
+    <div class="duas">${fLinha('estudio.fundacao', 'Ano de fundação', { ph: '2021' })}${fLinha('estudio.fundadores', 'Fundadores', { dica: 'Separados por vírgula.' })}</div>
+    <h3 class="sub-ed">Redes e outros endereços do estúdio</h3>
+    ${fLista('estudio.redes', 'Endereço', (c) => `<div class="duas">${fLinha(c + '.nome', 'Nome', { ph: 'Instagram' })}${fLinha(c + '.url', 'Endereço', { ph: 'https://…' })}</div>`,
+      { compacta: true, nome: (it) => it.nome, add: 'Endereço' })}
+  </section>`;
+}
 
 function formSobre() {
   const anoDesc = (c) => `<div class="ano-desc">${fLinha(c + '.ano', 'Ano')}${fLinha(c + '.descricao', 'Descrição')}</div>`;
@@ -1486,7 +1575,7 @@ function formContato() {
 
 function desenharPagina() {
   const rolagem = $('#paginaEd').scrollTop;
-  $('#pagForm').innerHTML = pg.nome === 'sobre' ? formSobre() : formContato();
+  $('#pagForm').innerHTML = pg.nome === 'sobre' ? formSobre() : pg.nome === 'busca' ? formBusca() : formContato();
   $('#paginaEd').scrollTop = rolagem;
 }
 
@@ -1494,6 +1583,12 @@ $('#pagForm').addEventListener('input', (e) => {
   const cam = e.target.dataset.cam;
   if (!cam) return;
   porCaminho(pg.d, cam, e.target.value);
+  const conta = $(`[data-conta="${cam}"]`);
+  if (conta) {
+    const n = e.target.value.length, ideal = +conta.dataset.ideal;
+    conta.textContent = `${n} caracteres · ideal até ${ideal}`;
+    conta.classList.toggle('passou', n > ideal);
+  }
   // o nome do item no cabeçalho do cartão acompanha o que é digitado
   const cab = e.target.closest('.item-ed')?.querySelector('.item-cab b');
   if (cab && /\.(nome|titulo|ano|descricao)$/.test(cam) && !e.target.closest('textarea')) {

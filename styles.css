@@ -970,3 +970,7 @@ footer .copy { font-size: 0.68rem; color: inherit; opacity: 0.7; margin: 0; }
    máximo 1,5 s) a seção fica invisível, pra não piscar a versão antiga */
 .sobre, .contato { transition: opacity 0.25s ease; }
 .pag-aguarda .sobre, .pag-aguarda .contato { opacity: 0; }
+
+/* visível só para leitores de tela e robôs (ex.: o h1 da Home) */
+.so-leitor { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.gallery-noscript { list-style: none; padding: 0 24px; line-height: 2; }

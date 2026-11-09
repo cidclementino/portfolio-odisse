@@ -59,7 +59,7 @@
   var tipoPagina = document.body && document.body.dataset.pagina;
   var pagina = abrir({ t: 'pagina', p: location.pathname, r: document.referrer, u: utm, sc: 0 });
   if (tipoPagina === 'projeto') {
-    var slug = new URLSearchParams(location.search).get('p') || '';
+    var slug = document.body.dataset.slug || new URLSearchParams(location.search).get('p') || '';
     pagina.d.p = '/projeto/' + slug;
   }
 
