@@ -246,6 +246,53 @@ img { display: block; max-width: 100%; }
 }
 
 
+/* ---------- vista em galeria: capas quadradas em grade ----------
+   a quantidade por linha acompanha a largura da tela (2 no celular);
+   cada capa leva direto à página do projeto */
+.vista-grade .gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(clamp(220px, 19vw, 300px), 1fr));
+  gap: 44px clamp(16px, 2vw, 28px);
+}
+.vista-grade .gallery__row,
+.vista-grade .gallery__row.is-collapsing,
+.vista-grade .gallery__row.is-settled {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  opacity: 1;
+}
+.vista-grade .gallery__thumb,
+.vista-grade .gallery__row.is-collapsing .gallery__thumb {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  opacity: 1;
+  transform: none;
+}
+.vista-grade .gallery__row:hover .gallery__thumb { transform: none; }
+.vista-grade .gallery__thumb img { transition: transform 0.6s cubic-bezier(.4,0,.2,1); }
+.vista-grade .gallery__row:hover .gallery__thumb img { transform: scale(1.03); }
+.vista-grade .gallery__info {
+  padding: 12px 0 0;
+  margin: 0;
+  justify-self: auto;
+  text-align: left;
+  transform: none !important;
+}
+.vista-grade .gallery__title { font-size: clamp(0.95rem, 1.3vw, 1.1rem); }
+.vista-grade .gallery__place { font-size: 0.64rem; overflow: hidden; text-overflow: ellipsis; }
+.vista-grade .gallery__panel { display: none; }
+.vista-grade .gallery__esqueleto { grid-column: 1 / -1; }
+@media (max-width: 640px) {
+  .vista-grade .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 12px; }
+  .vista-grade .gallery__info { padding-top: 8px; }
+  .vista-grade .gallery__title { font-size: 0.88rem; }
+  .vista-grade .gallery__place { font-size: 0.58rem; letter-spacing: 0.1em; }
+}
+.gallery.is-trocando { opacity: 0; transition: opacity 0.18s ease; }
+.gallery { transition: opacity 0.25s ease; }
+
 /* ---------- painel de expansão inline (accordion) — tema claro ---------- */
 .gallery__panel {
   height: 0;
@@ -417,21 +464,33 @@ img { display: block; max-width: 100%; }
 }
 .project__back svg { width: 14px; height: 14px; transform: rotate(180deg); }
 
-/* botão "voltar ao topo" — canto esquerdo, útil dada a quantidade de projetos */
-.back-to-top {
+/* atalhos flutuantes da Home — canto inferior direito:
+   vista (lista/galeria) · voltar ao topo · WhatsApp (na quina, onde se procura) */
+.dock {
   position: fixed;
-  left: var(--gutter); bottom: 22px;
+  right: var(--gutter); bottom: 22px;
   z-index: 40;
+  display: flex; gap: 8px;
+}
+.dock__btn {
   width: 40px; height: 40px;
+  padding: 0;
   border-radius: 50%;
   border: 1px solid rgba(26,26,26,0.2);
   background: rgba(244,244,244,0.9);
   color: var(--escuro);
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
-.back-to-top:hover { background: var(--slate); border-color: var(--slate); color: var(--claro); }
-.back-to-top svg { width: 16px; height: 16px; }
+.dock__btn:hover { background: var(--slate); border-color: var(--slate); color: var(--claro); }
+.dock__btn:focus-visible { outline: 2px solid var(--slate); outline-offset: 2px; }
+.dock__btn svg { width: 16px; height: 16px; display: block; }
+.dock__whatsapp svg { width: 17px; height: 17px; }
+/* o ícone mostra a vista para a qual o botão leva */
+.dock__vista .ico-lista { display: none; }
+.vista-grade .dock__vista .ico-grade { display: none; }
+.vista-grade .dock__vista .ico-lista { display: block; }
 
 .project__title h1 {
   font-family: var(--display);
@@ -812,6 +871,8 @@ footer {
   padding: 48px var(--gutter) 32px;
   transition: background 0.2s ease, color 0.2s ease;
 }
+/* na Home, espaço para os atalhos flutuantes não cobrirem o rodapé */
+body[data-pagina="home"] footer { padding-bottom: 88px; }
 footer.footer--dark { background: var(--slate); color: rgba(244,244,244,0.7); }
 footer .wrap {
   max-width: var(--max);
@@ -826,10 +887,9 @@ footer .wrap {
 /* selo (mão) e palavra Odisse — na cor da tinta da página */
 footer .footer__selo { display: block; color: var(--slate); }
 footer .footer__selo svg { height: 46px; width: auto; display: block; }
-footer .footer__marca { display: block; color: var(--escuro); margin-top: 4px; }
-footer .footer__marca svg { height: 13px; width: auto; display: block; }
-footer.footer--dark .footer__selo,
-footer.footer--dark .footer__marca { color: var(--claro); }
+footer .footer__selo:hover { color: var(--gold); }
+footer.footer--dark .footer__selo { color: var(--claro); }
+footer.footer--dark .footer__selo:hover { color: var(--gold); }
 
 footer ul { list-style: none; display: flex; gap: 22px; margin: 0; padding: 0; }
 footer a { text-decoration: none; font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: inherit; transition: color 0.2s ease; }

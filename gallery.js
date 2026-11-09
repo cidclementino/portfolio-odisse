@@ -57,6 +57,10 @@ function seguir(el, alvo, ms) {
   });
 }
 
+function emGrade() {
+  return document.documentElement.classList.contains('vista-grade');
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   var P = window.Odisse.projetos;
   var galeria = document.querySelector('.gallery');
@@ -93,6 +97,8 @@ document.addEventListener('DOMContentLoaded', function () {
     item._slug = item.getAttribute('data-slug');
 
     row.addEventListener('click', function (e) {
+      // na vista em galeria a capa é um link comum: vai pra página do projeto
+      if (emGrade()) return;
       e.preventDefault();
       startOpen();
     });
@@ -139,6 +145,44 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
   });
+
+  // botão de vista (lista ⇄ galeria) — a escolha fica guardada neste navegador
+  var botaoVista = document.querySelector('.dock__vista');
+  function marcarBotao() {
+    if (!botaoVista) return;
+    var g = emGrade();
+    var rotulo = g ? 'Ver em lista' : 'Ver em galeria';
+    botaoVista.setAttribute('aria-label', rotulo);
+    botaoVista.setAttribute('title', rotulo);
+    botaoVista.setAttribute('aria-pressed', g ? 'true' : 'false');
+  }
+  marcarBotao();
+  if (botaoVista) botaoVista.addEventListener('click', function () {
+    var paraGrade = !emGrade();
+    if (paraGrade) fecharJa();
+    galeria.classList.add('is-trocando');
+    setTimeout(function () {
+      document.documentElement.classList.toggle('vista-grade', paraGrade);
+      try { localStorage.setItem('odisse-vista', paraGrade ? 'grade' : 'lista'); } catch (e) {}
+      marcarBotao();
+      galeria.classList.remove('is-trocando');
+      if (window.Odisse.pontos) window.Odisse.pontos.atualizar();
+    }, 180);
+  });
+
+  // fecha o projeto aberto sem animação (ao trocar para a galeria)
+  function fecharJa() {
+    document.querySelectorAll('.gallery__item').forEach(function (it) {
+      var pn = it.querySelector('.gallery__panel');
+      if (!pn || !pn.classList.contains('is-open')) return;
+      var rw = it.querySelector('.gallery__row');
+      rw.setAttribute('aria-expanded', 'false');
+      rw.appendChild(it._info);
+      closePanel(pn);
+      rw.classList.remove('is-settled', 'is-collapsing');
+      it._info.style.transform = ''; it._thumb.style.transform = '';
+    });
+  }
 
   function fecharOutros(atual) {
     document.querySelectorAll('.gallery__item').forEach(function (otherItem) {
