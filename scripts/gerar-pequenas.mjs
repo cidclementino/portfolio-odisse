@@ -1,4 +1,4 @@
-// Gera a versão pequena (640 px, "-p") das imagens que já estavam na nuvem
+// Gera a versão pequena (960 px, "-s") das imagens que já estavam na nuvem
 // antes de o painel passar a criá-la no envio: capas dos projetos e fotos
 // das páginas Sobre e Contato. Parte da versão média (1200 px).
 // Uso: API=https://... SITE_SENHA=... node scripts/gerar-pequenas.mjs
@@ -33,8 +33,8 @@ for (const ref of refs) {
   const media = await fetch(`${API}/img/${encodeURIComponent(ref)}-m`);
   if (!media.ok) { console.log(`  ${ref}: sem versão média, pulando`); continue; }
   const entrada = Buffer.from(await media.arrayBuffer());
-  const saida = await sharp(entrada).resize(640, 640, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 80 }).toBuffer();
-  const put = await fetch(`${API}/api/admin/imagens/${encodeURIComponent(ref)}-p`, {
+  const saida = await sharp(entrada).resize(960, 960, { fit: 'inside', withoutEnlargement: true }).webp({ quality: 82 }).toBuffer();
+  const put = await fetch(`${API}/api/admin/imagens/${encodeURIComponent(ref)}-s`, {
     method: 'PUT', headers: { ...auth, 'Content-Type': 'image/webp' }, body: saida,
   });
   if (!put.ok) throw new Error(`${ref}: envio falhou (HTTP ${put.status})`);

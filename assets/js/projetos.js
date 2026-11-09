@@ -77,12 +77,12 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  // tamanhos: 'p' = pequena (640 px, capas), 'm' = média (1200 px), sem nada = grande (2400 px)
+  // tamanhos: 's' = pequena (960 px, capas), 'm' = média (1200 px), sem nada = grande (2400 px)
   function img(ref, tamanho) {
-    return base() + '/img/' + encodeURIComponent(ref) + (tamanho === 'm' || tamanho === 'p' ? '-' + tamanho : '');
+    return base() + '/img/' + encodeURIComponent(ref) + (tamanho === 'm' || tamanho === 's' ? '-' + tamanho : '');
   }
 
-  // largura em que a capa aparece, para o navegador escolher entre 640 e 1200 px
+  // largura em que a capa aparece, para o navegador escolher entre 960 e 1200 px
   function tamanhosCapa() {
     return document.documentElement.classList.contains('vista-grade')
       ? '(max-width: 640px) calc(50vw - 24px), 300px'
@@ -141,7 +141,7 @@
     var capa = '';
     if (src) {
       capa = '<img src="' + esc(src) + '"' +
-        (c.ref && !c.src ? ' srcset="' + img(c.ref, 'p') + ' 640w, ' + img(c.ref, 'm') + ' 1200w" sizes="' + tamanhosCapa() + '"' : '') +
+        (c.ref && !c.src ? ' srcset="' + img(c.ref, 's') + ' 960w, ' + img(c.ref, 'm') + ' 1200w" sizes="' + tamanhosCapa() + '"' : '') +
         ' alt="' + esc(r.titulo) + '"' +
         (i === 0 ? ' fetchpriority="high"' : '') +
         (i > 1 ? ' loading="lazy"' : '') + ' decoding="async">';

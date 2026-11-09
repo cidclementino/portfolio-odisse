@@ -56,8 +56,8 @@ function aviso(txt, erro = false) {
 }
 
 // ------------------------------------------------------------------ imagens
-// Converte para WebP (ou JPEG, onde o navegador não gera WebP): 2400, 1200 e 640 px no lado maior
-// (a de 640 px é a das capas na Home).
+// Converte para WebP (ou JPEG, onde o navegador não gera WebP): 2400, 1200 e 960 px no lado maior
+// (a de 960 px, "-s", é a das capas na Home e das fotos do Sobre).
 async function reduzir(bmp, max) {
   const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
   const w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
@@ -74,12 +74,12 @@ async function enviarImagem(arquivo) {
   const bmp = await createImageBitmap(arquivo, { imageOrientation: 'from-image' });
   const grande = await reduzir(bmp, 2400);
   const media = await reduzir(bmp, 1200);
-  const pequena = await reduzir(bmp, 640);
+  const pequena = await reduzir(bmp, 960);
   bmp.close?.();
   const ref = novoId();
   await nuvem.imagem(ref, grande.blob);
   await nuvem.imagem(`${ref}-m`, media.blob);
-  await nuvem.imagem(`${ref}-p`, pequena.blob);
+  await nuvem.imagem(`${ref}-s`, pequena.blob);
   return { ref, w: grande.w, h: grande.h };
 }
 
@@ -321,7 +321,16 @@ $('#btImportar').addEventListener('click', async () => {
 //   banco  -> todas as imagens enviadas para o projeto (coluna da direita)
 //   secoes -> a sequência publicada: imagens (tiradas do banco) e textos
 // Tirar uma imagem da sequência não a apaga: ela continua no banco.
-const ed = { p: null, novo: false, sujo: false, enviando: 0, slugManual: false, filtro: 'todas' };
+// E um texto corrido (redacao) só do painel: lista de pedaços — texto solto (string)
+// ou { id } de um card de texto da sequência. O texto do card mora só no card, então
+// corrigir na redação ou na sequência é corrigir o mesmo texto.
+const lerPref = (k, padrao) => { try { return localStorage.getItem(k) ?? padrao; } catch { return padrao; } };
+const gravarPref = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+const ed = {
+  p: null, novo: false, sujo: false, enviando: 0, slugManual: false, filtro: 'todas',
+  modo: ['texto', 'galeria', 'sequencia'].includes(lerPref('odisse-painel-modo')) ? lerPref('odisse-painel-modo') : 'sequencia',
+  semBanco: lerPref('odisse-painel-sem-banco') === '1',
+};
 const CAMPOS = { fTitulo: 'titulo', fSlug: 'slug', fLocal: 'local', fAno: 'ano', fArea: 'area', fCliente: 'cliente', fTipologia: 'tipologia', fStatus: 'status' };
 const LARGURAS = { p: 'P', m: 'M', g: 'G' };
 const LARG_TIT = { p: 'Estreito — uma coluna esguia', m: 'Médio — uma coluna larga', g: 'Largo — duas colunas, para textos longos' };
@@ -362,6 +371,8 @@ async function abrirEditor(id) {
     ed.p = { id: novoId(), titulo: '', slug: '', local: 'João Pessoa, Brasil', ano: String(new Date().getFullYear()), cliente: '', tipologia: '', area: '', status: '', visivel: false, capa: null, banco: [], secoes: [] };
   }
   ed.p.banco = montarBanco(ed.p);
+  prepararRedacao(ed.p);
+  $('#redacao').dataset.p = '';
   ed.slugManual = !!id;
   for (const [campo, chave] of Object.entries(CAMPOS)) $('#' + campo).value = ed.p[chave] ?? '';
   $('#fVisivel').checked = ed.p.visivel !== false;
@@ -393,7 +404,43 @@ function desenharEditor() {
   desenharCapa();
   desenharEsteira();
   desenharBanco();
+  aplicarModo();
 }
+
+// ---- as três vistas: Texto · Galeria de imagens · Sequência
+function aplicarModo() {
+  const el = $('#editor');
+  el.dataset.modo = ed.modo;
+  el.classList.toggle('sem-banco', ed.semBanco);
+  $$('#modos button').forEach((b) => {
+    const at = b.dataset.modo === ed.modo;
+    b.classList.toggle('ativo', at);
+    b.setAttribute('aria-selected', at ? 'true' : 'false');
+  });
+  $('#btBanco').textContent = ed.semBanco ? 'Mostrar banco' : 'Ocultar banco';
+  if (ed.modo === 'texto') {
+    // não redesenha por baixo de quem está digitando (ex.: uma imagem terminou de subir)
+    if ($('#redacao').dataset.p !== ed.p.id || document.activeElement !== $('#redacao')) desenharRedacao();
+    desenharTrechos();
+  }
+  if (ed.modo === 'sequencia') requestAnimationFrame(medirEsteira);
+  esconderCriarCard();
+}
+function trocarModo(m) {
+  if (m === ed.modo) return;
+  if (ed.modo === 'texto') lerRedacao();
+  ed.modo = m;
+  gravarPref('odisse-painel-modo', m);
+  fecharSeletor();
+  if (m === 'sequencia') desenharEsteira();
+  aplicarModo();
+}
+$('#modos').addEventListener('click', (e) => { const b = e.target.closest('[data-modo]'); if (b) trocarModo(b.dataset.modo); });
+$('#btBanco').addEventListener('click', () => {
+  ed.semBanco = !ed.semBanco;
+  gravarPref('odisse-painel-sem-banco', ed.semBanco ? '1' : '0');
+  aplicarModo();
+});
 
 const srcDe = (x) => x._preview || (x.ref ? imgUrl(x.ref) : '');
 
@@ -422,34 +469,44 @@ function desenharBanco() {
   $('#bancoInfo').textContent = banco.length
     ? `${banco.length} ${banco.length === 1 ? 'imagem' : 'imagens'} · ${livres} fora da sequência`
     : 'Nenhuma imagem ainda';
-  $$('#bancoFiltro button').forEach((b) => b.classList.toggle('ativo', b.dataset.f === ed.filtro));
-  const el = $('#banco');
-  if (!banco.length) {
-    el.innerHTML = '<div class="banco-vazio"><span>Envie aqui todas as imagens do projeto.</span><button class="bt" data-acao="b-enviar">Escolher arquivos</button><span>ou solte os arquivos nesta coluna</span></div>';
-    return;
+  $$('#bancoFiltro button, #galeriaFiltro button').forEach((b) => b.classList.toggle('ativo', b.dataset.f === ed.filtro));
+  // a mesma coleção aparece na coluna da direita (sequência) e na vista Galeria
+  for (const [el, galeria] of [[$('#banco'), false], [$('#galeria'), true]]) {
+    if (!banco.length) {
+      el.innerHTML = `<div class="banco-vazio"><span>Envie aqui todas as imagens do projeto.</span><button class="bt" data-acao="b-enviar">Escolher arquivos</button><span>ou solte os arquivos ${galeria ? 'nesta área' : 'nesta coluna'}</span></div>`;
+      continue;
+    }
+    const itens = banco.map((b, k) => ({ b, k, pos: posicoesDe(b.ref) }))
+      .filter(({ b, pos }) => ed.filtro === 'todas' || !b.ref || !pos.length);
+    if (!itens.length) { el.innerHTML = '<p class="banco-nada">Todas as imagens do banco já estão na sequência.</p>'; continue; }
+    el.innerHTML = `<div class="${galeria ? 'galeria-grade' : 'banco-grade'}">` + itens.map(({ b, k, pos }) => {
+      const capa = ed.p.capa?.ref && ed.p.capa.ref === b.ref;
+      return `
+      <div class="bimg${pos.length ? ' em-uso' : ''}${b._enviando ? ' subindo' : ''}" data-k="${k}" draggable="${b.ref && !galeria ? 'true' : 'false'}"
+        ${b.w && galeria ? `style="--r:${(b.w / b.h).toFixed(4)}"` : ''}
+        title="${pos.length ? `Na sequência: posição ${pos.join(', ')}` : 'Fora da sequência'}${galeria ? '' : ' — arraste para a sequência'}">
+        <img src="${srcDe(b)}" alt="" loading="lazy" draggable="false">
+        ${pos.length ? `<span class="uso">${galeria ? 'Na sequência: ' : ''}${pos.join(' · ')}</span>` : ''}
+        ${capa ? '<span class="capa-tag">Capa</span>' : ''}
+        ${b._enviando ? '<span class="enviando">Enviando…</span>' : `<span class="bimg-acoes">
+          ${galeria && !capa ? '<button data-acao="b-capa" title="Usar como capa na Home">Capa</button>' : ''}
+          <button data-acao="b-usar" title="Pôr no fim da sequência">+</button>
+          <button data-acao="b-apagar" class="perigo" title="Excluir do banco">✕</button></span>`}
+      </div>`;
+    }).join('') + '</div>';
   }
-  const itens = banco.map((b, k) => ({ b, k, pos: posicoesDe(b.ref) }))
-    .filter(({ b, pos }) => ed.filtro === 'todas' || !b.ref || !pos.length);
-  if (!itens.length) { el.innerHTML = '<p class="banco-nada">Todas as imagens do banco já estão na sequência.</p>'; return; }
-  el.innerHTML = '<div class="banco-grade">' + itens.map(({ b, k, pos }) => `
-    <div class="bimg${pos.length ? ' em-uso' : ''}${b._enviando ? ' subindo' : ''}" data-k="${k}" draggable="${b.ref ? 'true' : 'false'}"
-      title="${pos.length ? `Na sequência: posição ${pos.join(', ')}` : 'Fora da sequência'} — arraste para a sequência">
-      <img src="${srcDe(b)}" alt="" loading="lazy" draggable="false">
-      ${pos.length ? `<span class="uso">${pos.join(' · ')}</span>` : ''}
-      ${ed.p.capa?.ref && ed.p.capa.ref === b.ref ? '<span class="capa-tag">Capa</span>' : ''}
-      ${b._enviando ? '<span class="enviando">Enviando…</span>' : `<span class="bimg-acoes">
-        <button data-acao="b-usar" title="Pôr no fim da sequência">+</button>
-        <button data-acao="b-apagar" class="perigo" title="Excluir do banco">✕</button></span>`}
-    </div>`).join('') + '</div>';
 }
 
-$('#bancoFiltro').addEventListener('click', (e) => {
-  const b = e.target.closest('button');
-  if (!b) return;
-  ed.filtro = b.dataset.f;
-  desenharBanco();
-});
+for (const id of ['#bancoFiltro', '#galeriaFiltro']) {
+  $(id).addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    ed.filtro = b.dataset.f;
+    desenharBanco();
+  });
+}
 $('#btBancoEnviar').addEventListener('click', () => { alvoArquivo = { pos: null }; $('#arquivo').click(); });
+$('#btGaleriaEnviar').addEventListener('click', () => { alvoArquivo = { pos: null }; $('#arquivo').click(); });
 
 function secaoDoBanco(b, alt = '') { return { tipo: 'imagem', ref: b.ref, w: b.w, h: b.h, alt }; }
 
@@ -466,14 +523,29 @@ function trocarPeloBanco(b, i) {
   mudou();
 }
 
-$('#banco').addEventListener('click', (e) => {
+function cliqueBanco(e) {
   const bt = e.target.closest('[data-acao]');
   if (!bt) return;
   if (bt.dataset.acao === 'b-enviar') { alvoArquivo = { pos: null }; return $('#arquivo').click(); }
   const k = +bt.closest('.bimg').dataset.k;
   const b = ed.p.banco[k];
   if (!b?.ref) return;
-  if (bt.dataset.acao === 'b-usar') return inserirDoBanco(b, ed.p.secoes.length);
+  if (bt.dataset.acao === 'b-usar') {
+    if (ed.modo !== 'sequencia') {
+      ed.p.secoes.push(secaoDoBanco(b));
+      desenharEditor();
+      mudou();
+      return aviso(`Imagem posta no fim da sequência (posição ${ed.p.secoes.length}).`);
+    }
+    return inserirDoBanco(b, ed.p.secoes.length);
+  }
+  if (bt.dataset.acao === 'b-capa') {
+    ed.p.capa = { ref: b.ref, w: b.w, h: b.h };
+    desenharCapa();
+    desenharBanco();
+    mudou();
+    return aviso('Capa trocada.');
+  }
   if (bt.dataset.acao === 'b-apagar') {
     const pos = posicoesDe(b.ref);
     const msg = pos.length
@@ -486,12 +558,31 @@ $('#banco').addEventListener('click', (e) => {
     desenharEditor();
     mudou();
   }
-});
+}
+$('#banco').addEventListener('click', cliqueBanco);
+$('#galeria').addEventListener('click', cliqueBanco);
 $('#banco').addEventListener('dblclick', (e) => {
   const item = e.target.closest('.bimg');
   if (!item || e.target.closest('button')) return;
   const b = ed.p.banco[+item.dataset.k];
   if (b?.ref) inserirDoBanco(b, ed.p.secoes.length);
+});
+
+// soltar arquivos na vista Galeria: entram no banco
+const galPane = $('#galeriaPane');
+galPane.addEventListener('dragover', (e) => {
+  if (![...(e.dataTransfer?.types || [])].includes('Files')) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'copy';
+  galPane.classList.add('solta');
+});
+galPane.addEventListener('dragleave', (e) => { if (!galPane.contains(e.relatedTarget)) galPane.classList.remove('solta'); });
+galPane.addEventListener('drop', (e) => {
+  const arquivos = [...(e.dataTransfer.files || [])].filter((f) => f.type.startsWith('image/'));
+  galPane.classList.remove('solta');
+  if (!arquivos.length) return;
+  e.preventDefault();
+  adicionarImagens(arquivos, null);
 });
 
 // ---- esteira (a sequência)
@@ -503,6 +594,7 @@ function desenharEsteira() {
   const est = $('#esteira');
   requestAnimationFrame(medirEsteira);
   const sec = ed.p.secoes;
+  const lig = idsNaRedacao();
   if (!sec.length) {
     est.innerHTML = `<div class="esteira-vazia"><span>A sequência está vazia.</span><span>Arraste imagens do banco para cá, ou use + Imagem e + Texto.</span></div>`;
     return;
@@ -520,9 +612,10 @@ function desenharEsteira() {
         <button data-acao="excluir" class="perigo" title="${s.tipo === 'imagem' ? 'Tirar da sequência (continua no banco)' : 'Excluir texto'}">✕</button>
       </div>`;
     if (s.tipo === 'texto') {
-      return entre(i) + `<div class="caixa caixa--texto larg-${larg}" data-i="${i}">${barra}
+      const ligado = s.id && lig.has(s.id);
+      return entre(i) + `<div class="caixa caixa--texto larg-${larg}${ligado ? ' ligado' : ''}" data-i="${i}">${barra}
         <div class="caixa-corpo"><textarea data-campo="texto" placeholder="Escreva o texto. Cada Enter abre um novo parágrafo.">${esc(s.texto)}</textarea></div>
-        <small>Cada Enter vira um parágrafo no site.${larg === 'g' ? ' No site, este texto corre em duas colunas.' : ''}</small></div>`;
+        <small>${ligado ? `<button class="vinculo" data-acao="ver-trecho" title="Abrir este trecho na vista Texto">Ligado ao texto ↗</button>` : ''}Cada Enter vira um parágrafo no site.${larg === 'g' ? ' No site, este texto corre em duas colunas.' : ''}</small></div>`;
     }
     const src = srcDe(s);
     return entre(i) + `<div class="caixa caixa--imagem" data-i="${i}"${s.w ? ` style="--r:${(s.w / s.h).toFixed(4)}"` : ''}>${barra}
@@ -559,9 +652,14 @@ $('#esteira').addEventListener('click', (e) => {
   if (acao === 'esq' && i > 0) [sec[i - 1], sec[i]] = [sec[i], sec[i - 1]];
   else if (acao === 'dir' && i < sec.length - 1) [sec[i + 1], sec[i]] = [sec[i], sec[i + 1]];
   else if (acao === 'larg') { if (sec[i].largura === b.dataset.l || (!sec[i].largura && b.dataset.l === 'p')) return; sec[i].largura = b.dataset.l; }
+  else if (acao === 'ver-trecho') { const id = sec[i].id; trocarModo('texto'); return mostrarTrecho(id); }
   else if (acao === 'excluir') {
     const s = sec[i];
-    if (s.tipo === 'texto' && s.texto?.trim() && !confirm('Excluir este texto?')) return;
+    const ligado = s.tipo === 'texto' && s.id && idsNaRedacao().has(s.id);
+    if (ligado) {
+      if (!confirm('Tirar este card da sequência? O trecho continua na redação (aba Texto), só deixa de ser card.')) return;
+      desligarTrecho(s.id);
+    } else if (s.tipo === 'texto' && s.texto?.trim() && !confirm('Excluir este texto?')) return;
     sec.splice(i, 1); // imagem: sai só da sequência, continua no banco
   } else if (acao === 'trocar') return abrirSeletor(b, { trocar: i });
   else return;
@@ -570,7 +668,7 @@ $('#esteira').addEventListener('click', (e) => {
 });
 
 function inserirTexto(pos) {
-  ed.p.secoes.splice(pos, 0, { tipo: 'texto', texto: '', largura: 'p' });
+  ed.p.secoes.splice(pos, 0, { tipo: 'texto', id: novoId(), texto: '', largura: 'p' });
   desenharEditor();
   mudou();
   $(`.caixa[data-i="${pos}"] textarea`)?.focus();
@@ -678,7 +776,7 @@ async function adicionarImagens(arquivos, pos = null, substituir = false) {
   desenharEditor();
   mudou();
   if (secs.length) $(`.caixa[data-i="${pos}"]`)?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-  else $('#banco .bimg:last-child')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  else $(`${ed.modo === 'galeria' ? '#galeria' : '#banco'} .bimg:last-child`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   ed.enviando += lote.length;
   estado('enviando', `Enviando ${ed.enviando} ${ed.enviando === 1 ? 'imagem' : 'imagens'}…`);
   for (const b of lote) {
@@ -825,8 +923,363 @@ for (const [campo, chave] of Object.entries(CAMPOS)) {
 $('#fSlug').addEventListener('change', (e) => { ed.p.slug = slugDe(e.target.value); e.target.value = ed.p.slug; });
 $('#fVisivel').addEventListener('change', (e) => { ed.p.visivel = e.target.checked; mudou(); });
 
+// ---- redação (vista Texto)
+// O texto corrido do projeto. Um trecho selecionado vira card na sequência; o
+// trecho e o card são o mesmo texto (o card guarda, a redação aponta para ele).
+const red = $('#redacao');
+try { red.contentEditable = 'plaintext-only'; } catch { /* navegador sem plaintext-only */ }
+if (red.contentEditable !== 'plaintext-only') {
+  red.contentEditable = 'true';
+  red.addEventListener('paste', (e) => {
+    e.preventDefault();
+    document.execCommand('insertText', false, e.clipboardData.getData('text/plain'));
+  });
+}
+
+const secTexto = (id) => ed.p.secoes.find((s) => s.tipo === 'texto' && s.id === id);
+const idsNaRedacao = () => new Set((ed.p?.redacao || []).filter((r) => typeof r !== 'string').map((r) => r.id));
+const numeroDe = (id) => ed.p.secoes.findIndex((s) => s.tipo === 'texto' && s.id === id) + 1;
+const textoDe = (r) => (typeof r === 'string' ? r : secTexto(r.id)?.texto || '');
+
+function juntarSoltos(lista) {
+  const out = [];
+  for (const r of lista) {
+    if (typeof r === 'string') {
+      if (!r) continue;
+      if (typeof out[out.length - 1] === 'string') out[out.length - 1] += r; else out.push(r);
+    } else out.push({ id: r.id });
+  }
+  return out;
+}
+
+// projeto aberto: todo card de texto ganha id; projeto sem redação ganha uma
+// feita dos cards que já existem (cada um vira um trecho ligado)
+function prepararRedacao(p) {
+  p.secoes.forEach((s) => { if (s.tipo === 'texto' && !s.id) s.id = novoId(); });
+  if (!Array.isArray(p.redacao)) {
+    p.redacao = [];
+    p.secoes.filter((s) => s.tipo === 'texto' && (s.texto || '').trim()).forEach((s, k) => {
+      if (k) p.redacao.push('\n\n');
+      p.redacao.push({ id: s.id });
+    });
+  }
+  const ids = new Set(p.secoes.filter((s) => s.tipo === 'texto').map((s) => s.id));
+  const vistos = new Set();
+  p.redacao = juntarSoltos(p.redacao.filter((r) => {
+    if (typeof r === 'string') return true;
+    if (!r || !ids.has(r.id) || vistos.has(r.id)) return false;
+    vistos.add(r.id);
+    return true;
+  }));
+}
+
+// tira o vínculo: o texto fica na redação como texto comum
+function desligarTrecho(id) {
+  const s = secTexto(id);
+  ed.p.redacao = juntarSoltos(ed.p.redacao.map((r) => (typeof r !== 'string' && r.id === id ? (s?.texto || '') : r)));
+}
+
+function desenharRedacao() {
+  red.innerHTML = (ed.p.redacao || []).map((r) => {
+    if (typeof r === 'string') return esc(r);
+    const s = secTexto(r.id);
+    return s ? `<mark data-t="${r.id}" data-n="${numeroDe(r.id)}">${esc(s.texto)}</mark>` : '';
+  }).join('') + '\n'; // quebra final de reserva: o Chrome se perde com uma quebra no fim do bloco
+  garantirFinal();
+  red.dataset.p = ed.p.id;
+  infoRedacao();
+}
+
+function infoRedacao() {
+  const txt = (ed.p.redacao || []).map(textoDe).join('');
+  const palavras = (txt.match(/\S+/g) || []).length;
+  const n = idsNaRedacao().size;
+  $('#redInfo').textContent = palavras ? `${palavras} ${palavras === 1 ? 'palavra' : 'palavras'} · ${n} ${n === 1 ? 'trecho' : 'trechos'} em cards` : '';
+  red.classList.toggle('vazia', !txt);
+}
+
+function garantirFinal() {
+  const u = red.lastChild;
+  if (!u || u.nodeType !== 3 || !u.data.endsWith('\n')) red.appendChild(document.createTextNode('\n'));
+}
+
+// o que está na tela, em pedaços: { t, id, node } na ordem do texto
+function tokens(el) {
+  const out = [];
+  const walk = (n, id) => {
+    for (const c of n.childNodes) {
+      if (c.nodeType === 3) { if (c.data) out.push({ t: c.data, id, node: c }); }
+      else if (c.nodeName === 'BR') out.push({ t: '\n', id, node: c });
+      else if (c.nodeType === 1) {
+        // navegadores sem plaintext-only quebram linha com <div>
+        if (/^(DIV|P)$/.test(c.nodeName) && out.length && !out[out.length - 1].t.endsWith('\n')) out.push({ t: '\n', id, node: null });
+        walk(c, c.nodeName === 'MARK' && c.dataset.t ? c.dataset.t : id);
+      }
+    }
+  };
+  walk(el, null);
+  return out;
+}
+
+// lê a tela de volta para o projeto (e corrige o texto dos cards ligados)
+function lerRedacao() {
+  if (ed.modo !== 'texto' || red.dataset.p !== ed.p?.id) return;
+  const tk = tokens(red);
+  // quebra de linha entre dois pedaços do mesmo trecho pertence a ele
+  tk.forEach((x, k) => {
+    if (x.id === null && /^\n+$/.test(x.t) && tk[k - 1]?.id && tk[k - 1].id === tk[k + 1]?.id) x.id = tk[k - 1].id;
+  });
+  const runs = [];
+  for (const x of tk) {
+    const u = runs[runs.length - 1];
+    if (u && u.id === x.id) u.t += x.t; else runs.push({ id: x.id, t: x.t });
+  }
+  const ult = runs[runs.length - 1];
+  if (ult && !ult.id && ult.t.endsWith('\n')) ult.t = ult.t.slice(0, -1); // a quebra de reserva
+  const vistos = new Set();
+  const nova = [];
+  for (const r of runs) {
+    const s = r.id && !vistos.has(r.id) ? secTexto(r.id) : null;
+    const [, ini, miolo, fim] = r.t.match(/^(\s*)([\s\S]*?)(\s*)$/);
+    if (!s || !miolo) { nova.push(r.t); continue; }
+    vistos.add(r.id);
+    // espaços nas pontas ficam fora do card
+    nova.push(ini, { id: r.id }, fim);
+    if (s.texto !== miolo) s.texto = miolo;
+  }
+  ed.p.redacao = juntarSoltos(nova);
+}
+
+let tTrechos;
+red.addEventListener('input', () => {
+  garantirFinal();
+  const antes = idsNaRedacao();
+  lerRedacao();
+  const agora = idsNaRedacao();
+  const saiu = [...antes].filter((id) => !agora.has(id) && secTexto(id));
+  if (saiu.length) {
+    aviso(`${saiu.map((id) => `Card ${numeroDe(id)}`).join(', ')} saiu do texto — continua na sequência, sem vínculo. Ctrl+Z desfaz.`);
+  }
+  infoRedacao();
+  clearTimeout(tTrechos);
+  tTrechos = setTimeout(desenharTrechos, saiu.length ? 0 : 200);
+  mudou();
+});
+
+// digitar colado na borda de um trecho escreve fora dele (para continuar o texto
+// depois de um card sem esticar o card); para esticar, selecione e use "Ampliar card"
+const textosDe = (m) => { const w = document.createTreeWalker(m, NodeFilter.SHOW_TEXT); const l = []; while (w.nextNode()) l.push(w.currentNode); return l; };
+red.addEventListener('beforeinput', (e) => {
+  const dado = e.inputType === 'insertText' ? e.data
+    : (e.inputType === 'insertParagraph' || e.inputType === 'insertLineBreak') ? '\n' : null;
+  if (!dado) return;
+  const sel = getSelection();
+  if (!sel.isCollapsed || !sel.anchorNode) return;
+  const n = sel.anchorNode, o = sel.anchorOffset;
+  const m = (n.nodeType === 3 ? n.parentElement : n)?.closest?.('mark[data-t]');
+  if (!m || !red.contains(m)) return;
+  const ts = textosDe(m);
+  if (!ts.length) return;
+  const fim = n === ts[ts.length - 1] && o === n.data.length;
+  const ini = n === ts[0] && o === 0;
+  if (!fim && !ini) return;
+  e.preventDefault();
+  let alvo, pos;
+  if (fim) {
+    alvo = m.nextSibling?.nodeType === 3 ? m.nextSibling : m.parentNode.insertBefore(document.createTextNode(''), m.nextSibling);
+    alvo.insertData(0, dado); pos = dado.length;
+  } else {
+    alvo = m.previousSibling?.nodeType === 3 ? m.previousSibling : m.parentNode.insertBefore(document.createTextNode(''), m);
+    alvo.appendData(dado); pos = alvo.data.length;
+  }
+  sel.collapse(alvo, pos);
+  red.dispatchEvent(new Event('input'));
+});
+
+// ---- selecionar → criar card
+// posição de um ponto da seleção no texto corrido
+function posicaoNoTexto(tk, node, off) {
+  if (node.nodeType === 3) {
+    let p = 0;
+    for (const x of tk) { if (x.node === node) return p + off; p += x.t.length; }
+    return null;
+  }
+  const r = document.createRange();
+  r.setStart(node, off);
+  let p = 0;
+  for (let k = 0; k < tk.length; k++) {
+    const ref = tk[k].node || tk.slice(k + 1).find((y) => y.node)?.node;
+    if (!ref || r.comparePoint(ref, 0) >= 0) break;
+    p += tk[k].t.length;
+  }
+  return p;
+}
+
+// a seleção atual em posições do texto, já sem espaços nas pontas, e os cards que ela toca
+function selecaoNoTexto() {
+  const sel = getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return null;
+  const rg = sel.getRangeAt(0);
+  if (!red.contains(rg.startContainer) || !red.contains(rg.endContainer)) return null;
+  const tk = tokens(red);
+  let a = posicaoNoTexto(tk, rg.startContainer, rg.startOffset);
+  let b = posicaoNoTexto(tk, rg.endContainer, rg.endOffset);
+  if (a === null || b === null) return null;
+  const pecas = [];
+  let p = 0;
+  for (const r of ed.p.redacao) { const t = textoDe(r); pecas.push({ r, a: p, b: p + t.length, t }); p += t.length; }
+  const todo = pecas.map((x) => x.t).join('');
+  a = Math.min(a, todo.length); b = Math.min(b, todo.length);
+  while (a < b && /\s/.test(todo[a])) a++;
+  while (b > a && /\s/.test(todo[b - 1])) b--;
+  if (a >= b) return null;
+  const toca = pecas.filter((x) => typeof x.r !== 'string' && x.a < b && x.b > a).map((x) => x.r.id);
+  return { a, b, pecas, todo, toca, rg };
+}
+
+const bCard = $('#criarCard');
+function esconderCriarCard() { bCard.hidden = true; }
+function posicionarCriarCard() {
+  if (ed.modo !== 'texto' || vista !== 'editor') return esconderCriarCard();
+  const s = selecaoNoTexto();
+  if (!s) return esconderCriarCard();
+  bCard.disabled = s.toca.length > 1;
+  bCard.textContent = s.toca.length === 0 ? 'Criar card'
+    : s.toca.length === 1 ? `Ampliar card ${numeroDe(s.toca[0])}` : 'A seleção toca mais de um card';
+  const r = s.rg.getBoundingClientRect();
+  bCard.hidden = false;
+  const w = bCard.offsetWidth;
+  bCard.style.left = `${Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2))}px`;
+  bCard.style.top = `${r.top > 70 ? r.top - 42 : r.bottom + 10}px`;
+}
+let tSel;
+document.addEventListener('selectionchange', () => { clearTimeout(tSel); tSel = setTimeout(posicionarCriarCard, 120); });
+$('#redacaoPane').addEventListener('scroll', posicionarCriarCard, { passive: true });
+bCard.addEventListener('mousedown', (e) => e.preventDefault()); // não perder a seleção
+bCard.addEventListener('click', criarCard);
+
+function criarCard() {
+  lerRedacao();
+  const s = selecaoNoTexto();
+  if (!s || s.toca.length > 1) return;
+  const id = s.toca[0] || novoId();
+  // cada letra com o seu dono; o trecho escolhido (somado ao card que ele toca) passa a ser do card
+  const donos = [];
+  for (const x of s.pecas) for (let k = 0; k < x.t.length; k++) donos.push(typeof x.r === 'string' ? null : x.r.id);
+  let a = s.a, b = s.b;
+  donos.forEach((d, k) => { if (d === id) { a = Math.min(a, k); b = Math.max(b, k + 1); } });
+  for (let k = a; k < b; k++) donos[k] = id;
+  const nova = [];
+  let k = 0;
+  while (k < donos.length) {
+    let j = k;
+    while (j < donos.length && donos[j] === donos[k]) j++;
+    const t = s.todo.slice(k, j);
+    if (donos[k]) { nova.push({ id: donos[k] }); const sec = secTexto(donos[k]); if (sec) sec.texto = t; } else nova.push(t);
+    k = j;
+  }
+  let msg;
+  if (!s.toca.length) {
+    ed.p.secoes.push({ tipo: 'texto', id, texto: s.todo.slice(a, b), largura: 'p' });
+    msg = `Card ${ed.p.secoes.length} criado — está no fim da sequência.`;
+  } else msg = `Card ${numeroDe(id)} ampliado.`;
+  ed.p.redacao = juntarSoltos(nova);
+  getSelection().removeAllRanges();
+  esconderCriarCard();
+  desenharRedacao();
+  desenharTrechos();
+  desenharEsteira();
+  desenharBanco();
+  mudou();
+  aviso(msg);
+  piscar(id);
+}
+
+function piscar(id) {
+  const m = red.querySelector(`mark[data-t="${id}"]`);
+  if (!m) return;
+  m.classList.add('pisca');
+  setTimeout(() => m.classList.remove('pisca'), 1400);
+}
+function mostrarTrecho(id) {
+  const m = red.querySelector(`mark[data-t="${id}"]`);
+  if (!m) return;
+  m.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  piscar(id);
+  marcarTrecho(id);
+}
+function marcarTrecho(id) {
+  $$('#trechos .trecho').forEach((x) => x.classList.toggle('ativo', x.dataset.t === id));
+  $(`#trechos .trecho[data-t="${id}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+red.addEventListener('click', (e) => {
+  const m = e.target.closest('mark[data-t]');
+  if (m) marcarTrecho(m.dataset.t);
+});
+
+// ---- coluna da direita na vista Texto: os trechos ligados, empilhados
+function desenharTrechos() {
+  const lig = (ed.p.redacao || []).filter((r) => typeof r !== 'string' && secTexto(r.id));
+  const ligIds = new Set(lig.map((r) => r.id));
+  const soltos = ed.p.secoes.filter((s) => s.tipo === 'texto' && !ligIds.has(s.id) && (s.texto || '').trim());
+  $('#trechosInfo').textContent = lig.length
+    ? `${lig.length} ${lig.length === 1 ? 'trecho' : 'trechos'}, na ordem do texto`
+    : 'Nenhum trecho virou card ainda';
+  const resumo = (t) => esc(t.length > 220 ? `${t.slice(0, 220).trim()}…` : t);
+  const item = (s, ligado) => `
+    <div class="trecho${ligado ? '' : ' solto'}" data-t="${s.id}">
+      <div class="trecho-cab">
+        <span class="trecho-n">Card ${numeroDe(s.id)}</span>
+        <span class="trecho-larg" title="${LARG_TIT[s.largura || 'p']}">${LARGURAS[s.largura || 'p']}</span>
+        <span class="trecho-acoes">
+          ${ligado ? '' : '<button data-acao="t-inserir" title="Pôr este texto no fim da redação, ligado ao card">Pôr no texto</button>'}
+          <button data-acao="t-seq" title="Ver este card na sequência">Sequência →</button>
+          ${ligado ? '<button data-acao="t-desfazer" class="perigo" title="Desfazer o card: o texto fica aqui, o card sai da sequência">✕</button>' : ''}
+        </span>
+      </div>
+      <p>${resumo(s.texto || '')}</p>
+    </div>`;
+  $('#trechos').innerHTML =
+    (lig.length ? lig.map((r) => item(secTexto(r.id), true)).join('')
+      : '<p class="trechos-vazio">Selecione um trecho do texto e clique em <b>Criar card</b>. Ele vai para o fim da sequência e fica ligado ao texto.</p>') +
+    (soltos.length ? `<h3 class="trechos-sub">Só na sequência</h3><p class="trechos-nota">Cards de texto criados direto na sequência, fora da redação.</p>${soltos.map((s) => item(s, false)).join('')}` : '');
+}
+
+$('#trechos').addEventListener('click', (e) => {
+  const it = e.target.closest('.trecho');
+  if (!it) return;
+  const id = it.dataset.t;
+  const acao = e.target.closest('[data-acao]')?.dataset.acao;
+  if (!acao) return it.classList.contains('solto') ? null : mostrarTrecho(id);
+  lerRedacao();
+  if (acao === 't-seq') {
+    trocarModo('sequencia');
+    const i = ed.p.secoes.findIndex((s) => s.id === id);
+    const cx = $(`.caixa[data-i="${i}"]`);
+    cx?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    cx?.classList.add('pisca');
+    setTimeout(() => cx?.classList.remove('pisca'), 1400);
+    return;
+  }
+  if (acao === 't-desfazer') {
+    if (!confirm(`Desfazer o card ${numeroDe(id)}? O texto continua aqui; o card sai da sequência.`)) return;
+    desligarTrecho(id);
+    ed.p.secoes = ed.p.secoes.filter((s) => s.id !== id);
+  } else if (acao === 't-inserir') {
+    const fimTxt = (ed.p.redacao || []).map(textoDe).join('');
+    ed.p.redacao = juntarSoltos([...ed.p.redacao, fimTxt.trim() ? (/\n\s*$/.test(fimTxt) ? '\n' : '\n\n') : '', { id }]);
+  }
+  desenharRedacao();
+  desenharTrechos();
+  desenharEsteira();
+  desenharBanco();
+  mudou();
+  if (acao === 't-inserir') mostrarTrecho(id);
+});
+
 async function salvar() {
   if (vista !== 'editor' || ed.enviando) return;
+  if (ed.modo === 'texto') lerRedacao();
   const p = ed.p;
   p.titulo = p.titulo.trim();
   p.slug = slugDe(p.slug || p.titulo);
@@ -840,8 +1293,11 @@ async function salvar() {
       .filter((s) => (s.tipo === 'imagem' ? s.ref : (s.texto || '').trim()))
       .map((s) => (s.tipo === 'imagem'
         ? { tipo: 'imagem', ref: s.ref, w: s.w, h: s.h, alt: (s.alt || '').trim() }
-        : { tipo: 'texto', texto: s.texto.trim(), ...(s.largura === 'm' || s.largura === 'g' ? { largura: s.largura } : {}) })),
+        : { tipo: 'texto', id: s.id || novoId(), texto: s.texto.trim(), ...(s.largura === 'm' || s.largura === 'g' ? { largura: s.largura } : {}) })),
   };
+  // a redação guarda só os vínculos com cards que vão ser gravados
+  const ids = new Set(limpo.secoes.filter((s) => s.tipo === 'texto').map((s) => s.id));
+  limpo.redacao = juntarSoltos((p.redacao || []).filter((r) => typeof r === 'string' || ids.has(r.id)));
   for (const k of Object.values(CAMPOS)) if (typeof limpo[k] === 'string') limpo[k] = limpo[k].trim();
   estado('salvando', 'Salvando…');
   try {

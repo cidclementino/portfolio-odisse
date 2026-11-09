@@ -4,7 +4,7 @@
 //   indice           -> lista ordenada de resumos dos projetos (a ordem da lista é a ordem no site)
 //   projeto:<id>     -> projeto completo (JSON)
 //   pagina:<nome>    -> conteúdo das páginas Sobre e Contato (JSON)
-//   img:<ref>        -> imagem (binário; content-type nos metadados). <ref>-m = versão média (1200 px), <ref>-p = pequena (640 px, capas)
+//   img:<ref>        -> imagem (binário; content-type nos metadados). <ref>-m = versão média (1200 px), <ref>-s = pequena (960 px, capas e fotos; substitui a antiga -p de 640 px)
 //   ev:<dia>:<id>    -> uma visita (dados nos metadados da chave; expira em 400 dias)
 // Secret: SITE_SENHA -> senha do painel (Authorization: Bearer <senha>)
 //
@@ -100,7 +100,12 @@ function resumo(p) {
 }
 
 // versão pública: sem campos internos (o banco de imagens é só do painel)
-const publico = ({ visivel, criado, banco, ...resto }) => ({ ...resto, capa: capaDe(resto) });
+// (a redação completa também é só do painel; o site mostra os cards da sequência)
+const publico = ({ visivel, criado, banco, redacao, ...resto }) => ({
+  ...resto,
+  secoes: (resto.secoes || []).map(({ id, ...s }) => s),
+  capa: capaDe(resto),
+});
 
 function validar(p, id) {
   if (!p || p.id !== id) return 'id não confere';
@@ -115,6 +120,10 @@ function validar(p, id) {
   if (p.banco !== undefined) {
     if (!Array.isArray(p.banco)) return 'banco de imagens inválido';
     for (const b of p.banco) if (!b || !ID.test(b.ref || '')) return 'imagem do banco inválida';
+  }
+  if (p.redacao !== undefined) {
+    if (!Array.isArray(p.redacao)) return 'redação inválida';
+    for (const r of p.redacao) if (typeof r !== 'string' && !(r && ID.test(r.id || ''))) return 'trecho da redação inválido';
   }
   return null;
 }
@@ -133,7 +142,7 @@ async function apagarOrfas(kv, refs, ignorar = {}) {
     refsPagina(await kv.get(`pagina:${nome}`, 'json'), usadas);
   }
   const apagar = [...refs].filter((r) => !usadas.has(r));
-  await Promise.all(apagar.flatMap((r) => [kv.delete(`img:${r}`), kv.delete(`img:${r}-m`), kv.delete(`img:${r}-p`)]));
+  await Promise.all(apagar.flatMap((r) => [kv.delete(`img:${r}`), kv.delete(`img:${r}-m`), kv.delete(`img:${r}-p`), kv.delete(`img:${r}-s`)]));
 }
 
 // ---------------------------------------------------------------- imagens
@@ -147,7 +156,7 @@ async function imagem(request, kv, ref, ctx) {
   if (!value) {
     // imagem antiga sem a versão pequena: entrega a média, sem guardar em cache
     // (para a pequena aparecer assim que for gerada)
-    if (ref.endsWith('-p')) {
+    if (ref.endsWith('-s') || ref.endsWith('-p')) {
       const media = await kv.getWithMetadata(`img:${ref.slice(0, -2)}-m`, 'arrayBuffer');
       if (media.value) {
         return new Response(media.value, {

@@ -105,16 +105,45 @@
 
     <section class="palco">
       <div class="palco-barra">
-        <div>
-          <h2>Sequência</h2>
-          <p>Imagens e textos na ordem em que aparecem no projeto. Arraste imagens do banco para cá; arraste pelo rótulo para reordenar.</p>
+        <div class="palco-modo">
+          <div class="seg modos" role="tablist" aria-label="Vista do projeto" id="modos">
+            <button data-modo="texto" role="tab">Texto</button>
+            <button data-modo="galeria" role="tab">Galeria de imagens</button>
+            <button data-modo="sequencia" role="tab">Sequência</button>
+          </div>
+          <p class="so-texto">Escreva aqui todo o texto do projeto. Selecione um trecho e use <b>Criar card</b> para levá-lo à sequência — o trecho e o card ficam ligados: corrigir um corrige o outro.</p>
+          <p class="so-galeria">Todas as imagens do projeto. Envie, escolha a capa e mande para a sequência com <b>+</b>.</p>
+          <p class="so-sequencia">Imagens e textos na ordem em que aparecem no projeto. Arraste imagens do banco para cá; arraste pelo rótulo para reordenar.</p>
         </div>
-        <div class="acoes">
+        <div class="acoes so-sequencia">
           <button class="bt" id="btAddImg">+ Imagem</button>
           <button class="bt" id="btAddTxt">+ Texto</button>
+          <button class="bt bt-banco" id="btBanco" title="Mostrar ou ocultar o banco de imagens"></button>
+        </div>
+        <div class="acoes so-galeria">
+          <div class="seg" role="group" aria-label="Filtrar a galeria" id="galeriaFiltro">
+            <button data-f="todas" class="ativo">Todas</button>
+            <button data-f="livres">Não usadas</button>
+          </div>
+          <button class="bt-forte" id="btGaleriaEnviar">+ Enviar imagens</button>
+        </div>
+        <div class="acoes so-texto">
+          <span class="red-info" id="redInfo"></span>
         </div>
       </div>
-      <div class="esteira" id="esteira"></div>
+
+      <div class="redacao-pane so-texto" id="redacaoPane">
+        <div class="redacao-folha">
+          <div class="redacao" id="redacao" spellcheck="true" data-vazio="Comece a escrever o texto do projeto…"></div>
+        </div>
+        <button class="criar-card" id="criarCard" hidden>Criar card</button>
+      </div>
+
+      <div class="galeria-pane so-galeria" id="galeriaPane">
+        <div class="galeria-corpo" id="galeria"></div>
+      </div>
+
+      <div class="esteira so-sequencia" id="esteira"></div>
     </section>
 
     <aside class="banco" id="bancoLado">
@@ -131,6 +160,14 @@
       </div>
       <div class="banco-corpo" id="banco"></div>
       <p class="banco-dica">Arraste para a sequência, ou use <b>+</b> na imagem para pôr no fim. Solte arquivos aqui para enviar. Arrastar uma imagem da sequência para cá tira ela da sequência (fica no banco).</p>
+    </aside>
+
+    <aside class="trechos" id="trechosLado">
+      <div class="lado-cab">
+        <h2>Trechos em cards</h2>
+        <p id="trechosInfo"></p>
+      </div>
+      <div class="trechos-corpo" id="trechos"></div>
     </aside>
     <input type="file" id="arquivo" accept="image/*" multiple hidden>
   </main>
