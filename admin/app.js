@@ -168,7 +168,7 @@ async function carregarLista() {
 function desenharLista() {
   const vis = indice.filter((r) => r.visivel).length;
   $('#projInfo').textContent = indice.length
-    ? `${indice.length} ${indice.length === 1 ? 'projeto' : 'projetos'} · ${vis} no site. A ordem da lista é a ordem da Home — arraste para mudar.`
+    ? `${indice.length} ${indice.length === 1 ? 'projeto' : 'projetos'} · ${vis} no site. Na Home, a ordem é sorteada a cada nova visita, por relevância: primeiro os de alta, depois média, depois baixa.`
     : 'Nenhum projeto na nuvem ainda.';
   $('#avisoImportar').hidden = indice.length > 0;
   const lista = $('#lista');
@@ -186,6 +186,8 @@ function desenharLista() {
           <span>${r.nimagens} ${r.nimagens === 1 ? 'imagem' : 'imagens'} · ${r.ntextos} ${r.ntextos === 1 ? 'texto' : 'textos'}</span>
         </div>
       </div>
+      <div class="seg relev" role="group" aria-label="Relevância na Home" title="Relevância na Home">${RELEV.map(([k, n]) =>
+        `<button data-acao="relev" data-r="${k}" class="${(r.relevancia || 'media') === k ? 'ativo' : ''}">${n}</button>`).join('')}</div>
       <label class="chave" title="Mostrar ou esconder do site"><input type="checkbox" data-acao="visivel" ${r.visivel ? 'checked' : ''}><b>${r.visivel ? 'No site' : 'Oculto'}</b></label>
       <div class="proj-acoes">
         <button class="bt ico" data-acao="subir" title="Subir" ${i === 0 ? 'disabled' : ''}>↑</button>
@@ -194,6 +196,17 @@ function desenharLista() {
         <button class="bt perigo" data-acao="apagar">Excluir</button>
       </div>
     </div>`).join('');
+}
+
+const RELEV = [['alta', 'Alta'], ['media', 'Média'], ['baixa', 'Baixa']];
+
+// grava um campo do projeto direto da lista (lê o projeto inteiro, troca o campo, grava)
+async function gravarCampo(id, campo, valor) {
+  const p = await nuvem.ler(id);
+  p[campo] = valor;
+  const res = await nuvem.gravar(p);
+  indice[indice.findIndex((r) => r.id === id)] = res.resumo;
+  desenharLista();
 }
 
 async function salvarOrdem() {
@@ -211,6 +224,19 @@ $('#lista').addEventListener('click', async (e) => {
   if (!bt || bt.dataset.acao === 'visivel') return;
   const id = bt.closest('.proj').dataset.id;
   const i = indice.findIndex((r) => r.id === id);
+  if (bt.dataset.acao === 'relev') {
+    const v = bt.dataset.r;
+    if ((indice[i].relevancia || 'media') === v) return;
+    $$('button', bt.parentElement).forEach((b) => { b.classList.toggle('ativo', b === bt); b.disabled = true; });
+    try {
+      await gravarCampo(id, 'relevancia', v);
+      aviso(`Relevância ${RELEV.find((x) => x[0] === v)[1].toLowerCase()}.`);
+    } catch (err) {
+      desenharLista();
+      aviso(`Não foi possível alterar: ${err.message}`, true);
+    }
+    return;
+  }
   if (bt.dataset.acao === 'subir' && i > 0) { [indice[i - 1], indice[i]] = [indice[i], indice[i - 1]]; salvarOrdem(); }
   if (bt.dataset.acao === 'descer' && i < indice.length - 1) { [indice[i + 1], indice[i]] = [indice[i], indice[i + 1]]; salvarOrdem(); }
   if (bt.dataset.acao === 'apagar') {
@@ -376,6 +402,7 @@ async function abrirEditor(id) {
   ed.slugManual = !!id;
   for (const [campo, chave] of Object.entries(CAMPOS)) $('#' + campo).value = ed.p[chave] ?? '';
   $('#fVisivel').checked = ed.p.visivel !== false;
+  $('#fRelevancia').value = ed.p.relevancia || 'media';
   desenharEditor();
   estado(ed.novo ? 'pendente' : 'pronto', ed.novo ? 'Projeto novo, ainda não salvo' : '');
   if (ed.novo) setTimeout(() => $('#fTitulo').focus(), 50);
@@ -922,6 +949,7 @@ for (const [campo, chave] of Object.entries(CAMPOS)) {
 }
 $('#fSlug').addEventListener('change', (e) => { ed.p.slug = slugDe(e.target.value); e.target.value = ed.p.slug; });
 $('#fVisivel').addEventListener('change', (e) => { ed.p.visivel = e.target.checked; mudou(); });
+$('#fRelevancia').addEventListener('change', (e) => { ed.p.relevancia = e.target.value; mudou(); });
 
 // ---- redação (vista Texto)
 // O texto corrido do projeto. Um trecho selecionado vira card na sequência; o

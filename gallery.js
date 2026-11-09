@@ -61,6 +61,36 @@ function emGrade() {
   return document.documentElement.classList.contains('vista-grade');
 }
 
+// Ordem da Home: sorteada a cada nova visita, em camadas de relevância
+// (todos os de alta, depois média, depois baixa). Na mesma visita — ir ao Contato
+// e voltar, abrir um projeto e voltar — a ordem sorteada se mantém (sessionStorage).
+// Abrir o site numa aba nova ou recarregar a página sorteia de novo.
+var CAMADA = { alta: 0, media: 1, baixa: 2 };
+function sortear(lista) {
+  var guardada = null;
+  var recarregou = false;
+  try {
+    var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+    recarregou = !!nav && nav.type === 'reload';
+    if (!recarregou) guardada = JSON.parse(sessionStorage.getItem('odisse-sorteio') || 'null');
+  } catch (e) { /* sem armazenamento */ }
+  var pos = {};
+  (guardada || []).forEach(function (slug, i) { pos[slug] = i; });
+  var sorte = lista.map(function (r) {
+    return {
+      r: r,
+      camada: CAMADA[r.relevancia] !== undefined ? CAMADA[r.relevancia] : 1,
+      // já sorteado nesta visita: mantém o lugar; novo: sorteia
+      chave: pos[r.slug] !== undefined ? pos[r.slug] : 1e6 + Math.random(),
+    };
+  });
+  if (!guardada) sorte.forEach(function (x) { x.chave = Math.random(); });
+  sorte.sort(function (a, b) { return a.camada - b.camada || a.chave - b.chave; });
+  var out = sorte.map(function (x) { return x.r; });
+  try { sessionStorage.setItem('odisse-sorteio', JSON.stringify(out.map(function (r) { return r.slug; }))); } catch (e) {}
+  return out;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
   var P = window.Odisse.projetos;
   var galeria = document.querySelector('.gallery');
@@ -71,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
       galeria.innerHTML = '<p class="gallery__aviso">Em breve, novos projetos.</p>';
       return;
     }
+    lista = sortear(lista);
     galeria.innerHTML = lista.map(P.itemGaleria).join('');
     galeria.classList.add('is-ready');
     ligar();

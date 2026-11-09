@@ -246,7 +246,7 @@ img { display: block; max-width: 100%; }
 }
 
 
-/* ---------- vista em galeria: capas quadradas em grade ----------
+/* ---------- vista em galeria: capas em grade, no mesmo 4:3 da lista ----------
    a quantidade por linha acompanha a largura da tela (2 no celular);
    cada capa leva direto à página do projeto */
 .vista-grade .gallery {
@@ -266,7 +266,7 @@ img { display: block; max-width: 100%; }
 .vista-grade .gallery__row.is-collapsing .gallery__thumb {
   display: block;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 4 / 3;
   opacity: 1;
   transform: none;
 }

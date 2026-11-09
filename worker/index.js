@@ -34,6 +34,8 @@ const CORS = {
 const MAX_IMG = 20 * 1024 * 1024;
 const ID = /^[a-z0-9_-]{4,64}$/i;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+// relevância na Home: sorteio a cada visita, em camadas (alta → média → baixa)
+const RELEVANCIAS = ['alta', 'media', 'baixa'];
 const PAGINAS = new Set(['sobre', 'contato']);
 const MAX_PAGINA = 200 * 1024;
 const TZ = 'America/Sao_Paulo';
@@ -92,6 +94,7 @@ function resumo(p) {
     ano: p.ano || '',
     status: p.status || '',
     visivel: p.visivel !== false,
+    relevancia: RELEVANCIAS.includes(p.relevancia) ? p.relevancia : 'media',
     capa: capaDe(p),
     nimagens: (p.secoes || []).filter((s) => s.tipo === 'imagem').length,
     ntextos: (p.secoes || []).filter((s) => s.tipo === 'texto').length,
@@ -112,6 +115,7 @@ function validar(p, id) {
   if (!p.titulo || typeof p.titulo !== 'string') return 'falta o título';
   if (!SLUG.test(p.slug || '')) return 'endereço (slug) inválido';
   if (!Array.isArray(p.secoes)) return 'seções inválidas';
+  if (p.relevancia !== undefined && !RELEVANCIAS.includes(p.relevancia)) return 'relevância inválida';
   for (const s of p.secoes) {
     if (s.tipo === 'imagem' && s.ref && !ID.test(s.ref)) return 'imagem inválida';
     if (s.tipo !== 'imagem' && s.tipo !== 'texto') return 'tipo de seção inválido';
