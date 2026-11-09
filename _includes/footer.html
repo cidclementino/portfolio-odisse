@@ -2,10 +2,10 @@
   <div class="wrap">
     <a class="footer__selo" href="{{ '/' | relative_url }}" aria-label="Odisse — início">{% include selo-mao.svg %}</a>
     <ul>
-      <li><a href="{{ '/sobre/' | relative_url }}">Sobre</a></li>
-      <li><a href="{{ '/' | relative_url }}">Projetos</a></li>
-      <li><a href="{{ '/contato/' | relative_url }}">Contato</a></li>
+      <li><a href="{{ '/sobre/' | relative_url }}"><span class="t-pt">Sobre</span><span class="t-en">About</span></a></li>
+      <li><a href="{{ '/' | relative_url }}"><span class="t-pt">Projetos</span><span class="t-en">Projects</span></a></li>
+      <li><a href="{{ '/contato/' | relative_url }}"><span class="t-pt">Contato</span><span class="t-en">Contact</span></a></li>
     </ul>
-    <p class="copy">© <span id="ano-atual">{{ 'now' | date: "%Y" }}</span> Odisse — Estúdio de Arquitetura &amp; Design. João Pessoa, PB.</p>
+    <p class="copy">© <span id="ano-atual">{{ 'now' | date: "%Y" }}</span> Odisse — <span class="t-pt">Estúdio de Arquitetura &amp; Design. João Pessoa, PB.</span><span class="t-en">Architecture &amp; Design Studio. João Pessoa, Brazil.</span></p>
   </div>
 </footer>

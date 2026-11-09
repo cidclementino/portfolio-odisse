@@ -20,8 +20,10 @@
       <a href="#/projetos" data-menu="projetos">Projetos</a>
       <a href="#/sobre" data-menu="sobre">Sobre</a>
       <a href="#/contato" data-menu="contato">Contato</a>
+      <a href="#/noticias" data-menu="noticias" title="Notícias do Sobre: do estúdio, links de outros sites e textos da Elaia">Notícias</a>
       <a href="#/busca" data-menu="busca" title="Busca no Google e compartilhamento de links">Busca</a>
       <a href="#/metricas" data-menu="metricas">Métricas</a>
+      <a href="#/historico" data-menu="historico" title="Versões anteriores, projetos excluídos e backups">Histórico</a>
     </nav>
     <div class="topo-acoes">
       <a class="ver-site" href="/" target="_blank" rel="noopener">Ver o site ↗</a>
@@ -63,6 +65,10 @@
     <span class="ed-titulo" id="edTitulo"></span>
     <div class="ed-salvar">
       <span class="sinc" id="sinc" data-estado="pronto"><span class="bolinha"></span><span id="sincTxt"></span></span>
+      <div class="seg idioma-seg" role="group" aria-label="Idioma do conteúdo" id="edIdioma" title="Escrever a versão em inglês dos textos">
+        <button data-idioma="pt" class="ativo">PT</button><button data-idioma="en">EN</button>
+      </div>
+      <button class="bt" id="btVersoes" title="Versões anteriores deste projeto">Versões</button>
       <a class="bt" id="btVer" href="#" target="_blank" rel="noopener">Ver no site ↗</a>
       <button class="bt-forte" id="btSalvar" title="Salvar na nuvem (Ctrl+S)">Salvar</button>
     </div>
@@ -87,11 +93,14 @@
           <label class="campo"><span>Cliente</span><input type="text" id="fCliente" placeholder="Privado"></label>
           <div class="duas">
             <label class="campo"><span>Tipologia</span><input type="text" id="fTipologia" list="listaTipologia"></label>
-            <label class="campo"><span>Status</span><input type="text" id="fStatus" list="listaStatus"></label>
+            <label class="campo"><span>Escala</span><input type="text" id="fEscala" list="listaEscala"></label>
           </div>
+          <label class="campo"><span>Status</span><input type="text" id="fStatus" list="listaStatus"></label>
           <datalist id="listaTipologia"><option>Residencial</option><option>Comercial</option><option>Corporativo</option><option>Interiores</option><option>Institucional</option><option>Retrofit</option><option>Mobiliário</option></datalist>
+          <datalist id="listaEscala"><option>Objeto</option><option>Interior</option><option>Edifício</option><option>Conjunto</option><option>Urbano</option><option>Paisagem</option></datalist>
           <datalist id="listaStatus"><option>Ideia</option><option>Conceito</option><option>Em projeto</option><option>Em construção</option><option>Concluído</option></datalist>
-          <small style="font-size:11px;color:var(--ardosia-2)">Campos vazios não aparecem no site.</small>
+          <small style="font-size:11px;color:var(--ardosia-2)">Campos vazios não aparecem no site. Tipologia, ano e escala viram os filtros da busca do site — use sempre os mesmos nomes.</small>
+          <p class="idioma-nota">Em <b>EN</b>, os campos marcados recebem a versão em inglês; vazios, o site mostra o português. Tipologia, escala e status já são traduzidos sozinhos quando usam os nomes sugeridos.</p>
         </div>
         <div class="grupo">
           <h3>Busca e compartilhamento</h3>
@@ -104,6 +113,7 @@
         <div class="grupo">
           <h3>Exibição</h3>
           <label class="check"><input type="checkbox" id="fVisivel"> Visível no site</label>
+          <div class="previa" id="previaBox"></div>
           <label class="campo campo-relev"><span>Relevância na Home</span>
             <select id="fRelevancia"><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select>
             <small>A Home sorteia a ordem a cada visita: alta primeiro, depois média, depois baixa.</small>
@@ -144,6 +154,11 @@
         <div class="acoes so-texto">
           <span class="red-info" id="redInfo"></span>
         </div>
+      </div>
+
+      <div class="redacao-en so-texto">
+        <p><b>A redação é escrita em português.</b> Para a versão em inglês, use a <b>Sequência</b>: cada card de texto mostra o original e o campo para a tradução.</p>
+        <button class="bt" data-modo-ir="sequencia">Ir para a Sequência</button>
       </div>
 
       <div class="redacao-pane so-texto" id="redacaoPane">
@@ -195,6 +210,10 @@
       </div>
       <div class="ed-salvar">
         <span class="sinc" id="pagSinc" data-estado="pronto"><span class="bolinha"></span><span id="pagSincTxt"></span></span>
+        <div class="seg idioma-seg" role="group" aria-label="Idioma do conteúdo" id="pagIdioma" title="Escrever a versão em inglês dos textos">
+          <button data-idioma="pt" class="ativo">PT</button><button data-idioma="en">EN</button>
+        </div>
+        <button class="bt" id="pagVersoes" title="Versões anteriores desta página">Versões</button>
         <a class="bt" id="pagVer" href="#" target="_blank" rel="noopener">Ver no site ↗</a>
         <button class="bt-forte" id="pagSalvar" title="Salvar na nuvem (Ctrl+S)">Salvar</button>
       </div>
@@ -226,6 +245,28 @@
     </div>
     <div id="painelMetricas"></div>
   </main>
+
+  <!-- ===================== HISTÓRICO ===================== -->
+  <main class="pagina" id="historico">
+    <div class="sec-cab linha">
+      <div>
+        <h1>Histórico</h1>
+        <p>Cada projeto e cada página guardam as <b>10 últimas versões</b> (salvamentos seguidos, com menos de 10 minutos entre si, contam como uma só).
+        Uma vez por mês é feito um <b>backup</b> de tudo — ficam os 12 últimos.</p>
+      </div>
+      <button class="bt-forte" id="btBackup">Fazer backup agora</button>
+    </div>
+    <div id="painelHistorico"></div>
+  </main>
+
+  <!-- versões de um projeto ou página (gaveta lateral) -->
+  <aside class="gaveta" id="gaveta" hidden aria-labelledby="gavetaTitulo">
+    <div class="gaveta-cab">
+      <div><h2 id="gavetaTitulo">Versões</h2><p id="gavetaInfo"></p></div>
+      <button class="bt ico" id="gavetaFechar" title="Fechar">✕</button>
+    </div>
+    <div class="gaveta-corpo" id="gavetaCorpo"></div>
+  </aside>
 
   <div class="aviso" id="aviso" role="status"></div>
   <div class="dica" id="dica" hidden></div>

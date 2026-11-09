@@ -1,8 +1,44 @@
+{%- comment -%}
+  Cabeçalho: marca à esquerda · busca no centro (no celular, à direita, ao lado do
+  menu sanduíche) · menu e PT/EN à direita. Busca e menu: assets/js/busca.js.
+  Textos fixos nos dois idiomas: <span class="t-pt">…</span><span class="t-en">…</span>
+  (o CSS mostra o do idioma escolhido — assets/js/i18n.js).
+{%- endcomment -%}
 <nav class="nav{% if page.url contains 'sobre' or page.url contains 'contato' %} nav--on-dark{% endif %}">
   <a class="nav__mark" href="{{ '/' | relative_url }}" aria-label="Odisse — início">{% include marca-odisse.svg %}</a>
-  <ul class="nav__links">
-    <li><a href="{{ '/' | relative_url }}"{% if page.url == '/' %} aria-current="page"{% endif %}>Projetos</a></li>
-    <li><a href="{{ '/sobre/' | relative_url }}"{% if page.url contains 'sobre' %} aria-current="page"{% endif %}>Sobre</a></li>
-    <li><a href="{{ '/contato/' | relative_url }}"{% if page.url contains 'contato' %} aria-current="page"{% endif %}>Contato</a></li>
-  </ul>
+
+  <div class="busca" data-busca role="search">
+    <div class="busca__barra">
+      <button class="busca__abrir" type="button" aria-expanded="false" aria-controls="busca-painel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>
+        <span class="so-leitor"><span class="t-pt">Buscar projetos</span><span class="t-en">Search projects</span></span>
+      </button>
+      <input class="busca__campo" type="search" tabindex="-1" autocomplete="off" enterkeyhint="search"
+        placeholder="Buscar projetos" aria-label="Buscar projetos" data-ph-en="Search projects">
+      <button class="busca__fechar" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        <span class="so-leitor"><span class="t-pt">Fechar busca</span><span class="t-en">Close search</span></span>
+      </button>
+    </div>
+    <div class="busca__painel" id="busca-painel" hidden>
+      <div class="busca__filtros"></div>
+      <div class="busca__resultados"></div>
+    </div>
+  </div>
+
+  <div class="nav__direita" id="nav-menu">
+    <ul class="nav__links">
+      <li><a href="{{ '/' | relative_url }}"{% if page.url == '/' %} aria-current="page"{% endif %}><span class="t-pt">Projetos</span><span class="t-en">Projects</span></a></li>
+      <li><a href="{{ '/sobre/' | relative_url }}"{% if page.url contains 'sobre' %} aria-current="page"{% endif %}><span class="t-pt">Sobre</span><span class="t-en">About</span></a></li>
+      <li><a href="{{ '/contato/' | relative_url }}"{% if page.url contains 'contato' %} aria-current="page"{% endif %}><span class="t-pt">Contato</span><span class="t-en">Contact</span></a></li>
+    </ul>
+    <div class="nav__idioma" role="group" aria-label="Idioma / Language">
+      <button type="button" data-idioma="pt" lang="pt-BR" title="Português">PT</button><span aria-hidden="true">/</span><button type="button" data-idioma="en" lang="en" title="English">EN</button>
+    </div>
+  </div>
+
+  <button class="nav__menu" type="button" aria-expanded="false" aria-controls="nav-menu">
+    <span class="nav__menu-linhas" aria-hidden="true"><i></i><i></i><i></i></span>
+    <span class="so-leitor">Menu</span>
+  </button>
 </nav>

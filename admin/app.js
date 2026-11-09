@@ -33,14 +33,23 @@ async function req(caminho, opc = {}, s = senha()) {
 const nuvem = {
   lista: () => req('/api/admin/projetos'),
   ler: (id) => req(`/api/admin/projetos/${id}`),
-  gravar: (p) => req(`/api/admin/projetos/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }),
+  // motivo 'restauracao': o servidor guarda o estado atual como versão mesmo que a última seja recente
+  gravar: (p, motivo) => req(`/api/admin/projetos/${p.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(motivo ? { 'X-Motivo': motivo } : {}) }, body: JSON.stringify(p) }),
   apagar: (id) => req(`/api/admin/projetos/${id}`, { method: 'DELETE' }),
   ordem: (ids) => req('/api/admin/ordem', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ids) }),
   imagem: (ref, blob) => req(`/api/admin/imagens/${ref}`, { method: 'PUT', headers: { 'Content-Type': blob.type }, body: blob }),
   metricas: (dias) => req(`/api/admin/metricas?dias=${dias}`),
   pagina: (nome) => req(`/api/admin/paginas/${nome}`),
-  gravarPagina: (nome, d) => req(`/api/admin/paginas/${nome}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }),
+  gravarPagina: (nome, d, motivo) => req(`/api/admin/paginas/${nome}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...(motivo ? { 'X-Motivo': motivo } : {}) }, body: JSON.stringify(d) }),
+  versoes: (tipo, id) => req(tipo ? `/api/admin/versoes/${tipo}/${encodeURIComponent(id)}` : '/api/admin/versoes'),
+  versao: (chave) => req(`/api/admin/versao?chave=${encodeURIComponent(chave)}`),
+  backups: () => req('/api/admin/backups'),
+  fazerBackup: () => req('/api/admin/backups', { method: 'POST' }),
+  backup: (chave) => req(`/api/admin/backups/${encodeURIComponent(chave)}`),
+  link: (url) => req('/api/admin/link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) }),
+  rss: (url) => req('/api/admin/rss' + (url ? `?url=${encodeURIComponent(url)}` : '')),
 };
+const SITE = 'https://www.odisse.com.br';
 const imgUrl = (ref, m = true) => `${API}/img/${ref}${m ? '-m' : ''}`;
 const novoId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 16);
 
@@ -89,6 +98,7 @@ function mostrar(v, menu = v === 'editor' ? 'projetos' : v) {
   vista = v;
   document.body.className = `vista-${v}`;
   if (v !== 'editor') fecharSeletor();
+  fecharGaveta();
   $$('.menu a').forEach((a) => a.classList.toggle('ativo', a.dataset.menu === menu));
 }
 
@@ -97,7 +107,8 @@ function rota() {
   const h = location.hash.replace(/^#\/?/, '');
   const [nome, id] = h.split('/');
   if (nome === 'metricas') { mostrar('metricas'); return carregarMetricas(); }
-  if (nome === 'sobre' || nome === 'contato' || nome === 'busca') { mostrar('pagina', nome); return abrirPagina(nome); }
+  if (nome === 'historico') { mostrar('historico'); return carregarHistorico(); }
+  if (['sobre', 'contato', 'busca', 'noticias'].includes(nome)) { mostrar('pagina', nome); return abrirPagina(nome); }
   if (nome === 'novo') { mostrar('editor'); return abrirEditor(null); }
   if (nome === 'projeto' && id) { mostrar('editor'); return abrirEditor(id); }
   mostrar('projetos');
@@ -357,7 +368,27 @@ const ed = {
   modo: ['texto', 'galeria', 'sequencia'].includes(lerPref('odisse-painel-modo')) ? lerPref('odisse-painel-modo') : 'sequencia',
   semBanco: lerPref('odisse-painel-sem-banco') === '1',
 };
-const CAMPOS = { fTitulo: 'titulo', fSlug: 'slug', fLocal: 'local', fAno: 'ano', fArea: 'area', fCliente: 'cliente', fTipologia: 'tipologia', fStatus: 'status', fDescricao: 'descricao' };
+const CAMPOS = { fTitulo: 'titulo', fSlug: 'slug', fLocal: 'local', fAno: 'ano', fArea: 'area', fCliente: 'cliente', fTipologia: 'tipologia', fEscala: 'escala', fStatus: 'status', fDescricao: 'descricao' };
+// campos com versão em inglês (botão PT/EN da barra): em EN, editam <campo>_en
+const TRADUZ = { fTitulo: 'titulo', fLocal: 'local', fCliente: 'cliente', fDescricao: 'descricao' };
+ed.idioma = 'pt';
+const chaveDo = (campo) => (ed.idioma === 'en' && TRADUZ[campo] ? CAMPOS[campo] + '_en' : CAMPOS[campo]);
+for (const campo of Object.keys(CAMPOS)) { const el = $('#' + campo); el.dataset.ph = el.getAttribute('placeholder') || ''; }
+function preencherCampos() {
+  for (const campo of Object.keys(CAMPOS)) {
+    const el = $('#' + campo);
+    const traduz = ed.idioma === 'en' && !!TRADUZ[campo];
+    el.value = ed.p[chaveDo(campo)] ?? '';
+    el.placeholder = traduz ? (ed.p[CAMPOS[campo]] || '') : el.dataset.ph;
+    el.closest('.campo')?.classList.toggle('traduz', traduz);
+  }
+  contarDescricao();
+}
+function aplicarIdioma() {
+  $$('#edIdioma button').forEach((b) => b.classList.toggle('ativo', b.dataset.idioma === ed.idioma));
+  $('#editor').classList.toggle('idioma-en', ed.idioma === 'en');
+  if (ed.p) { preencherCampos(); desenharEsteira(); }
+}
 const LARGURAS = { p: 'P', m: 'M', g: 'G' };
 const LARG_TIT = { p: 'Estreito — uma coluna esguia', m: 'Médio — uma coluna larga', g: 'Largo — duas colunas, para textos longos' };
 
@@ -402,9 +433,10 @@ async function abrirEditor(id) {
   prepararRedacao(ed.p);
   $('#redacao').dataset.p = '';
   ed.slugManual = !!id;
-  for (const [campo, chave] of Object.entries(CAMPOS)) $('#' + campo).value = ed.p[chave] ?? '';
-  contarDescricao();
+  preencherCampos();
+  $('#editor').classList.toggle('idioma-en', ed.idioma === 'en');
   $('#fVisivel').checked = ed.p.visivel !== false;
+  desenharPrevia();
   desenharAntigos();
   $('#fRelevancia').value = ed.p.relevancia || 'media';
   desenharEditor();
@@ -421,7 +453,57 @@ function mudou() {
   ed.sujo = true;
   estado(ed.enviando ? 'enviando' : 'pendente', ed.enviando ? `Enviando ${ed.enviando}…` : 'Alterações não salvas');
   desenharTopoEditor();
+  desenharPrevia();
 }
+
+// ---- link de prévia: endereço secreto que abre o projeto mesmo oculto
+function urlPrevia(p) { return `${SITE}/projeto/?p=${encodeURIComponent(p.slug || '')}&previa=${p.previa}`; }
+function desenharPrevia() {
+  const box = $('#previaBox');
+  const p = ed.p;
+  if (!box || !p) return;
+  if (!p.previa) {
+    box.innerHTML = `<button class="bt" data-previa="criar">Criar link de prévia</button>
+      <small>Um endereço secreto para mostrar o projeto a alguém antes de publicá-lo. Funciona com o projeto oculto e fica fora do Google.</small>`;
+    return;
+  }
+  const url = urlPrevia(p);
+  box.innerHTML = `<span class="previa-rot">Link de prévia</span>
+    <div class="previa-link"><input type="text" readonly value="${esc(url)}" aria-label="Link de prévia"><button class="bt" data-previa="copiar">Copiar</button></div>
+    <div class="previa-acoes">
+      ${p._previaNova ? '' : `<a class="bt" href="${esc(url)}" target="_blank" rel="noopener">Abrir ↗</a>`}
+      <button class="bt" data-previa="novo" title="O link anterior deixa de funcionar">Gerar outro</button>
+      <button class="bt perigo" data-previa="desligar" title="O link deixa de funcionar">Desativar</button>
+    </div>
+    <small>${p._previaNova ? '<b>Salve o projeto</b> para o link passar a funcionar. ' : ''}Quem tiver o link vê o projeto, mesmo oculto. Se o endereço do projeto mudar, copie o link de novo.</small>`;
+}
+$('#previaBox').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-previa]');
+  if (!b) return;
+  const acao = b.dataset.previa;
+  if (acao === 'copiar') {
+    try { await navigator.clipboard.writeText(urlPrevia(ed.p)); aviso(ed.p._previaNova ? 'Link copiado — salve o projeto para ele funcionar.' : 'Link de prévia copiado.'); }
+    catch { $('#previaBox input').select(); }
+    return;
+  }
+  if (acao === 'desligar' && !confirm('Desativar o link de prévia? Quem tiver o endereço não verá mais o projeto (depois de salvar).')) return;
+  if (acao === 'novo' && !confirm('Gerar outro link? O atual deixa de funcionar (depois de salvar).')) return;
+  if (acao === 'criar' || acao === 'novo') { ed.p.previa = novoId(); ed.p._previaNova = true; }
+  if (acao === 'desligar') { ed.p.previa = ''; delete ed.p._previaNova; }
+  mudou();
+});
+$('#edIdioma').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-idioma]');
+  if (!b || b.dataset.idioma === ed.idioma) return;
+  if (ed.modo === 'texto') lerRedacao();
+  ed.idioma = b.dataset.idioma;
+  aplicarIdioma();
+});
+$$('[data-modo-ir]').forEach((b) => b.addEventListener('click', () => trocarModo(b.dataset.modoIr)));
+$('#btVersoes').addEventListener('click', () => {
+  if (ed.novo) return aviso('O projeto ainda não foi salvo — não há versões anteriores.');
+  abrirVersoes('projeto', ed.p.id, ed.p.titulo || 'Projeto');
+});
 
 function desenharTopoEditor() {
   $('#edTitulo').textContent = ed.p.titulo || 'Projeto sem título';
@@ -646,8 +728,9 @@ function desenharEsteira() {
       </div>`;
     if (s.tipo === 'texto') {
       const ligado = s.id && lig.has(s.id);
-      return entre(i) + `<div class="caixa caixa--texto larg-${larg}${ligado ? ' ligado' : ''}" data-i="${i}">${barra}
-        <div class="caixa-corpo"><textarea data-campo="texto" placeholder="Escreva o texto. Cada Enter abre um novo parágrafo.">${esc(s.texto)}</textarea></div>
+      const en = ed.idioma === 'en';
+      return entre(i) + `<div class="caixa caixa--texto larg-${larg}${ligado ? ' ligado' : ''}${en ? ' em-ingles' : ''}" data-i="${i}">${barra}
+        <div class="caixa-corpo">${en ? `<div class="ref-pt" title="Texto original, em português">${esc(s.texto) || '<em>Sem texto em português.</em>'}</div>` : ''}<textarea data-campo="${en ? 'texto_en' : 'texto'}" placeholder="${en ? 'Tradução em inglês deste texto. Vazio, o site mostra o português.' : 'Escreva o texto. Cada Enter abre um novo parágrafo.'}">${esc(en ? s.texto_en || '' : s.texto)}</textarea></div>
         <small>${ligado ? `<button class="vinculo" data-acao="ver-trecho" title="Abrir este trecho na vista Texto">Ligado ao texto ↗</button>` : ''}Cada Enter vira um parágrafo no site.${larg === 'g' ? ' No site, este texto corre em duas colunas.' : ''}</small></div>`;
     }
     const src = srcDe(s);
@@ -943,9 +1026,10 @@ banco.addEventListener('drop', (e) => {
 });
 
 // campos de informação
-for (const [campo, chave] of Object.entries(CAMPOS)) {
+for (const campo of Object.keys(CAMPOS)) {
   $('#' + campo).addEventListener('input', (e) => {
-    let v = e.target.value;
+    const v = e.target.value;
+    const chave = chaveDo(campo);
     if (chave === 'slug') { ed.slugManual = true; }
     if (chave === 'titulo' && !ed.slugManual) {
       ed.p.slug = slugDe(v);
@@ -1363,17 +1447,20 @@ async function salvar() {
       .filter((s) => (s.tipo === 'imagem' ? s.ref : (s.texto || '').trim()))
       .map((s) => (s.tipo === 'imagem'
         ? { tipo: 'imagem', ref: s.ref, w: s.w, h: s.h, alt: (p.banco.find((b) => b.ref === s.ref)?.alt ?? s.alt ?? '').trim() }
-        : { tipo: 'texto', id: s.id || novoId(), texto: s.texto.trim(), ...(s.largura === 'm' || s.largura === 'g' ? { largura: s.largura } : {}) })),
+        : { tipo: 'texto', id: s.id || novoId(), texto: s.texto.trim(), ...((s.texto_en || '').trim() ? { texto_en: s.texto_en.trim() } : {}), ...(s.largura === 'm' || s.largura === 'g' ? { largura: s.largura } : {}) })),
   };
+  for (const k of Object.keys(limpo)) if (k.startsWith('_')) delete limpo[k];
   // a redação guarda só os vínculos com cards que vão ser gravados
   const ids = new Set(limpo.secoes.filter((s) => s.tipo === 'texto').map((s) => s.id));
   limpo.redacao = juntarSoltos((p.redacao || []).filter((r) => typeof r === 'string' || ids.has(r.id)));
-  for (const k of Object.values(CAMPOS)) if (typeof limpo[k] === 'string') limpo[k] = limpo[k].trim();
+  for (const k of [...Object.values(CAMPOS), ...Object.values(TRADUZ).map((x) => x + '_en')]) if (typeof limpo[k] === 'string') limpo[k] = limpo[k].trim();
   estado('salvando', 'Salvando…');
   try {
     const res = await nuvem.gravar(limpo);
     p.atualizado = res.atualizado;
     ed.sujo = false;
+    delete p._previaNova;
+    desenharPrevia();
     try { p.enderecos_antigos = (await nuvem.ler(p.id)).enderecos_antigos || []; desenharAntigos(); } catch { /* só informativo */ }
     const i = indice.findIndex((r) => r.id === p.id);
     if (i >= 0) indice[i] = res.resumo; else indice.unshift(res.resumo);
@@ -1393,8 +1480,11 @@ $('#btSalvar').addEventListener('click', salvar);
 // O conteúdo fica na nuvem (pagina:sobre, pagina:contato). Enquanto uma página
 // nunca foi salva pelo painel, o formulário abre com o conteúdo que está hoje
 // no site (paginas-semente.json, gerado de _data/paginas.json).
-const pg = { nome: '', d: null, sujo: false, enviando: 0, alvoImg: null };
-const PAG_NOME = { sobre: 'Sobre', contato: 'Contato', busca: 'Busca e compartilhamento' };
+const pg = { nome: '', d: null, sujo: false, enviando: 0, alvoImg: null, idioma: 'pt', rss: null };
+const PAG_NOME = { sobre: 'Sobre', contato: 'Contato', busca: 'Busca e compartilhamento', noticias: 'Notícias' };
+const NOTICIAS_SEMENTE = () => ({ rss: 'https://odisse.substack.com/feed', mostrar_rss: true, rss_ocultos: [], itens: [] });
+const hojeISO = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+const porData = (a, b) => String(b.data || '').localeCompare(String(a.data || ''));
 
 
 
@@ -1410,8 +1500,10 @@ async function abrirPagina(nome) {
   pg.nome = nome;
   pg.sujo = false;
   pg.enviando = 0;
+  pg.rss = null;
   $('#pagTitulo').textContent = PAG_NOME[nome];
-  $('#pagVer').href = nome === 'busca' ? '/' : `/${nome}/`;
+  $('#pagVer').href = nome === 'busca' ? '/' : nome === 'noticias' ? '/sobre/' : `/${nome}/`;
+  $('#pagIdioma').hidden = nome === 'busca';
   $('#paginaEd').dataset.nome = nome;
   $('#pagInfo').textContent = '';
   $('#pagForm').innerHTML = '<p class="vazio">Carregando…</p>';
@@ -1426,7 +1518,7 @@ async function abrirPagina(nome) {
     }
     try {
       // a aba Busca parte de busca-semente.json (o mesmo que o gerador das páginas usa enquanto ela não é salva)
-      pg.d = nome === 'busca'
+      pg.d = nome === 'noticias' ? NOTICIAS_SEMENTE() : nome === 'busca'
         ? await (await fetch('busca-semente.json', { cache: 'no-store' })).json()
         : (await (await fetch('paginas-semente.json', { cache: 'no-store' })).json())[nome];
       semente = true;
@@ -1436,9 +1528,12 @@ async function abrirPagina(nome) {
     }
   }
   if (pg.nome !== nome) return;
+  if (nome === 'noticias') { pg.d.itens = (pg.d.itens || []).sort(porData); pg.d.rss_ocultos ||= []; }
   desenharPagina();
   $('#pagInfo').textContent = semente
-    ? (nome === 'busca' ? 'Já preenchida com o que o site usa hoje. Revise, complete e salve.' : 'Este é o conteúdo que está hoje no site. Ao salvar, a página passa a ser editada só por aqui.')
+    ? (nome === 'busca' ? 'Já preenchida com o que o site usa hoje. Revise, complete e salve.'
+      : nome === 'noticias' ? 'Os textos da Elaia já entram sozinhos. Acrescente notícias do estúdio e links de outros sites, e salve.'
+      : 'Este é o conteúdo que está hoje no site. Ao salvar, a página passa a ser editada só por aqui.')
     : pg.d.atualizado ? `Última alteração em ${new Date(pg.d.atualizado).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.` : '';
   if (semente) estadoPag('pendente', 'Ainda não salva na nuvem');
 }
@@ -1454,10 +1549,24 @@ function pagMudou() {
 }
 
 // ---- peças do formulário
-const fLinha = (cam, rot, opc = {}) => `<label class="campo"><span>${rot}</span>
-  <input type="text" data-cam="${cam}" value="${esc(pegarCaminho(pg.d, cam))}"${opc.ph ? ` placeholder="${esc(opc.ph)}"` : ''}>${opc.dica ? `<small>${opc.dica}</small>` : ''}</label>`;
-const fArea = (cam, rot, opc = {}) => `<label class="campo"><span>${rot}</span>
-  <textarea data-cam="${cam}" rows="${opc.linhas || 4}"${opc.ph ? ` placeholder="${esc(opc.ph)}"` : ''}>${esc(pegarCaminho(pg.d, cam))}</textarea>${opc.dica ? `<small>${opc.dica}</small>` : ''}</label>`;
+// opc.tr = campo com versão em inglês: no modo EN edita <campo>_en e mostra o português como referência
+const emIngles = (opc) => !!opc.tr && pg.idioma === 'en';
+function fLinha(cam, rot, opc = {}) {
+  const en = emIngles(opc);
+  const c = en ? cam + '_en' : cam;
+  const ph = en ? pegarCaminho(pg.d, cam) || '' : opc.ph;
+  return `<label class="campo${en ? ' traduz' : ''}"><span>${rot}</span>
+  <input type="${opc.tipo || 'text'}" data-cam="${c}" value="${esc(pegarCaminho(pg.d, c))}"${ph ? ` placeholder="${esc(ph)}"` : ''}>${opc.dica && !en ? `<small>${opc.dica}</small>` : ''}</label>`;
+}
+function fArea(cam, rot, opc = {}) {
+  const en = emIngles(opc);
+  const c = en ? cam + '_en' : cam;
+  const pt = pegarCaminho(pg.d, cam) || '';
+  return `<label class="campo${en ? ' traduz' : ''}"><span>${rot}</span>
+  ${en && pt.length > 140 ? `<details class="ref-pt"><summary>Original em português</summary><div>${esc(pt)}</div></details>` : ''}
+  <textarea data-cam="${c}" rows="${opc.linhas || 4}"${(en ? pt : opc.ph) ? ` placeholder="${esc(en ? pt : opc.ph)}"` : ''}>${esc(pegarCaminho(pg.d, c))}</textarea>${opc.dica && !en ? `<small>${opc.dica}</small>` : ''}</label>`;
+}
+const fCheck = (cam, rot) => `<label class="check"><input type="checkbox" data-cam="${cam}"${pegarCaminho(pg.d, cam) ? ' checked' : ''}> ${rot}</label>`;
 function fImagem(cam, rot, opc = {}) {
   const v = pegarCaminho(pg.d, cam) || {};
   const src = v._preview || (v.ref ? imgUrl(v.ref) : v.src || '');
@@ -1467,8 +1576,15 @@ function fImagem(cam, rot, opc = {}) {
       <button class="bt" data-acao="img" data-cam="${cam}">${src ? 'Trocar imagem' : 'Escolher imagem'}</button>
     </div></div>`;
 }
-const fTitulo = (chave, padrao) => `<label class="campo campo-rotulo"><span>Título da seção no site</span>
+const TIT_EN = { sobre: 'About', nucleos: 'Studios', premiacoes: 'Awards', publicacoes: 'Publications', equipe: 'Team' };
+function fTitulo(chave, padrao) {
+  if (pg.idioma === 'en') {
+    return `<label class="campo campo-rotulo traduz"><span>Título da seção no site</span>
+    <input type="text" data-cam="titulos.${chave}_en" value="${esc(pegarCaminho(pg.d, 'titulos.' + chave + '_en') || '')}" placeholder="${esc(TIT_EN[chave] || '')}"></label>`;
+  }
+  return `<label class="campo campo-rotulo"><span>Título da seção no site</span>
   <input type="text" data-cam="titulos.${chave}" value="${esc(pegarCaminho(pg.d, 'titulos.' + chave) ?? padrao)}"></label>`;
+}
 
 function fLista(cam, rotItem, corpo, opc = {}) {
   const itens = pegarCaminho(pg.d, cam) || [];
@@ -1539,20 +1655,28 @@ function formBusca() {
   </section>`;
 }
 
+// ordem do site: abertura · equipe · núcleos · premiações · publicações (as notícias vêm da aba Notícias)
 function formSobre() {
-  const anoDesc = (c) => `<div class="ano-desc">${fLinha(c + '.ano', 'Ano')}${fLinha(c + '.descricao', 'Descrição')}</div>`;
+  const anoDesc = (c) => `<div class="ano-desc">${fLinha(c + '.ano', 'Ano')}${fLinha(c + '.descricao', 'Descrição', { tr: true })}</div>`;
   return `
   <section class="bloco-ed"><h2>Abertura</h2>
     ${fTitulo('sobre', 'Sobre')}
     ${fImagem('foto', 'Foto do estúdio')}
-    ${fArea('descricao', 'Texto de apresentação', { linhas: 14, dica: 'Uma linha em branco separa os parágrafos.' })}
+    ${fArea('descricao', 'Texto de apresentação', { linhas: 14, dica: 'Uma linha em branco separa os parágrafos.', tr: true })}
+  </section>
+  <section class="bloco-ed"><h2>Equipe</h2>
+    ${fTitulo('equipe', 'Equipe')}
+    ${fLista('equipe', 'Pessoa', (c) => `
+      <div class="pessoa-ed">${fImagem(c + '.foto', 'Foto', { quadrada: true })}
+        <div>${fLinha(c + '.nome', 'Nome')}${fLinha(c + '.cargo', 'Cargo', { tr: true })}${fArea(c + '.bio', 'Apresentação', { linhas: 5, tr: true })}</div>
+      </div>`, { nome: (it) => it.nome, add: 'Pessoa' })}
   </section>
   <section class="bloco-ed"><h2>Núcleos</h2>
     ${fTitulo('nucleos', 'Núcleos')}
     ${fLista('nucleos', 'Núcleo', (c) => `
-      ${fLinha(c + '.nome', 'Nome')}
-      <div class="duas">${fLinha(c + '.link_texto', 'Texto do link', { ph: 'Visite nossa loja' })}${fLinha(c + '.link_url', 'Endereço do link', { ph: 'https://…' })}</div>
-      ${fArea(c + '.descricao', 'Descrição', { linhas: 3 })}`, { nome: (it) => it.nome })}
+      ${fLinha(c + '.nome', 'Nome', { tr: true })}
+      <div class="duas">${fLinha(c + '.link_texto', 'Texto do link', { ph: 'Visite nossa loja', tr: true })}${fLinha(c + '.link_url', 'Endereço do link', { ph: 'https://…' })}</div>
+      ${fArea(c + '.descricao', 'Descrição', { linhas: 3, tr: true })}`, { nome: (it) => it.nome })}
   </section>
   <section class="bloco-ed"><h2>Premiações</h2>
     ${fTitulo('premiacoes', 'Premiações')}
@@ -1563,12 +1687,8 @@ function formSobre() {
     <p class="nota-ed">Sem nenhum item, a seção não aparece no site.</p>
     ${fLista('publicacoes', 'Publicação', anoDesc, { compacta: true, nome: (it) => [it.ano, it.descricao].filter(Boolean).join(' — ') })}
   </section>
-  <section class="bloco-ed"><h2>Equipe</h2>
-    ${fTitulo('equipe', 'Equipe')}
-    ${fLista('equipe', 'Pessoa', (c) => `
-      <div class="pessoa-ed">${fImagem(c + '.foto', 'Foto', { quadrada: true })}
-        <div>${fLinha(c + '.nome', 'Nome')}${fLinha(c + '.cargo', 'Cargo')}${fArea(c + '.bio', 'Apresentação', { linhas: 5 })}</div>
-      </div>`, { nome: (it) => it.nome, add: 'Pessoa' })}
+  <section class="bloco-ed"><h2>Notícias</h2>
+    <p class="nota-ed">As notícias do fim da página (do estúdio, links de outros sites e textos da Elaia) ficam na aba <a href="#/noticias">Notícias</a>.</p>
   </section>`;
 }
 
@@ -1576,20 +1696,111 @@ function formContato() {
   return `
   <section class="bloco-ed"><h2>Seções</h2>
     <p class="nota-ed">Cada seção é um título e um texto, nesta ordem. A primeira abre a página.</p>
-    ${fLista('secoes', 'Seção', (c) => `${fLinha(c + '.titulo', 'Título')}${fArea(c + '.texto', 'Texto', { linhas: 5 })}`, { nome: (it) => it.titulo })}
+    ${fLista('secoes', 'Seção', (c) => `${fLinha(c + '.titulo', 'Título', { tr: true })}${fArea(c + '.texto', 'Texto', { linhas: 5, tr: true })}`, { nome: (it) => it.titulo })}
   </section>`;
+}
+
+// ---- Notícias: do estúdio (texto no próprio site), links de outros sites e textos da Elaia (RSS)
+function itemNoticia(it, i) {
+  const c = `itens.${i}`;
+  const link = it.tipo === 'link';
+  const img = link && it.imagem_url ? `<div class="img-previa link-img"><img src="${esc(it.imagem_url)}" alt="" referrerpolicy="no-referrer"></div>` : '';
+  return `<div class="item-ed noticia-ed${it.oculta ? ' oculta' : ''}">
+    <div class="item-cab"><span class="chip-tipo${link ? ' link' : ''}">${link ? 'Link' : 'Estúdio'}</span>
+      <b>${esc([it.data ? new Date(it.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : '', it.titulo || 'Sem título'].filter(Boolean).join(' — '))}</b>
+      <button class="bt ico perigo" data-acao="item-apagar" data-lista="itens" data-i="${i}" title="Excluir">✕</button>
+    </div>
+    <div class="item-corpo">
+      ${link ? `<div class="link-linha">${fLinha(c + '.url', 'Endereço da matéria', { ph: 'https://…' })}<button class="bt" data-acao="link-ler" data-i="${i}">Buscar dados do link</button></div>` : ''}
+      <div class="duas">${fLinha(c + '.data', 'Data', { tipo: 'date' })}${link ? fLinha(c + '.fonte', 'Veículo ou site', { ph: 'ArchDaily, revista, jornal…' }) : '<span></span>'}</div>
+      ${fLinha(c + '.titulo', 'Título', { tr: true })}
+      ${fArea(c + '.texto', link ? 'Resumo' : 'Texto', { linhas: link ? 3 : 7, tr: true, dica: link ? 'Aparece abaixo do título; o título leva à matéria.' : 'Textos longos aparecem com “Ler mais”.' })}
+      ${link ? `<div class="link-img-linha">${img}${fLinha(c + '.imagem_url', 'Imagem (endereço, opcional)', { ph: 'https://…' })}</div>` : fImagem(c + '.imagem', 'Imagem (opcional)')}
+      ${fCheck(c + '.oculta', 'Esconder do site')}
+    </div></div>`;
+}
+function formNoticias() {
+  const itens = pg.d.itens || [];
+  return `
+  <section class="bloco-ed"><h2>Notícias no Sobre</h2>
+    <p class="nota-ed">O fim da página Sobre mostra as 5 notícias mais recentes; as anteriores aparecem de 5 em 5 (‹ ›). Entram as notícias
+    escritas aqui, os links para matérias de outros sites e os textos da Elaia — todos pela data, do mais novo para o mais antigo.</p>
+    <div class="nova-noticia">
+      <button class="bt-forte" data-acao="noticia-nova" data-tipo="propria">+ Notícia do estúdio</button>
+      <button class="bt" data-acao="noticia-nova" data-tipo="link">+ Link de outro site</button>
+    </div>
+  </section>
+  <section class="bloco-ed"><h2>Do estúdio e links <span class="conta-h">${itens.length}</span></h2>
+    ${itens.length ? `<div class="lista-ed">${itens.map(itemNoticia).join('')}</div>` : '<p class="nota-ed">Nenhuma ainda.</p>'}
+  </section>
+  <section class="bloco-ed"><h2>Textos da Elaia (Substack)</h2>
+    ${fCheck('mostrar_rss', 'Mostrar os textos publicados na Elaia')}
+    ${fLinha('rss', 'Endereço do feed (RSS)', { ph: 'https://odisse.substack.com/feed', dica: 'O site lê o feed sozinho, a cada hora: um texto novo na Elaia entra nas notícias sem precisar fazer nada.' })}
+    <div id="rssLista">${desenharRss()}</div>
+  </section>`;
+}
+function desenharRss() {
+  if (pg.nome !== 'noticias') return '';
+  if (!pg.rss) return '<p class="nota-ed">Lendo os textos da Elaia…</p>';
+  if (pg.rss.erro) return `<p class="nota-ed">Não consegui ler o feed agora (${esc(pg.rss.erro)}).</p>`;
+  if (!pg.rss.itens.length) return '<p class="nota-ed">Nenhum texto encontrado neste endereço.</p>';
+  const ocultos = new Set(pg.d.rss_ocultos || []);
+  return `<p class="nota-ed">${pg.rss.itens.length} textos no feed. Desligue os que não devem aparecer no site.</p><div class="rss-lista">` +
+    pg.rss.itens.map((x) => `<label class="rss-item${ocultos.has(x.url) ? ' oculto' : ''}">
+      <span class="chave"><input type="checkbox" data-acao="rss-alternar" data-url="${esc(x.url)}"${ocultos.has(x.url) ? '' : ' checked'}></span>
+      ${x.imagem_url ? `<img src="${esc(x.imagem_url)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<i></i>'}
+      <span><b>${esc(x.titulo)}</b><small>${x.data ? new Date(x.data + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</small></span>
+      <a href="${esc(x.url)}" target="_blank" rel="noopener" title="Abrir na Elaia">↗</a></label>`).join('') + '</div>';
+}
+async function carregarRss() {
+  const nome = pg.nome;
+  pg.rss = null;
+  const el = $('#rssLista');
+  if (el) el.innerHTML = desenharRss();
+  try {
+    const r = await nuvem.rss((pg.d.rss || '').trim() || undefined);
+    if (pg.nome === nome) pg.rss = r;
+  } catch (err) {
+    if (pg.nome === nome) pg.rss = { erro: err.message, itens: [] };
+  }
+  const el2 = $('#rssLista');
+  if (el2 && pg.nome === nome) el2.innerHTML = desenharRss();
 }
 
 function desenharPagina() {
   const rolagem = $('#paginaEd').scrollTop;
-  $('#pagForm').innerHTML = pg.nome === 'sobre' ? formSobre() : pg.nome === 'busca' ? formBusca() : formContato();
+  $$('#pagIdioma button').forEach((b) => b.classList.toggle('ativo', b.dataset.idioma === pg.idioma));
+  const avisoEn = pg.idioma === 'en' && pg.nome !== 'busca'
+    ? '<div class="aviso-en"><b>Versão em inglês.</b> Os campos marcados com EN recebem a tradução; o texto em cinza é o original. Campo vazio = o site mostra o português.</div>' : '';
+  $('#pagForm').innerHTML = avisoEn + (pg.nome === 'sobre' ? formSobre() : pg.nome === 'busca' ? formBusca() : pg.nome === 'noticias' ? formNoticias() : formContato());
   $('#paginaEd').scrollTop = rolagem;
+  if (pg.nome === 'noticias' && !pg.rss) carregarRss();
 }
+$('#pagIdioma').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-idioma]');
+  if (!b || b.dataset.idioma === pg.idioma) return;
+  pg.idioma = b.dataset.idioma;
+  desenharPagina();
+});
+$('#pagVersoes').addEventListener('click', () => abrirVersoes('pagina', pg.nome, PAG_NOME[pg.nome]));
+$('#pagForm').addEventListener('change', (e) => {
+  // trocou o endereço do feed: lê de novo
+  if (e.target.dataset.cam === 'rss') carregarRss();
+  if (e.target.dataset.acao === 'rss-alternar') {
+    const url = e.target.dataset.url;
+    const ocultos = new Set(pg.d.rss_ocultos || []);
+    if (e.target.checked) ocultos.delete(url); else ocultos.add(url);
+    pg.d.rss_ocultos = [...ocultos];
+    e.target.closest('.rss-item')?.classList.toggle('oculto', !e.target.checked);
+    pagMudou();
+  }
+});
 
 $('#pagForm').addEventListener('input', (e) => {
   const cam = e.target.dataset.cam;
   if (!cam) return;
-  porCaminho(pg.d, cam, e.target.value);
+  porCaminho(pg.d, cam, e.target.type === 'checkbox' ? e.target.checked : e.target.value);
+  if (/^itens\.\d+\.oculta$/.test(cam)) e.target.closest('.noticia-ed')?.classList.toggle('oculta', e.target.checked);
   const conta = $(`[data-conta="${cam}"]`);
   if (conta) {
     const n = e.target.value.length, ideal = +conta.dataset.ideal;
@@ -1613,6 +1824,16 @@ $('#pagForm').addEventListener('click', (e) => {
   if (!b) return;
   const acao = b.dataset.acao;
   if (acao === 'img') { pg.alvoImg = b.dataset.cam; return $('#pagArquivo').click(); }
+  if (acao === 'rss-alternar') return; // tratado no change
+  if (acao === 'noticia-nova') {
+    pg.d.itens ||= [];
+    pg.d.itens.unshift({ id: novoId(), tipo: b.dataset.tipo, data: hojeISO(), titulo: '', texto: '', url: '', fonte: '', imagem: null, imagem_url: '' });
+    desenharPagina();
+    pagMudou();
+    $('.noticia-ed input[type=text]')?.focus();
+    return;
+  }
+  if (acao === 'link-ler') return lerLinkNoticia(+b.dataset.i, b);
   const cam = b.dataset.lista;
   const lista = pegarCaminho(pg.d, cam) || [];
   const i = +b.dataset.i;
@@ -1632,6 +1853,29 @@ $('#pagForm').addEventListener('click', (e) => {
     itens.at(-1)?.closest('.item-ed')?.querySelector('input, textarea')?.focus();
   }
 });
+
+// "Buscar dados do link": título, resumo, veículo, imagem e data da matéria (preenche só o que está vazio)
+async function lerLinkNoticia(i, bt) {
+  const it = pg.d.itens?.[i];
+  const url = (it?.url || '').trim();
+  if (!/^https?:\/\//i.test(url)) { aviso('Cole primeiro o endereço da matéria (começando com https://).', true); return; }
+  bt.disabled = true;
+  bt.textContent = 'Lendo…';
+  try {
+    const d = await nuvem.link(url);
+    let n = 0;
+    for (const k of ['titulo', 'texto', 'fonte', 'imagem_url', 'data']) {
+      if (d[k] && !(it[k] || '').trim()) { it[k] = d[k]; n++; }
+    }
+    desenharPagina();
+    pagMudou();
+    aviso(n ? 'Dados do link preenchidos. Revise antes de salvar.' : 'Nada novo: os campos já estavam preenchidos.');
+  } catch (err) {
+    aviso(`Não consegui ler o link: ${err.message}`, true);
+    bt.disabled = false;
+    bt.textContent = 'Buscar dados do link';
+  }
+}
 
 $('#pagArquivo').addEventListener('change', async (e) => {
   const arq = e.target.files[0];
@@ -1670,6 +1914,12 @@ function limparPagina(v) {
 async function salvarPagina() {
   if (vista !== 'pagina' || pg.enviando || !pg.d) return;
   const nome = pg.nome;
+  if (nome === 'noticias') {
+    const sem = (pg.d.itens || []).find((x) => !(x.titulo || '').trim());
+    if (sem) { aviso('Há uma notícia sem título. Dê um título ou exclua antes de salvar.', true); return; }
+    pg.d.itens = (pg.d.itens || []).sort(porData);
+    desenharPagina(); // a ordem pode ter mudado com as datas
+  }
   estadoPag('salvando', 'Salvando…');
   try {
     const res = await nuvem.gravarPagina(nome, limparPagina(pg.d));
@@ -1701,7 +1951,7 @@ $('#periodo').addEventListener('click', (e) => {
 const fmt = (n) => Number(n || 0).toLocaleString('pt-BR');
 const fmtTempo = (s) => (s >= 60 ? `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, '0')} s` : `${s || 0} s`);
 const dataCurta = (d) => new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '');
-const NOMES_SAIDA = { whatsapp: 'WhatsApp', email: 'E-mail', telefone: 'Telefone', instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', elaia: 'Elaia (Substack)', objetos: 'Odisse Objetos', servicos: 'Serviços (projetos.odisse)', candidatura: 'Formulário de candidatura' };
+const NOMES_SAIDA = { whatsapp: 'WhatsApp', email: 'E-mail', telefone: 'Telefone', instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', elaia: 'Elaia (Substack)', objetos: 'Odisse Objetos', servicos: 'Serviços (projetos.odisse)', candidatura: 'Formulário de candidatura', noticia: 'Notícias (links)' };
 const NOMES_PAG = { '/': 'Home', '/sobre/': 'Sobre', '/contato/': 'Contato' };
 
 async function carregarMetricas() {
@@ -1747,6 +1997,11 @@ function desenharMetricas(m) {
   const maxProj = Math.max(1, ...m.projetos.map((p) => p.vistas));
   const semDados = !t.paginas && !t.projetos;
 
+  const pagNome = (x) => NOMES_PAG[x] || (x.startsWith('/projeto/') ? titulo(x.slice(9)) : x);
+  const canais = m.canais || [];
+  const maxCanal = Math.max(1, ...canais.map((c) => c.visitas));
+  const pct = (v) => `${String(v ?? 0).replace('.', ',')}%`;
+
   $('#painelMetricas').innerHTML = `
     <section class="kpis">
       ${kpi('Visitantes', fmt(t.visitantes), variacao(t.visitantes, a.visitantes))}
@@ -1754,6 +2009,7 @@ function desenharMetricas(m) {
       ${kpi('Projetos abertos', fmt(t.projetos), variacao(t.projetos, a.projetos))}
       ${kpi('Tempo médio por página', fmtTempo(t.tempo), variacao(t.tempo, a.tempo))}
       ${kpi('Cliques de contato', fmt(t.contatos), variacao(t.contatos, a.contatos))}
+      ${kpi('Visitas com contato', pct(t.taxa), variacao(t.taxa, a.taxa))}
       ${kpi('Saíram na 1ª página', `${t.rejeicao}%`, variacao(t.rejeicao, a.rejeicao, true))}
     </section>
     ${semDados ? '<div class="aviso-nuvem"><span>Ainda não há visitas registradas neste período. A contagem começa assim que o site novo estiver no ar.</span></div>' : ''}
@@ -1769,19 +2025,49 @@ function desenharMetricas(m) {
       </div>
 
       <div class="cartao largo">
+        <h3>De onde vêm — e quem chega a falar com o estúdio</h3>
+        <p>Canal de chegada de cada visita (a origem da primeira página: Instagram, Google, Elaia, anúncio, direto…), o que fizeram no site
+        e quantas visitas terminaram em contato (WhatsApp, e-mail ou telefone).</p>
+        ${canais.length ? `<table class="tabela">
+          <thead><tr><th>Canal</th><th class="n">Visitas</th><th class="n">vs. antes</th><th class="n">Páginas por visita</th><th class="n">Projetos vistos</th><th class="n">Cliques no WhatsApp</th><th class="n">Visitas com contato</th><th class="n">Taxa</th></tr></thead>
+          <tbody>${canais.map((c) => `<tr>
+            <td><span class="barra-mini" style="width:${Math.max(4, (60 * c.visitas) / maxCanal)}px"></span>${esc(c.nome)}</td>
+            <td class="n">${fmt(c.visitas)}</td>
+            <td class="n">${c.antes ? `<span class="${c.visitas >= c.antes ? 'sobe' : 'desce'}">${c.visitas >= c.antes ? '▲' : '▼'} ${Math.abs(Math.round(((c.visitas - c.antes) / c.antes) * 100))}%</span>` : '<span class="cinza">novo</span>'}</td>
+            <td class="n">${(c.paginas / c.visitas).toFixed(1).replace('.', ',')}</td>
+            <td class="n">${fmt(c.projetos)}</td>
+            <td class="n">${fmt(c.whatsapp)}</td>
+            <td class="n">${fmt(c.contato)}</td>
+            <td class="n"><b>${pct(c.taxa)}</b></td></tr>`).join('')}</tbody>
+        </table>
+        <p class="nota-tab">“Google Ads” aparece quando um anúncio traz a pessoa (o Google acrescenta um código ao endereço). Visitas que chegam por
+        aplicativos (WhatsApp, Instagram no celular) às vezes vêm sem origem e contam como “Direto” — para medir um post ou a bio, use o link com
+        <code>?utm_source=instagram</code> (ou outro nome) no fim do endereço.</p>` : '<p class="sem">Sem visitas no período.</p>'}
+      </div>
+
+      <div class="cartao largo">
         <h3>Projetos</h3>
-        <p>Aberturas na página própria e no acordeão da Home, tempo médio de leitura e quantos viram a sequência até o fim.</p>
+        <p>Aberturas (página própria e acordeão da Home), por onde a pessoa chegou ao projeto, tempo médio, quantos viram a sequência até o fim
+        e quantas visitas com esse projeto terminaram em contato.</p>
         ${m.projetos.length ? `<table class="tabela">
-          <thead><tr><th>Projeto</th><th class="n">Aberturas</th><th class="n">Pela Home</th><th class="n">Tempo médio</th><th class="n">Viram até o fim</th></tr></thead>
+          <thead><tr><th>Projeto</th><th class="n">Aberturas</th><th class="n">Pela Home</th><th class="n">Por outros projetos</th><th class="n">Pela busca</th><th class="n">Tempo médio</th><th class="n">Viram até o fim</th><th class="n">Geraram contato</th></tr></thead>
           <tbody>${m.projetos.map((p) => `<tr>
             <td><span class="barra-mini" style="width:${Math.max(4, (60 * p.vistas) / maxProj)}px"></span>${esc(titulo(p.slug))}</td>
-            <td class="n">${fmt(p.vistas)}</td><td class="n">${fmt(p.home)}</td><td class="n">${fmtTempo(p.tempo)}</td><td class="n">${p.fim === null ? '—' : p.fim + '%'}</td></tr>`).join('')}</tbody>
+            <td class="n">${fmt(p.vistas)}</td><td class="n">${fmt(p.home)}</td><td class="n">${fmt(p.relacionados || 0)}</td><td class="n">${fmt(p.busca || 0)}</td>
+            <td class="n">${fmtTempo(p.tempo)}</td><td class="n">${p.fim === null ? '—' : p.fim + '%'}</td>
+            <td class="n">${p.contato === undefined ? '—' : `${fmt(p.contato)}${p.visitas ? ` <span class="cinza">(${Math.round((100 * p.contato) / p.visitas)}%)</span>` : ''}`}</td></tr>`).join('')}</tbody>
         </table>` : '<p class="sem">Nenhum projeto aberto no período.</p>'}
       </div>
 
-      <div class="cartao"><h3>De onde vêm</h3><p>Site de origem da visita (ou campanha, quando o link tem utm_source).</p>${ranque(m.origens)}</div>
+      <div class="cartao"><h3>WhatsApp: de onde saem os cliques</h3><p>${fmt(m.whatsapp?.total || 0)} cliques no período, pela página em que a pessoa estava.</p>
+        ${ranque(m.whatsapp?.paginas, (x) => pagNome(x.nome), 'Nenhum clique no WhatsApp no período.')}</div>
+      <div class="cartao"><h3>O que procuram no site</h3><p>Termos digitados na busca do topo e filtros escolhidos.</p>
+        ${ranque(m.buscas, (x) => x.nome, 'Ninguém usou a busca no período.')}</div>
+
+      <div class="cartao"><h3>Site anterior</h3><p>De onde veio cada página vista (ou a campanha, quando o link tem utm_source).</p>${ranque(m.origens)}</div>
       <div class="cartao"><h3>Cliques de saída</h3><p>Contato e links para fora do site.</p>${ranque(m.saidas, (x) => NOMES_SAIDA[x.nome] || x.nome, 'Nenhum clique de saída no período.')}</div>
-      <div class="cartao"><h3>Páginas</h3><p>Páginas vistas.</p>${ranque(m.paginas, (x) => NOMES_PAG[x.nome] || (x.nome.startsWith('/projeto/') ? titulo(x.nome.slice(9)) : x.nome))}</div>
+      <div class="cartao"><h3>Páginas</h3><p>Páginas vistas.</p>${ranque(m.paginas, (x) => pagNome(x.nome))}</div>
+      <div class="cartao"><h3>Idioma</h3><p>Páginas vistas em português e em inglês (botão PT/EN do site).</p>${ranque(m.idiomas)}</div>
       <div class="cartao"><h3>Cidades</h3><p>Localização aproximada da conexão.</p>${ranque(m.lugares)}</div>
       <div class="cartao"><h3>Dispositivos</h3><p>Páginas vistas por tipo de aparelho.</p>${ranque(m.dispositivos, (x) => x.nome[0].toUpperCase() + x.nome.slice(1))}</div>
       <div class="cartao"><h3>Horário das visitas</h3><p>Páginas vistas por hora do dia (horário de Brasília).</p>
@@ -1805,6 +2091,230 @@ $('#painelMetricas').addEventListener('mouseover', (e) => { const c = e.target.c
 $('#painelMetricas').addEventListener('focusin', (e) => { const c = e.target.closest('.col'); if (c) mostrarDica(c); });
 $('#painelMetricas').addEventListener('mouseout', (e) => { if (e.target.closest('.col')) dica.hidden = true; });
 $('#painelMetricas').addEventListener('focusout', () => { dica.hidden = true; });
+
+// ------------------------------------------------------------------ histórico
+// Gaveta lateral com as versões de um projeto ou página; aba Histórico com projetos
+// excluídos, últimas alterações e backups.
+const quando = (iso) => (iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace('.', '') : '—');
+const MOTIVO = { edicao: 'Antes de uma alteração', exclusao: 'Projeto excluído', restauracao: 'Antes de uma restauração' };
+const gav = { tipo: '', id: '' };
+
+function fecharGaveta() { const g = $('#gaveta'); if (g) g.hidden = true; }
+$('#gavetaFechar').addEventListener('click', fecharGaveta);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fecharGaveta(); });
+
+function linhaVersao(v, opc = {}) {
+  const det = v.tipo === 'projeto'
+    ? [`${v.ni ?? '?'} ${v.ni === 1 ? 'imagem' : 'imagens'}`, `${v.nt ?? '?'} ${v.nt === 1 ? 'texto' : 'textos'}`, v.visivel === false ? 'oculto' : ''].filter(Boolean).join(' · ')
+    : '';
+  return `<div class="versao">
+    <div class="versao-txt">
+      ${opc.nome ? `<b>${esc(opc.nome)}</b>` : ''}
+      <span class="versao-data">${v.atualizado ? `Como estava em ${quando(v.atualizado)}` : `Guardada em ${quando(v.quando)}`}</span>
+      <small>${esc(MOTIVO[v.motivo] || 'Versão')}${v.motivo !== 'exclusao' ? ` · substituída em ${quando(v.quando)}` : ` em ${quando(v.quando)}`}${det ? ' · ' + det : ''}</small>
+    </div>
+    <button class="bt" data-restaurar="${esc(v.chave)}" data-tipo="${v.tipo}" data-id="${esc(v.id)}">Restaurar</button>
+  </div>`;
+}
+
+async function abrirVersoes(tipo, id, titulo) {
+  gav.tipo = tipo; gav.id = id;
+  $('#gavetaTitulo').textContent = 'Versões anteriores';
+  $('#gavetaInfo').textContent = titulo;
+  $('#gavetaCorpo').innerHTML = '<p class="vazio">Carregando…</p>';
+  $('#gaveta').hidden = false;
+  try {
+    const lista = await nuvem.versoes(tipo, id);
+    if (gav.id !== id) return;
+    $('#gavetaCorpo').innerHTML = lista.length
+      ? `<p class="nota-ed">Até 10 versões. Restaurar não apaga nada: o estado de agora também fica guardado aqui.</p>${lista.map((v) => linhaVersao(v)).join('')}`
+      : '<p class="vazio">Ainda não há versões anteriores. A cada salvamento, o estado de antes fica guardado aqui.</p>';
+  } catch (err) {
+    $('#gavetaCorpo').innerHTML = `<p class="vazio">Não foi possível carregar: ${esc(err.message)}</p>`;
+  }
+}
+
+async function restaurarVersao(chave, tipo, id, bt) {
+  const sujo = (tipo === 'projeto' && vista === 'editor' && ed.p?.id === id && ed.sujo) || (tipo === 'pagina' && vista === 'pagina' && pg.nome === id && pg.sujo);
+  if (!confirm(`Restaurar esta versão?${sujo ? '\n\nAs alterações ainda não salvas serão descartadas.' : ''}\n\nO estado atual fica guardado no histórico — dá para desfazer.`)) return;
+  if (bt) { bt.disabled = true; bt.textContent = 'Restaurando…'; }
+  try {
+    const v = await nuvem.versao(chave);
+    if (tipo === 'projeto') {
+      const res = await nuvem.gravar(v, 'restauracao');
+      const i = indice.findIndex((r) => r.id === id);
+      if (i >= 0) indice[i] = res.resumo; else indice.unshift(res.resumo);
+      fecharGaveta();
+      aviso(v.visivel === false ? 'Versão restaurada (o projeto está oculto do site).' : 'Versão restaurada. O site atualiza em até 1 minuto.');
+      if (vista === 'editor' && ed.p?.id === id) { ed.sujo = false; abrirEditor(id); }
+      else if (vista === 'historico') carregarHistorico();
+    } else {
+      const { atualizado, ...d } = v;
+      await nuvem.gravarPagina(id, d, 'restauracao');
+      fecharGaveta();
+      aviso('Versão restaurada. O site atualiza em até 1 minuto.');
+      if (vista === 'pagina' && pg.nome === id) { pg.sujo = false; abrirPagina(id); }
+      else if (vista === 'historico') carregarHistorico();
+    }
+  } catch (err) {
+    aviso(`Não foi possível restaurar: ${err.message}`, true);
+    if (bt) { bt.disabled = false; bt.textContent = 'Restaurar'; }
+  }
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-restaurar]');
+  if (b) restaurarVersao(b.dataset.restaurar, b.dataset.tipo, b.dataset.id, b);
+});
+
+let hist = { versoes: [], backups: [], abertos: {} };
+async function carregarHistorico() {
+  const el = $('#painelHistorico');
+  if (!hist.versoes.length && !hist.backups.length) el.innerHTML = '<p class="vazio">Carregando…</p>';
+  try {
+    const [versoes, backups, lista] = await Promise.all([nuvem.versoes(), nuvem.backups(), nuvem.lista()]);
+    indice = lista;
+    hist.versoes = versoes;
+    hist.backups = backups;
+    desenharHistorico();
+  } catch (err) {
+    el.innerHTML = `<p class="vazio">Não foi possível carregar o histórico: ${esc(err.message)}</p>`;
+  }
+}
+
+function nomeDe(v) {
+  if (v.tipo === 'pagina') return `Página ${PAG_NOME[v.id] || v.id}`;
+  return indice.find((r) => r.id === v.id)?.titulo || v.titulo || 'Projeto';
+}
+
+function desenharHistorico() {
+  const vivos = new Set(indice.map((r) => r.id));
+  const excluidos = [];
+  const vistos = new Set();
+  // a versão mais nova de cada projeto que não está mais na lista
+  for (const v of hist.versoes) if (v.tipo === 'projeto' && !vivos.has(v.id) && !vistos.has(v.id)) { vistos.add(v.id); excluidos.push(v); }
+  const recentes = [...hist.versoes].sort((a, b) => (b.quando || '').localeCompare(a.quando || '')).filter((v) => vivos.has(v.id) || v.tipo === 'pagina').slice(0, 15);
+  const MOT = { mensal: 'Mensal', manual: 'Feito à mão' };
+  $('#painelHistorico').innerHTML = `
+    <section class="bloco-ed"><h2>Projetos excluídos</h2>
+      ${excluidos.length ? `<p class="nota-ed">Restaurar traz o projeto de volta à lista, com as imagens, como estava quando foi excluído.</p>${excluidos.map((v) => linhaVersao(v, { nome: v.titulo || 'Projeto' })).join('')}`
+        : '<p class="nota-ed">Nenhum projeto excluído recentemente.</p>'}
+    </section>
+    <section class="bloco-ed"><h2>Últimas alterações</h2>
+      <p class="nota-ed">O estado de antes de cada alteração. Também dá para ver e restaurar pelo botão <b>Versões</b> do projeto ou da página.</p>
+      ${recentes.length ? recentes.map((v) => linhaVersao(v, { nome: nomeDe(v) })).join('') : '<p class="nota-ed">Nenhuma alteração guardada ainda — começa a contar a partir de agora.</p>'}
+    </section>
+    <section class="bloco-ed"><h2>Backups</h2>
+      <p class="nota-ed">Cópia de todos os projetos e páginas, feita sozinha no dia 1 de cada mês (ficam os 12 últimos) ou pelo botão acima (ficam os 5 últimos).
+      As imagens usadas em um backup ficam guardadas enquanto ele existir. <b>Baixar</b> salva uma cópia no seu computador.</p>
+      ${hist.backups.length ? hist.backups.map((b) => `
+        <div class="backup" data-chave="${esc(b.chave)}">
+          <div class="versao">
+            <div class="versao-txt"><b>${quando(b.criado)}</b><small>${MOT[b.motivo] || b.motivo} · ${b.nprojetos} projetos · ${b.npaginas} páginas · ${b.kb} KB</small></div>
+            <div class="backup-acoes">
+              <button class="bt" data-backup="ver">${hist.abertos[b.chave] ? 'Fechar' : 'Ver conteúdo'}</button>
+              <button class="bt" data-backup="baixar">Baixar</button>
+            </div>
+          </div>
+          ${hist.abertos[b.chave] ? conteudoBackup(b.chave) : ''}
+        </div>`).join('') : '<p class="nota-ed">Nenhum backup ainda. O primeiro mensal sai no dia 1; para fazer um agora, use o botão acima.</p>'}
+    </section>`;
+}
+
+const backupsLidos = {};
+function conteudoBackup(chave) {
+  const b = backupsLidos[chave];
+  if (!b) return '<p class="nota-ed backup-corpo">Carregando…</p>';
+  const ordem = (b.indice || []).map((r) => r.id);
+  const projetos = Object.values(b.projetos || {}).sort((x, y) => ordem.indexOf(x.id) - ordem.indexOf(y.id));
+  const vivos = new Set(indice.map((r) => r.id));
+  return `<div class="backup-corpo">
+    ${projetos.map((p) => `<div class="versao mini">
+      <div class="versao-txt"><b>${esc(p.titulo)}</b><small>${vivos.has(p.id) ? 'Na lista hoje' : 'Excluído depois deste backup'} · como estava em ${quando(p.atualizado)}</small></div>
+      <button class="bt" data-backup="projeto" data-id="${esc(p.id)}">Restaurar</button></div>`).join('')}
+    ${Object.entries(b.paginas || {}).map(([nome, d]) => `<div class="versao mini">
+      <div class="versao-txt"><b>Página ${esc(PAG_NOME[nome] || nome)}</b><small>como estava em ${quando(d.atualizado)}</small></div>
+      <button class="bt" data-backup="pagina" data-id="${esc(nome)}">Restaurar</button></div>`).join('')}
+    <div class="backup-tudo"><button class="bt perigo" data-backup="tudo">Restaurar tudo deste backup</button>
+      <small>Volta todos os projetos e páginas a este ponto (e a ordem da lista). Projetos criados depois continuam.</small></div>
+  </div>`;
+}
+
+$('#painelHistorico').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-backup]');
+  if (!b) return;
+  const chave = b.closest('.backup').dataset.chave;
+  const acao = b.dataset.backup;
+  const ler = async () => (backupsLidos[chave] ||= await nuvem.backup(chave));
+  try {
+    if (acao === 'ver') {
+      hist.abertos[chave] = !hist.abertos[chave];
+      desenharHistorico();
+      if (hist.abertos[chave] && !backupsLidos[chave]) { await ler(); desenharHistorico(); }
+      return;
+    }
+    if (acao === 'baixar') {
+      const d = await ler();
+      const blob = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `odisse-site-backup-${(d.criado || '').slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+      return;
+    }
+    const d = await ler();
+    if (acao === 'projeto') {
+      const p = d.projetos[b.dataset.id];
+      if (!confirm(`Restaurar “${p.titulo}” como estava neste backup? O estado atual fica no histórico.`)) return;
+      await nuvem.gravar(p, 'restauracao');
+      aviso('Projeto restaurado.');
+    } else if (acao === 'pagina') {
+      const nome = b.dataset.id;
+      if (!confirm(`Restaurar a página ${PAG_NOME[nome] || nome} como estava neste backup? O estado atual fica no histórico.`)) return;
+      const { atualizado, ...pagina } = d.paginas[nome];
+      await nuvem.gravarPagina(nome, pagina, 'restauracao');
+      aviso('Página restaurada.');
+    } else if (acao === 'tudo') {
+      if (!confirm('Restaurar TODOS os projetos e páginas deste backup?\n\nO estado atual de cada um fica guardado no histórico (Versões).')) return;
+      b.disabled = true;
+      const falhas = [];
+      const projetos = Object.values(d.projetos || {});
+      for (const [n, p] of projetos.entries()) {
+        b.textContent = `Restaurando ${n + 1} de ${projetos.length}…`;
+        try { await nuvem.gravar(p, 'restauracao'); } catch (err) { falhas.push(`${p.titulo}: ${err.message}`); }
+      }
+      for (const [nome, pagina] of Object.entries(d.paginas || {})) {
+        const { atualizado, ...resto } = pagina;
+        try { await nuvem.gravarPagina(nome, resto, 'restauracao'); } catch (err) { falhas.push(`Página ${nome}: ${err.message}`); }
+      }
+      const atuais = await nuvem.lista();
+      const ordem = (d.indice || []).map((r) => r.id).filter((id) => atuais.some((r) => r.id === id));
+      await nuvem.ordem([...ordem, ...atuais.map((r) => r.id).filter((id) => !ordem.includes(id))]);
+      if (falhas.length) alert(`Restaurado, com estas exceções:\n\n${falhas.join('\n')}`);
+      else aviso('Tudo restaurado. O site atualiza em até 1 minuto.');
+    }
+    carregarHistorico();
+  } catch (err) {
+    aviso(`Não foi possível: ${err.message}`, true);
+  }
+});
+
+$('#btBackup').addEventListener('click', async () => {
+  const bt = $('#btBackup');
+  bt.disabled = true;
+  bt.textContent = 'Fazendo backup…';
+  try {
+    const r = await nuvem.fazerBackup();
+    aviso(`Backup feito: ${r.nprojetos} projetos e ${r.npaginas} páginas.`);
+    carregarHistorico();
+  } catch (err) {
+    aviso(`Não foi possível fazer o backup: ${err.message}`, true);
+  } finally {
+    bt.disabled = false;
+    bt.textContent = 'Fazer backup agora';
+  }
+});
 
 // ------------------------------------------------------------------ início
 $$('[data-marca]').forEach((el) => { el.innerHTML = mark(el.dataset.marca, el.dataset.marca === 'odisse' ? 13 : 26); });

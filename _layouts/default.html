@@ -39,8 +39,9 @@
 
 <script src="{{ '/script.js' | relative_url }}" defer></script>
 <script src="{{ '/transitions.js' | relative_url }}" defer></script>
-{% if page.url == '/index.html' or page.url == '/' %}
 <script src="{{ '/assets/js/projetos.js' | relative_url }}" defer></script>
+<script src="{{ '/assets/js/busca.js' | relative_url }}" defer></script>
+{% if page.url == '/index.html' or page.url == '/' %}
 <script src="{{ '/gallery.js' | relative_url }}" defer></script>
 {% endif %}
 {% if page.pagina == 'sobre' or page.pagina == 'contato' %}

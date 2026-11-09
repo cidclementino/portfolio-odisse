@@ -4,6 +4,9 @@
 
 (function () {
   var O = (window.Odisse = window.Odisse || {});
+  // idioma (assets/js/i18n.js); fora do navegador (gerador das páginas), português
+  function T(k, pt, vars) { return O.t ? O.t(k, vars) : pt.replace('{n}', vars && vars.n); }
+  function tr(obj, k) { return O.tr ? O.tr(obj, k) : (obj && obj[k] != null ? obj[k] : ''); }
 
   function base() {
     var api = O.API || '';
@@ -105,24 +108,25 @@
       .filter(Boolean).map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('');
   }
 
-  var CAMPOS = [['ano', 'Ano'], ['cliente', 'Cliente'], ['tipologia', 'Tipologia'], ['area', 'Área'], ['status', 'Status']];
+  var CAMPOS = [['ano', 'Ano'], ['cliente', 'Cliente'], ['tipologia', 'Tipologia'], ['escala', 'Escala'], ['area', 'Área'], ['status', 'Status']];
 
   function meta(p) {
     var html = CAMPOS.filter(function (c) { return p[c[0]] !== undefined && String(p[c[0]]).trim() !== ''; })
-      .map(function (c) { return '<div><dt>' + c[1] + '</dt><dd>' + esc(p[c[0]]) + '</dd></div>'; }).join('');
+      .map(function (c) { return '<div><dt>' + T(c[0], c[1]) + '</dt><dd>' + esc(tr(p, c[0])) + '</dd></div>'; }).join('');
     return '<dl class="project__meta">' + html + '</dl>';
   }
 
   function titulo(p) {
-    return '<div class="project__title"><h1>' + esc(p.titulo) + '</h1>' +
-      (p.local ? '<span class="place">' + esc(p.local) + '</span>' : '') + '</div>';
+    var local = tr(p, 'local');
+    return '<div class="project__title"><h1>' + esc(tr(p, 'titulo')) + '</h1>' +
+      (local ? '<span class="place">' + esc(local) + '</span>' : '') + '</div>';
   }
 
   function spreads(p) {
     return (p.secoes || []).map(function (s) {
       if (s.tipo === 'texto') {
         var larg = s.largura === 'm' || s.largura === 'g' ? ' spread--texto-' + s.largura : '';
-        return '<div class="spread spread--texto' + larg + '"><div class="texto-bloco">' + paragrafos(s.texto) + '</div></div>';
+        return '<div class="spread spread--texto' + larg + '"><div class="texto-bloco">' + paragrafos(tr(s, 'texto')) + '</div></div>';
       }
       if (s.src) {
         return '<div class="spread spread--imagem"><div class="frame"><img src="' + esc(s.src) + '" alt="' + esc(s.alt || p.titulo) + '" decoding="async" draggable="false"></div></div>';
@@ -130,9 +134,9 @@
       if (!s.ref) return '';
       var razao = s.w && s.h ? s.w / s.h : 1.5;
       return '<div class="spread spread--imagem"><div class="frame">' +
-        '<img src="' + img(s.ref, 'm') + '" srcset="' + srcset(s.ref) + '" sizes="calc(100vh * ' + razao.toFixed(3) + ')"' +
+        '<img src="' + img(s.ref, 'm') + '" srcset="' + srcset(s.ref) + '" sizes="(max-width: 780px) calc(100vw - 32px), calc(100vh * ' + razao.toFixed(3) + ')"' +
         (s.w ? ' width="' + s.w + '" height="' + s.h + '"' : '') +
-        ' alt="' + esc(s.alt || p.titulo) + '" loading="lazy" decoding="async" draggable="false">' +
+        ' alt="' + esc(tr(s, 'alt') || tr(p, 'titulo')) + '" loading="lazy" decoding="async" draggable="false">' +
         '</div></div>';
     }).join('');
   }
@@ -144,7 +148,7 @@
     if (src) {
       capa = '<img src="' + esc(src) + '"' +
         (c.ref && !c.src ? ' srcset="' + img(c.ref, 's') + ' 960w, ' + img(c.ref, 'm') + ' 1200w" sizes="' + tamanhosCapa() + '"' : '') +
-        ' alt="' + esc(r.titulo) + '"' +
+        ' alt="' + esc(tr(r, 'titulo')) + '"' +
         (i === 0 ? ' fetchpriority="high"' : '') +
         (i > 1 ? ' loading="lazy"' : '') + ' decoding="async">';
     }
@@ -152,17 +156,52 @@
       '<a class="gallery__row" href="' + url(r.slug) + '" aria-expanded="false">' +
         '<div class="gallery__thumb">' + capa + '</div>' +
         '<div class="gallery__info">' +
-          '<span class="gallery__title">' + esc(r.titulo) + '</span>' +
-          '<span class="gallery__place">' + esc(r.local) + '</span>' +
+          '<span class="gallery__title">' + esc(tr(r, 'titulo')) + '</span>' +
+          '<span class="gallery__place">' + esc(tr(r, 'local')) + '</span>' +
         '</div>' +
       '</a>' +
       '<div class="gallery__panel"></div>' +
     '</div>';
   }
 
+  // Último card da sequência: outros projetos, primeiro os de mesma tipologia e
+  // escala, depois os de maior relevância (sorteio dentro do mesmo peso)
+  var PESO = { alta: 0.6, media: 0.3, baixa: 0 };
+  function relacionados(lista, atual, n) {
+    var norm = function (v) { return String(v || '').trim().toLowerCase(); };
+    var outros = (lista || []).filter(function (r) { return r.slug !== atual.slug; });
+    if (!outros.length) return '';
+    var escolha = outros.map(function (r) {
+      var nota = Math.random() * 0.5 + (PESO[r.relevancia] || 0.3);
+      if (norm(r.tipologia) && norm(r.tipologia) === norm(atual.tipologia)) nota += 2;
+      if (norm(r.escala) && norm(r.escala) === norm(atual.escala)) nota += 1;
+      return { r: r, nota: nota };
+    }).sort(function (a, b) { return b.nota - a.nota; }).slice(0, n || 3);
+    return '<div class="spread spread--relacionados"><div class="relacionados">' +
+      '<p class="relacionados__titulo">' + esc(T('outros', 'Outros projetos')) + '</p><ul>' +
+      escolha.map(function (x) {
+        var r = x.r, c = r.capa || {};
+        var src = c.src || (c.ref ? img(c.ref, 's') : '');
+        return '<li><a href="' + url(r.slug) + '" data-via="relacionados" draggable="false">' +
+          '<span class="relacionados__capa">' + (src ? '<img src="' + esc(src) + '" alt="" loading="lazy" decoding="async" draggable="false">' : '') + '</span>' +
+          '<span class="relacionados__txt"><span class="relacionados__nome">' + esc(tr(r, 'titulo')) + '</span>' +
+          '<span class="relacionados__local">' + esc(tr(r, 'local')) + '</span></span></a></li>';
+      }).join('') + '</ul>' +
+      '<a class="relacionados__todos" href="/">' + esc(T('ver_todos', 'Ver todos os projetos')) + ' →</a>' +
+      '</div></div>';
+  }
+
   O.projetos = {
     lista: function () { return comReserva('/api/projetos', pegar('/api/projetos')); },
     projeto: function (slug) { var c = '/api/projetos/' + encodeURIComponent(slug); return comReserva(c, pegar(c)); },
+    // projeto oculto aberto pelo link de prévia (sem guardar no navegador)
+    previa: function (slug, codigo) {
+      return fetch(base() + '/api/projetos/' + encodeURIComponent(slug) + '?previa=' + encodeURIComponent(codigo), { cache: 'no-store' })
+        .then(function (res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); });
+    },
+    relacionados: relacionados,
+    T: T,
+    tr: tr,
     img: img,
     url: url,
     esc: esc,

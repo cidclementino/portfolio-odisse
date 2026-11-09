@@ -11,3 +11,8 @@ kv_namespaces = [
 
 # A senha do painel (SITE_SENHA) é enviada pelo GitHub Actions a partir do
 # secret do repositório — nunca coloque o valor aqui.
+
+# Backup mensal de projetos e páginas: dia 1 de cada mês, 6h de Brasília (9h UTC).
+# Os backups ficam no próprio KV (12 mensais + 5 manuais) e aparecem no painel → Histórico.
+[triggers]
+crons = ["0 9 1 * *"]

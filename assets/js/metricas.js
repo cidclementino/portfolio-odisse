@@ -22,14 +22,36 @@
     try { fetch(destino, { method: 'POST', body: corpo, keepalive: true, mode: 'cors', headers: { 'Content-Type': 'text/plain' } }); } catch (e) { /* sem rede */ }
   }
 
-  var utm = (function () {
-    try { return new URLSearchParams(location.search).get('utm_source') || ''; } catch (e) { return ''; }
+  var params = (function () { try { return new URLSearchParams(location.search); } catch (e) { return { get: function () { return null; } }; } })();
+  var utm = params.get('utm_source') || '';
+
+  // Origem da ENTRADA no site (vale para todas as páginas desta visita, nesta aba):
+  // site de onde veio, campanha (utm_source) e anúncio do Google (gclid). Uma nova
+  // chegada de fora (outro site, outra campanha) substitui a anterior.
+  var entrada = (function () {
+    var externo = '';
+    try {
+      var h = document.referrer ? new URL(document.referrer).hostname : '';
+      if (h && !/^(www\.)?odisse\.com\.br$/.test(h) && h !== location.hostname) externo = document.referrer;
+    } catch (e) { /* referrer inválido */ }
+    var gc = params.get('gclid') || params.get('gbraid') || params.get('wbraid') ? 1 : 0;
+    var guardada = null;
+    try { guardada = JSON.parse(sessionStorage.getItem('odisse-entrada') || 'null'); } catch (e) { /* idem */ }
+    var e = guardada;
+    if (!guardada || externo || utm || gc) e = { r: externo, u: utm, gc: gc };
+    try { sessionStorage.setItem('odisse-entrada', JSON.stringify(e)); } catch (er) { /* idem */ }
+    return e;
   })();
+  var idioma = O.lang === 'en' ? 'en' : '';
 
   // Um registro: conta só o tempo com a aba visível.
   function Registro(base) {
     this.d = base;
     this.d.o = [];
+    this.d.oe = entrada.r || '';
+    this.d.ue = entrada.u || '';
+    if (entrada.gc) this.d.gc = 1;
+    if (idioma) this.d.l = idioma;
     this.ms = 0;
     this.desde = document.visibilityState === 'visible' ? Date.now() : 0;
     this.enviado = false;
@@ -90,6 +112,8 @@
     var a = e.target.closest && e.target.closest('a[href]');
     if (!a) return;
     var tipo = tipoSaida(a.getAttribute('href'));
+    // links das notícias (Sobre): Elaia já é reconhecida pelo endereço; o resto conta como notícia
+    if (a.hasAttribute('data-noticia') && (!tipo || tipo === 'objetos' || tipo === 'servicos')) tipo = a.getAttribute('data-noticia') === 'elaia' ? 'elaia' : 'noticia';
     if (!tipo) return;
     abertos.forEach(function (r) { if (!r.enviado) r.saida(tipo); });
   }, true);
@@ -106,5 +130,13 @@
   O.metricas = {
     // projeto aberto (na página própria ou no acordeão da Home)
     projeto: function (slug, via) { return abrir({ t: 'projeto', s: slug, via: via || '' }); },
+    // termo procurado na busca do topo (ou filtro escolhido), guardado na página vista
+    busca: function (termo) {
+      var b = pagina.d.b || (pagina.d.b = []);
+      termo = String(termo || '').slice(0, 40);
+      // "casa" e depois "casa de praia": fica só o mais completo
+      for (var i = b.length - 1; i >= 0; i--) if (termo.indexOf(b[i]) === 0) b.splice(i, 1);
+      if (termo && b.indexOf(termo) < 0 && b.length < 4) b.push(termo);
+    },
   };
 })();

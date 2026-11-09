@@ -60,6 +60,10 @@ function seguir(el, alvo, ms) {
 function emGrade() {
   return document.documentElement.classList.contains('vista-grade');
 }
+// no celular a lista leva direto à página do projeto (como a galeria): a expansão
+// em acordeão só existe no computador
+var celular = window.matchMedia('(max-width: 780px)');
+function vaiParaPagina() { return emGrade() || celular.matches; }
 
 // Ordem da Home: sorteada a cada nova visita, em camadas de relevância
 // (todos os de alta, depois média, depois baixa). Na mesma visita — ir ao Contato
@@ -92,24 +96,52 @@ function sortear(lista) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-  var P = window.Odisse.projetos;
+  var O = window.Odisse;
+  var P = O.projetos;
   var galeria = document.querySelector('.gallery');
   if (!galeria) return;
+  var todos = [];
+  var filtroPendente = null;
 
   P.lista().then(function (lista) {
     if (!lista.length) {
-      galeria.innerHTML = '<p class="gallery__aviso">Em breve, novos projetos.</p>';
+      galeria.innerHTML = '<p class="gallery__aviso">' + P.esc(P.T('em_breve', 'Em breve, novos projetos.')) + '</p>';
       return;
     }
+    todos = lista;
     lista = sortear(lista);
-    galeria.innerHTML = lista.map(P.itemGaleria).join('');
+    galeria.innerHTML = lista.map(P.itemGaleria).join('') +
+      '<p class="gallery__aviso gallery__nenhum" hidden>' + P.esc(P.T('nenhum', 'Nenhum projeto encontrado.')) + '</p>';
     galeria.classList.add('is-ready');
     ligar();
-    if (window.Odisse.pontos) window.Odisse.pontos.atualizar();
+    if (filtroPendente) filtrar(filtroPendente);
+    if (O.pontos) O.pontos.atualizar();
   }).catch(function (err) {
     console.error(err);
-    galeria.innerHTML = '<p class="gallery__aviso">Não foi possível carregar os projetos agora. Tente recarregar a página.</p>';
+    galeria.innerHTML = '<p class="gallery__aviso">' + P.esc(P.T('erro_lista', 'Não foi possível carregar os projetos agora. Tente recarregar a página.')) + '</p>';
   });
+
+  // filtro vindo da busca do topo (assets/js/busca.js): fn(resumo) → mostrar?
+  function filtrar(fn) {
+    if (!todos.length) { filtroPendente = fn; return; }
+    var porSlug = {};
+    todos.forEach(function (r) { porSlug[r.slug] = r; });
+    var n = 0;
+    galeria.querySelectorAll('.gallery__item').forEach(function (it) {
+      var ok = !fn || fn(porSlug[it.getAttribute('data-slug')]);
+      if (!ok) {
+        var pn = it.querySelector('.gallery__panel');
+        if (pn && pn.classList.contains('is-open')) closeProject(it.querySelector('.gallery__row'), pn, it._info, it._thumb);
+      }
+      it.classList.toggle('is-filtrado', !ok);
+      if (ok) n++;
+    });
+    var aviso = galeria.querySelector('.gallery__nenhum');
+    if (aviso) aviso.hidden = n > 0;
+    if (O.pontos) O.pontos.atualizar();
+    return n;
+  }
+  O.galeria = { filtrar: filtrar };
 
   function ligar() {
   var items = document.querySelectorAll('.gallery__item');
@@ -129,13 +161,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // adianta o carregamento do projeto quando o cursor chega na capa
     // (ou o dedo toca nela): ao clicar, os dados já estão aqui
-    function adiantar() { if (!emGrade()) P.projeto(item._slug).catch(function () {}); }
+    function adiantar() { P.projeto(item._slug).catch(function () {}); }
     row.addEventListener('pointerenter', adiantar, { once: true });
     row.addEventListener('touchstart', adiantar, { once: true, passive: true });
 
     row.addEventListener('click', function (e) {
-      // na vista em galeria a capa é um link comum: vai pra página do projeto
-      if (emGrade()) return;
+      // na vista em galeria (e no celular) a capa é um link comum: vai pra página do projeto
+      if (vaiParaPagina()) {
+        try { sessionStorage.setItem('odisse-via', 'home'); } catch (er) { /* idem */ }
+        return;
+      }
       e.preventDefault();
       startOpen();
     });
@@ -330,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // (ainda vazio, pronto pra receber o título) assim que o conteúdo
   // buscado estiver montado — ou null em caso de erro
   function openPanel(panel, url, slug) {
-    panel.innerHTML = '<div class="panel__loading">Carregando projeto…</div>';
+    panel.innerHTML = '<div class="panel__loading">' + P.esc(P.T('carregando_projeto', 'Carregando projeto…')) + '</div>';
     panel.classList.add('is-open');
 
     return P.projeto(slug)
@@ -339,14 +374,14 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="panel__inner">' +
             '<aside class="panel__sidebar"></aside>' +
             '<div class="panel__reveal">' +
-              '<div class="panel__spreads">' + P.spreads(p) + '</div>' +
+              '<div class="panel__spreads">' + P.spreads(p) + P.relacionados(todos, p, 3) + '</div>' +
             '</div>' +
             '<div class="panel__dots"></div>' +
           '</div>';
 
         var sidebar = panel.querySelector('.panel__sidebar');
         sidebar.insertAdjacentHTML('beforeend', P.meta(p) +
-          '<button type="button" class="panel__fechar" aria-label="Fechar projeto" title="Fechar projeto">' +
+          '<button type="button" class="panel__fechar" aria-label="' + P.esc(P.T('fechar_projeto', 'Fechar projeto')) + '" title="' + P.esc(P.T('fechar_projeto', 'Fechar projeto')) + '">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>' +
           '</button>');
         sidebar.querySelector('.panel__fechar').addEventListener('click', function (e) {
@@ -361,8 +396,8 @@ document.addEventListener('DOMContentLoaded', function () {
       })
       .catch(function (err) {
         panel.innerHTML =
-          '<div class="panel__error">Não consegui carregar esse projeto agora. ' +
-          '<a href="' + url + '">Abrir em página própria</a>.</div>';
+          '<div class="panel__error">' + P.esc(P.T('erro_projeto', 'Não consegui carregar esse projeto agora.')) + ' ' +
+          '<a href="' + url + '">' + P.esc(P.T('pagina_propria', 'Abrir em página própria')) + '</a>.</div>';
         console.error(err);
         return null;
       });
@@ -390,7 +425,7 @@ document.addEventListener('DOMContentLoaded', function () {
       spreads.forEach(function (spread, i) {
         var dot = document.createElement('button');
         dot.type = 'button';
-        dot.setAttribute('aria-label', 'Ir para o conteúdo ' + (i + 1));
+        dot.setAttribute('aria-label', P.T('ir_conteudo', 'Ir para o conteúdo {n}', { n: i + 1 }));
         dot.addEventListener('click', function (e) {
           e.stopPropagation();
           track.scrollTo({ left: centerScrollFor(track, spread), behavior: 'smooth' });
@@ -442,20 +477,20 @@ document.addEventListener('DOMContentLoaded', function () {
     var moved = false;
 
     track.addEventListener('pointerdown', function (e) {
-      if (e.pointerType === 'touch') return; // touch já tem scroll nativo
-      e.preventDefault(); // impede seleção de texto e o "fantasma" de arrastar imagem
+      if (e.pointerType === 'touch' || e.button !== 0) return; // touch já tem scroll nativo
+      // em link (card de outros projetos) o clique precisa passar: só captura quando arrasta de fato
+      if (!e.target.closest('a')) e.preventDefault(); // impede seleção de texto e o "fantasma" de arrastar imagem
       isDown = true;
       moved = false;
       startX = e.clientX;
       startScroll = track.scrollLeft;
       track.classList.add('is-dragging');
-      track.setPointerCapture(e.pointerId);
     });
     track.addEventListener('pointermove', function (e) {
       if (!isDown) return;
       var dx = e.clientX - startX;
-      if (Math.abs(dx) > 4) moved = true;
-      track.scrollLeft = startScroll - dx;
+      if (Math.abs(dx) > 4 && !moved) { moved = true; try { track.setPointerCapture(e.pointerId); } catch (er) { /* idem */ } }
+      if (moved) track.scrollLeft = startScroll - dx;
     });
     function endDrag() {
       isDown = false;
@@ -465,7 +500,11 @@ document.addEventListener('DOMContentLoaded', function () {
     track.addEventListener('pointercancel', endDrag);
     track.addEventListener('pointerleave', function () { if (isDown) endDrag(); });
     // evita que o "arrastar" dispare cliques em links dentro do spread
-    track.addEventListener('click', function (e) { if (moved) { e.preventDefault(); e.stopPropagation(); } }, true);
+    track.addEventListener('click', function (e) {
+      if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; return; }
+      var a = e.target.closest && e.target.closest('a[data-via]');
+      if (a) try { sessionStorage.setItem('odisse-via', a.getAttribute('data-via')); } catch (er) { /* idem */ }
+    }, true);
 
     updateActiveDot();
   }
