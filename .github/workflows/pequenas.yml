@@ -1,0 +1,25 @@
+name: Gerar versões pequenas das imagens
+
+# Roda uma vez depois que a API nova é publicada (e pode ser rodado à mão
+# em Actions → "Gerar versões pequenas das imagens" → Run workflow).
+on:
+  workflow_run:
+    workflows: ['Publicar API (Cloudflare Worker)']
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  gerar:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      SITE_SENHA: ${{ secrets.SITE_SENHA }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalar sharp
+        run: npm install --no-save --no-package-lock sharp@0.33
+      - name: Gerar
+        run: node scripts/gerar-pequenas.mjs

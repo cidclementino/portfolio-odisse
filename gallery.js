@@ -96,6 +96,12 @@ document.addEventListener('DOMContentLoaded', function () {
     item._url = row.getAttribute('href');
     item._slug = item.getAttribute('data-slug');
 
+    // adianta o carregamento do projeto quando o cursor chega na capa
+    // (ou o dedo toca nela): ao clicar, os dados já estão aqui
+    function adiantar() { if (!emGrade()) P.projeto(item._slug).catch(function () {}); }
+    row.addEventListener('pointerenter', adiantar, { once: true });
+    row.addEventListener('touchstart', adiantar, { once: true, passive: true });
+
     row.addEventListener('click', function (e) {
       // na vista em galeria a capa é um link comum: vai pra página do projeto
       if (emGrade()) return;
@@ -165,6 +171,8 @@ document.addEventListener('DOMContentLoaded', function () {
       document.documentElement.classList.toggle('vista-grade', paraGrade);
       try { localStorage.setItem('odisse-vista', paraGrade ? 'grade' : 'lista'); } catch (e) {}
       marcarBotao();
+      var tam = P.tamanhosCapa();
+      galeria.querySelectorAll('.gallery__thumb img[sizes]').forEach(function (im) { im.sizes = tam; });
       galeria.classList.remove('is-trocando');
       if (window.Odisse.pontos) window.Odisse.pontos.atualizar();
     }, 180);

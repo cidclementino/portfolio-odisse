@@ -70,7 +70,9 @@
         ((d.equipe || []).length ? '<h3>' + esc(t.equipe || 'Equipe') + '</h3><div class="equipe-grid">' +
           d.equipe.map(function (p) {
             var f = img(p.foto);
-            return '<div class="pessoa"><div class="pessoa__foto frame">' + (f ? '<img src="' + esc(f) + '" alt="' + esc(p.nome) + '" loading="lazy">' : '') + '</div>' +
+            // foto pequena (640 px) quando basta; a média (1200 px) em telas densas
+            var fs = p.foto && p.foto.ref ? ' srcset="' + base() + '/img/' + encodeURIComponent(p.foto.ref) + '-p 640w, ' + esc(f) + ' 1200w" sizes="(max-width: 780px) calc(100vw - 48px), 300px"' : '';
+            return '<div class="pessoa"><div class="pessoa__foto frame">' + (f ? '<img src="' + esc(f) + '"' + fs + ' alt="' + esc(p.nome) + '" loading="lazy">' : '') + '</div>' +
               '<h4>' + esc(p.nome) + '</h4><p class="pessoa__cargo">' + esc(p.cargo) + '</p>' + texto(p.bio) + '</div>';
           }).join('') + '</div>' : '') +
       '</div>';

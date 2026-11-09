@@ -56,7 +56,8 @@ function aviso(txt, erro = false) {
 }
 
 // ------------------------------------------------------------------ imagens
-// Converte para WebP (ou JPEG, onde o navegador não gera WebP): 2400 px e 1200 px no lado maior.
+// Converte para WebP (ou JPEG, onde o navegador não gera WebP): 2400, 1200 e 640 px no lado maior
+// (a de 640 px é a das capas na Home).
 async function reduzir(bmp, max) {
   const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
   const w = Math.round(bmp.width * k), h = Math.round(bmp.height * k);
@@ -73,10 +74,12 @@ async function enviarImagem(arquivo) {
   const bmp = await createImageBitmap(arquivo, { imageOrientation: 'from-image' });
   const grande = await reduzir(bmp, 2400);
   const media = await reduzir(bmp, 1200);
+  const pequena = await reduzir(bmp, 640);
   bmp.close?.();
   const ref = novoId();
   await nuvem.imagem(ref, grande.blob);
   await nuvem.imagem(`${ref}-m`, media.blob);
+  await nuvem.imagem(`${ref}-p`, pequena.blob);
   return { ref, w: grande.w, h: grande.h };
 }
 

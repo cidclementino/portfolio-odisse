@@ -803,6 +803,19 @@ img { display: block; max-width: 100%; }
 }
 .pessoa p:not(.pessoa__cargo) { font-size: 0.88rem; line-height: 1.65; }
 
+/* as colunas obedecem à largura real do bloco (não à da tela): abaixo do
+   mínimo para cada coluna respirar (~200 px nos núcleos, ~220 px na
+   equipe), viram uma pilha */
+.sobre__wide, .sobre__doc { container-type: inline-size; }
+@container (max-width: 660px) {
+  .nucleos-grid { grid-template-columns: 1fr; gap: 36px; }
+  .nucleo-box p { max-width: 52ch; }
+}
+@container (max-width: 480px) {
+  .equipe-grid { grid-template-columns: 1fr; gap: 48px; }
+  .pessoa__foto { max-width: 320px; }
+}
+
 @media (max-width: 780px) {
   .sobre__wide { max-width: 100%; }
   .nucleos-grid { grid-template-columns: 1fr; gap: 40px; }

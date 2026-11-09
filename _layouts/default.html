@@ -9,6 +9,8 @@
 <script>document.documentElement.classList.add('pag-aguarda');setTimeout(function(){document.documentElement.classList.remove('pag-aguarda')},1500);</script>
 {% endif %}
 {% if page.url == '/index.html' or page.url == '/' %}
+<!-- começa a buscar a lista de projetos junto com a página, sem esperar os scripts -->
+<link rel="preload" href="https://site-odisse.reservaprojectbasework.workers.dev/api/projetos" as="fetch" crossorigin>
 <!-- aplica a vista escolhida (lista ou galeria) antes de desenhar a página, sem piscar -->
 <script>try{if(localStorage.getItem('odisse-vista')==='grade')document.documentElement.classList.add('vista-grade')}catch(e){}</script>
 {% endif %}

@@ -12,19 +12,33 @@
   }
 
   var cache = {};
+  // A lista de projetos fica guardada no navegador ENTRE visitas (localStorage):
+  // quem volta vê as capas na hora, e a versão nova chega por trás e fica para a
+  // próxima. Os projetos abertos ficam só na sessão (sessionStorage).
+  var LISTA = '/api/projetos';
+  var VALIDADE_LISTA = 7 * 24 * 3600 * 1000; // uma semana
+  function guardar(caminho) {
+    try { return caminho === LISTA ? localStorage : sessionStorage; } catch (e) { return null; }
+  }
   function pegar(caminho) {
     if (cache[caminho]) return cache[caminho];
-    var chaveSessao = 'odisse:' + caminho;
+    var chave = 'odisse:' + caminho;
+    var onde = guardar(caminho);
     var guardado = null;
-    try { guardado = JSON.parse(sessionStorage.getItem(chaveSessao) || 'null'); } catch (e) { /* idem */ }
+    try {
+      var bruto = onde && JSON.parse(onde.getItem(chave) || 'null');
+      if (bruto && bruto.t && bruto.d !== undefined) {
+        if (Date.now() - bruto.t < VALIDADE_LISTA) guardado = bruto.d;
+      } else if (bruto) guardado = bruto; // formato antigo (só os dados)
+    } catch (e) { /* sem armazenamento */ }
     var rede = fetch(base() + caminho).then(function (res) {
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return res.json();
     }).then(function (dados) {
-      try { sessionStorage.setItem(chaveSessao, JSON.stringify(dados)); } catch (e) { /* idem */ }
+      try { onde && onde.setItem(chave, JSON.stringify({ t: Date.now(), d: dados })); } catch (e) { /* idem */ }
       return dados;
     });
-    // com cópia da sessão, responde na hora (navegação de volta instantânea)
+    // com cópia guardada, responde na hora (a rede só atualiza a cópia)
     cache[caminho] = guardado ? Promise.resolve(guardado) : rede;
     if (guardado) rede.catch(function () {});
     return cache[caminho];
@@ -63,8 +77,16 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  // tamanhos: 'p' = pequena (640 px, capas), 'm' = média (1200 px), sem nada = grande (2400 px)
   function img(ref, tamanho) {
-    return base() + '/img/' + encodeURIComponent(ref) + (tamanho === 'm' ? '-m' : '');
+    return base() + '/img/' + encodeURIComponent(ref) + (tamanho === 'm' || tamanho === 'p' ? '-' + tamanho : '');
+  }
+
+  // largura em que a capa aparece, para o navegador escolher entre 640 e 1200 px
+  function tamanhosCapa() {
+    return document.documentElement.classList.contains('vista-grade')
+      ? '(max-width: 640px) calc(50vw - 24px), 300px'
+      : '(max-width: 640px) calc(100vw - 32px), min(560px, 62vw)';
   }
 
   // srcset com a versão média (1200 px) e a grande (2400 px)
@@ -114,8 +136,16 @@
   }
 
   function itemGaleria(r, i) {
-    var src = r.capa ? (r.capa.src || (r.capa.ref ? img(r.capa.ref, 'm') : '')) : '';
-    var capa = src ? '<img src="' + esc(src) + '" alt="' + esc(r.titulo) + '"' + (i > 1 ? ' loading="lazy"' : '') + ' decoding="async">' : '';
+    var c = r.capa || {};
+    var src = c.src || (c.ref ? img(c.ref, 'm') : '');
+    var capa = '';
+    if (src) {
+      capa = '<img src="' + esc(src) + '"' +
+        (c.ref && !c.src ? ' srcset="' + img(c.ref, 'p') + ' 640w, ' + img(c.ref, 'm') + ' 1200w" sizes="' + tamanhosCapa() + '"' : '') +
+        ' alt="' + esc(r.titulo) + '"' +
+        (i === 0 ? ' fetchpriority="high"' : '') +
+        (i > 1 ? ' loading="lazy"' : '') + ' decoding="async">';
+    }
     return '<div class="gallery__item" data-slug="' + esc(r.slug) + '">' +
       '<a class="gallery__row" href="' + url(r.slug) + '" aria-expanded="false">' +
         '<div class="gallery__thumb">' + capa + '</div>' +
@@ -138,5 +168,6 @@
     titulo: titulo,
     spreads: spreads,
     itemGaleria: itemGaleria,
+    tamanhosCapa: tamanhosCapa,
   };
 })();

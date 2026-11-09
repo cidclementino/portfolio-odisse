@@ -4,7 +4,7 @@
 //   indice           -> lista ordenada de resumos dos projetos (a ordem da lista é a ordem no site)
 //   projeto:<id>     -> projeto completo (JSON)
 //   pagina:<nome>    -> conteúdo das páginas Sobre e Contato (JSON)
-//   img:<ref>        -> imagem (binário; content-type nos metadados). <ref>-m = versão média (1200 px)
+//   img:<ref>        -> imagem (binário; content-type nos metadados). <ref>-m = versão média (1200 px), <ref>-p = pequena (640 px, capas)
 //   ev:<dia>:<id>    -> uma visita (dados nos metadados da chave; expira em 400 dias)
 // Secret: SITE_SENHA -> senha do painel (Authorization: Bearer <senha>)
 //
@@ -133,7 +133,7 @@ async function apagarOrfas(kv, refs, ignorar = {}) {
     refsPagina(await kv.get(`pagina:${nome}`, 'json'), usadas);
   }
   const apagar = [...refs].filter((r) => !usadas.has(r));
-  await Promise.all(apagar.flatMap((r) => [kv.delete(`img:${r}`), kv.delete(`img:${r}-m`)]));
+  await Promise.all(apagar.flatMap((r) => [kv.delete(`img:${r}`), kv.delete(`img:${r}-m`), kv.delete(`img:${r}-p`)]));
 }
 
 // ---------------------------------------------------------------- imagens
@@ -144,7 +144,19 @@ async function imagem(request, kv, ref, ctx) {
   let res = await cache.match(chave);
   if (res) return res;
   const { value, metadata } = await kv.getWithMetadata(`img:${ref}`, 'arrayBuffer');
-  if (!value) return new Response('não encontrada', { status: 404, headers: CORS });
+  if (!value) {
+    // imagem antiga sem a versão pequena: entrega a média, sem guardar em cache
+    // (para a pequena aparecer assim que for gerada)
+    if (ref.endsWith('-p')) {
+      const media = await kv.getWithMetadata(`img:${ref.slice(0, -2)}-m`, 'arrayBuffer');
+      if (media.value) {
+        return new Response(media.value, {
+          headers: { 'Content-Type': media.metadata?.tipo || 'image/webp', 'Cache-Control': 'public, max-age=300', ...CORS },
+        });
+      }
+    }
+    return new Response('não encontrada', { status: 404, headers: CORS });
+  }
   res = new Response(value, {
     headers: { 'Content-Type': metadata?.tipo || 'image/webp', 'Cache-Control': 'public, max-age=31536000, immutable', ...CORS },
   });
