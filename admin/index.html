@@ -75,8 +75,9 @@
         <div class="grupo">
           <label class="campo"><span>Título</span><input type="text" id="fTitulo" placeholder="Residência…"></label>
           <label class="campo"><span>Endereço</span>
-            <span class="prefixo"><em>/projeto/?p=</em><input type="text" id="fSlug" spellcheck="false"></span>
-            <small>Gerado a partir do título. Só letras minúsculas, números e hífen.</small>
+            <span class="prefixo"><em>/projetos/</em><input type="text" id="fSlug" spellcheck="false"></span>
+            <small>Gerado a partir do título enquanto o projeto é novo; depois fica fixo. Só letras minúsculas, números e hífen. Se mudar, o endereço antigo continua funcionando e leva ao novo.</small>
+            <small class="antigos" id="fAntigos"></small>
           </label>
           <label class="campo"><span>Local</span><input type="text" id="fLocal" placeholder="João Pessoa, Brasil"></label>
           <div class="duas">

@@ -134,6 +134,34 @@ ${corpo}
   console.log(`  /projetos/${p.slug}/`);
 }
 
+// ---- endereços antigos: página que redireciona para o endereço atual
+const vivos = new Set(dadosProjetos.map((x) => x.slug));
+for (const r of lista) {
+  const p = await pegar(`/api/projetos/${encodeURIComponent(r.slug)}`);
+  for (const velho of p?.enderecos_antigos || []) {
+    if (vivos.has(velho) || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(velho)) continue; // endereço em uso por um projeto vale mais
+    const novo = `/projetos/${p.slug}/`;
+    fs.mkdirSync(path.join(PROJ_DIR, velho), { recursive: true });
+    fs.writeFileSync(path.join(PROJ_DIR, velho, 'index.html'), `---
+layout: null
+permalink: /projetos/${velho}/
+---
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>${p.titulo.replace(/[<&]/g, '')} — Odisse</title>
+<link rel="canonical" href="${SITE}${novo}">
+<meta http-equiv="refresh" content="0; url=${novo}">
+<script>location.replace(${JSON.stringify(novo)} + location.hash);</script>
+</head>
+<body><p>Este projeto mudou de endereço: <a href="${novo}">${SITE}${novo}</a></p></body>
+</html>
+`);
+    console.log(`  /projetos/${velho}/ → ${novo}`);
+  }
+}
+
 // ---- busca.json (com a ficha pronta para o Google)
 const ogPadrao = (await ogDe(busca.imagem?.ref)) || primeiraOg;
 const end = est.endereco || {};

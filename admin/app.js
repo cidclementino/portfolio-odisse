@@ -405,6 +405,7 @@ async function abrirEditor(id) {
   for (const [campo, chave] of Object.entries(CAMPOS)) $('#' + campo).value = ed.p[chave] ?? '';
   contarDescricao();
   $('#fVisivel').checked = ed.p.visivel !== false;
+  desenharAntigos();
   $('#fRelevancia').value = ed.p.relevancia || 'media';
   desenharEditor();
   estado(ed.novo ? 'pendente' : 'pronto', ed.novo ? 'Projeto novo, ainda não salvo' : '');
@@ -954,6 +955,11 @@ for (const [campo, chave] of Object.entries(CAMPOS)) {
     mudou();
   });
 }
+function desenharAntigos() {
+  const l = ed.p.enderecos_antigos || [];
+  $('#fAntigos').textContent = l.length ? `Endereços antigos que levam a este: ${l.map((s) => `/projetos/${s}/`).join(', ')}` : '';
+}
+
 function contarDescricao() {
   const n = ($('#fDescricao').value || '').length;
   const el = $('#fDescricaoConta');
@@ -1368,6 +1374,7 @@ async function salvar() {
     const res = await nuvem.gravar(limpo);
     p.atualizado = res.atualizado;
     ed.sujo = false;
+    try { p.enderecos_antigos = (await nuvem.ler(p.id)).enderecos_antigos || []; desenharAntigos(); } catch { /* só informativo */ }
     const i = indice.findIndex((r) => r.id === p.id);
     if (i >= 0) indice[i] = res.resumo; else indice.unshift(res.resumo);
     const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });

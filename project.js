@@ -21,6 +21,8 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   P.projeto(slug).then(function (p) {
+    // endereço antigo (o projeto mudou de endereço): vai para o atual
+    if (p.slug && p.slug !== slug) { location.replace(P.url(p.slug) + location.hash); return; }
     // a página própria só é redesenhada se o projeto mudou desde que ela foi gerada
     if (!pronto || p.atualizado !== document.body.dataset.atualizado) {
       document.title = p.titulo + ' — Odisse';

@@ -525,3 +525,5 @@ small.conta.passou { color: var(--ocre); }
 .galt.vazia { border-style: dashed; }
 .galeria-alt { font-weight: 600; }
 .galeria-alt.falta { color: var(--ocre); }
+
+.campo small.antigos:not(:empty) { color: var(--ocre); }

@@ -96,6 +96,7 @@ function resumo(p) {
     status: p.status || '',
     visivel: p.visivel !== false,
     relevancia: RELEVANCIAS.includes(p.relevancia) ? p.relevancia : 'media',
+    antigos: p.enderecos_antigos || [],
     capa: capaDe(p),
     nimagens: (p.secoes || []).filter((s) => s.tipo === 'imagem').length,
     ntextos: (p.secoes || []).filter((s) => s.tipo === 'texto').length,
@@ -378,9 +379,16 @@ export default {
     if (partes[1] === 'projetos' && request.method === 'GET') {
       const indice = await lerIndice(kv, 60);
       const cache = { 'Cache-Control': 'public, max-age=60' };
-      if (!partes[2]) return json(indice.filter((r) => r.visivel).map(({ visivel, ...r }) => r), 200, cache);
+      if (!partes[2]) return json(indice.filter((r) => r.visivel).map(({ visivel, antigos, ...r }) => r), 200, cache);
       const r = indice.find((x) => x.slug === partes[2] && x.visivel);
-      if (!r) return erro('não encontrado', 404);
+      if (!r) {
+        // endereço antigo de um projeto que mudou de endereço: manda para o atual
+        const movido = indice.find((x) => x.visivel && (x.antigos || []).includes(partes[2]));
+        if (movido) {
+          return new Response(null, { status: 302, headers: { Location: `/api/projetos/${encodeURIComponent(movido.slug)}`, ...CORS, ...cache } });
+        }
+        return erro('não encontrado', 404);
+      }
       const p = await kv.get(`projeto:${r.id}`, { type: 'json', cacheTtl: 60 });
       return p ? json(publico(p), 200, cache) : erro('não encontrado', 404);
     }
@@ -434,6 +442,11 @@ export default {
         const indice = await lerIndice(kv);
         if (indice.some((r) => r.slug === p.slug && r.id !== id)) return erro('já existe um projeto com este endereço', 409);
         const antigo = await kv.get(`projeto:${id}`, 'json');
+        // endereços antigos: guardados pelo servidor a cada troca, para redirecionar ao atual
+        const antigos = new Set(antigo?.enderecos_antigos || []);
+        if (antigo?.slug && antigo.slug !== p.slug) antigos.add(antigo.slug);
+        antigos.delete(p.slug); // voltou a um endereço antigo: ele deixa de ser antigo
+        p.enderecos_antigos = [...antigos];
         p.criado = antigo?.criado || p.criado || new Date().toISOString();
         p.atualizado = new Date().toISOString();
         await kv.put(`projeto:${id}`, JSON.stringify(p));
