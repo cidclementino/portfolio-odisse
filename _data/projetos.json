@@ -2,7 +2,9 @@
   {
     "slug": "residencia-yvc",
     "titulo": "Residência YVC",
+    "titulo_en": "",
     "local": "João Pessoa, Brasil",
+    "local_en": "João Pessoa, Brazil",
     "atualizado": "2026-11-09T05:38:49.564Z",
     "imagens": [
       {
@@ -13,7 +15,9 @@
   {
     "slug": "residencia-dcmcc",
     "titulo": "Residência DCMCC",
+    "titulo_en": "",
     "local": "João Pessoa, Brasil",
+    "local_en": "João Pessoa, Brazil",
     "atualizado": "2026-11-09T03:54:22.869Z",
     "imagens": [
       {
@@ -24,7 +28,9 @@
   {
     "slug": "residencia-altavista",
     "titulo": "Residência Altavista",
+    "titulo_en": "",
     "local": "João Pessoa, Brasil",
+    "local_en": "João Pessoa, Brazil",
     "atualizado": "2026-11-09T03:54:26.757Z",
     "imagens": [
       {
