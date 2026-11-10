@@ -2,22 +2,6 @@
 layout: default
 title: Odisse, Estúdio de Arquitetura e Design
 pagina: home
+alt: /en/
 ---
-<main class="gallery-page">
-  <h1 class="so-leitor">{{ site.data.busca.paginas.home.titulo | default: page.title }}</h1>
-  <!-- Os projetos vêm da nuvem (painel /admin/) e são montados por gallery.js -->
-  <div class="gallery" aria-live="polite">
-    <div class="gallery__esqueleto" aria-hidden="true"><span></span><span></span><span></span></div>
-  </div>
-</main>
-{%- comment -%}
-  Lista simples dos projetos para quem não executa JavaScript (alguns robôs de busca);
-  gerada de _data/projetos.json pelo workflow "Páginas estáticas".
-{%- endcomment %}
-<noscript>
-  <ul class="gallery-noscript">
-  {%- for p in site.data.projetos %}
-    <li><a href="/projetos/{{ p.slug }}/">{{ p.titulo }}</a>{% if p.local %} — {{ p.local }}{% endif %}</li>
-  {%- endfor %}
-  </ul>
-</noscript>
+{% include conteudo-home.html %}

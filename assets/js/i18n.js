@@ -1,21 +1,62 @@
-// Idioma do site (PT/EN). Carregado no <head>, antes de desenhar a página:
-// decide o idioma (?lang=en no endereço, ou a escolha guardada neste navegador)
-// e marca o <html> com a classe lang-en — o CSS mostra o texto fixo certo
-// (<span class="t-pt">…</span><span class="t-en">…</span>) sem piscar.
+// Idioma do site (PT/EN). Carregado no <head>, antes de desenhar a página.
+// O idioma vem do ENDEREÇO: tudo sob /en/ é inglês (/en/, /en/about/, /en/contact/,
+// /en/privacy/, /en/projects/<slug>/); o resto, português. Assim cada idioma tem
+// páginas próprias, que o Google indexa (com hreflang ligando as duas versões).
+// O <html> já chega com lang="en" e a classe lang-en nas páginas em inglês — o CSS
+// mostra o texto fixo certo (<span class="t-pt">…</span><span class="t-en">…</span>).
 //
 // O conteúdo vindo do painel usa o campo em inglês quando existe (titulo_en,
 // texto_en…) e, sem ele, o português. Os vocabulários fixos (tipologia, escala,
 // status) são traduzidos por aqui.
+//
+// Endereços antigos com ?lang=en levam à página equivalente em /en/. A escolha
+// feita no botão PT/EN fica guardada e vale ao ENTRAR no site de novo (não para
+// robôs, nem para quem já está navegando).
 
 (function () {
   var O = (window.Odisse = window.Odisse || {});
-  var lang = 'pt';
+  var raiz = document.documentElement;
+
+  // pares de endereços português ⇄ inglês (o resto segue /x/ ⇄ /en/x/)
+  var PARES = [['/', '/en/'], ['/sobre/', '/en/about/'], ['/contato/', '/en/contact/'],
+    ['/privacidade/', '/en/privacy/'], ['/projeto/', '/en/project/']];
+  function ehIngles(caminho) { return /^\/en(\/|$)/.test(caminho); }
+  // caminho equivalente no idioma pedido
+  function rota(caminho, para) {
+    caminho = caminho || '/';
+    if (caminho === '/en') caminho = '/en/';
+    var en = ehIngles(caminho);
+    if ((para === 'en') === en) return caminho;
+    for (var i = 0; i < PARES.length; i++) {
+      if (caminho === PARES[i][en ? 1 : 0]) return PARES[i][en ? 0 : 1];
+    }
+    var m;
+    if (!en && (m = caminho.match(/^\/projetos\/(.+)$/))) return '/en/projects/' + m[1];
+    if (en && (m = caminho.match(/^\/en\/projects\/(.+)$/))) return '/projetos/' + m[1];
+    return en ? caminho.replace(/^\/en/, '') || '/' : '/en' + caminho;
+  }
+
+  var lang = ehIngles(location.pathname) ? 'en' : 'pt';
   try {
     var q = new URLSearchParams(location.search).get('lang');
-    if (q === 'en' || q === 'pt') { lang = q; localStorage.setItem('odisse-lang', q); }
-    else lang = localStorage.getItem('odisse-lang') === 'en' ? 'en' : 'pt';
-  } catch (e) { /* sem armazenamento: português */ }
-  var raiz = document.documentElement;
+    var guardado = localStorage.getItem('odisse-lang');
+    var destino = '';
+    if (q === 'en' || q === 'pt') {
+      localStorage.setItem('odisse-lang', q);
+      destino = q;
+    } else if (guardado && guardado !== lang && !/bot|crawl|spider|slurp|preview|lighthouse/i.test(navigator.userAgent)) {
+      // entrou no site agora (veio de fora ou digitou o endereço): vale a escolha guardada
+      var ref = '';
+      try { ref = document.referrer ? new URL(document.referrer).host : ''; } catch (e) { /* idem */ }
+      if (ref !== location.host && !/[?&]previa=/.test(location.search)) destino = guardado;
+    }
+    if (destino) {
+      var u = new URL(location.href);
+      u.searchParams.delete('lang');
+      u.pathname = rota(u.pathname, destino);
+      if (u.href !== location.href) { location.replace(u.href); lang = destino; }
+    }
+  } catch (e) { /* sem armazenamento: idioma do endereço */ }
   if (lang === 'en') { raiz.classList.add('lang-en'); raiz.lang = 'en'; }
 
   var TXT = {
@@ -58,6 +99,11 @@
     equipe: ['Equipe', 'Team'],
     previa: ['Prévia — este projeto ainda não está publicado.', 'Preview — this project is not published yet.'],
     menu: ['Menu', 'Menu'],
+    privacidade: ['Política de privacidade', 'Privacy policy'],
+    atualizada_em: ['Atualizada em', 'Last updated'],
+    rever_cookies: ['Rever minha escolha sobre cookies', 'Review my cookie choice'],
+    ver_galeria: ['Ver em galeria', 'Gallery view'],
+    ver_lista: ['Ver em lista', 'List view'],
   };
 
   // vocabulário dos campos de escolha (o painel sugere estes valores)
@@ -108,11 +154,18 @@
     var m = MESES[lang][+p[1] - 1] || '';
     return lang === 'en' ? m + ' ' + (+p[2]) + ', ' + p[0] : (+p[2]) + ' ' + m + ' ' + p[0];
   }
+  // troca de idioma (botão PT/EN): vai para a página equivalente no outro idioma
   function trocar(novo) {
     try { localStorage.setItem('odisse-lang', novo); } catch (e) { /* idem */ }
     var u = new URL(location.href);
     u.searchParams.delete('lang');
-    if (u.href === location.href) location.reload(); else location.replace(u.href);
+    u.pathname = rota(u.pathname, novo);
+    location.href = u.href;
+  }
+  // endereço interno (escrito em português, ex.: '/projetos/x/') no idioma da página
+  function url(caminho) {
+    var partes = String(caminho || '/').match(/^([^?#]*)(.*)$/);
+    return rota(partes[1] || '/', lang) + partes[2];
   }
 
   O.lang = lang;
@@ -121,4 +174,6 @@
   O.voc = voc;
   O.data = data;
   O.trocarIdioma = trocar;
+  O.rota = rota;
+  O.url = url;
 })();

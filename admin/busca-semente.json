@@ -39,20 +39,33 @@
         "nome": "Serviços",
         "url": "https://projetos.odisse.com.br"
       }
-    ]
+    ],
+    "descricao_en": "Architecture and design studio in João Pessoa, Brazil. Architecture, interiors, original objects and editorial research."
   },
   "paginas": {
     "home": {
       "titulo": "Odisse, Estúdio de Arquitetura e Design",
-      "descricao": "Odisse, Estúdio de Arquitetura e Design, em João Pessoa. Projetos de arquitetura, objetos autorais e pesquisa editorial."
+      "descricao": "Odisse, Estúdio de Arquitetura e Design, em João Pessoa. Projetos de arquitetura, objetos autorais e pesquisa editorial.",
+      "titulo_en": "Odisse, Architecture and Design Studio",
+      "descricao_en": "Odisse, Architecture and Design Studio in João Pessoa, Brazil. Architecture projects, original objects and editorial research."
     },
     "sobre": {
       "titulo": "Sobre — Odisse",
-      "descricao": "Odisse — Estúdio de Arquitetura & Design. Arquitetura, objetos autorais e pesquisa editorial construídos na tensão entre memória e potencialidade."
+      "descricao": "Odisse — Estúdio de Arquitetura & Design. Arquitetura, objetos autorais e pesquisa editorial construídos na tensão entre memória e potencialidade.",
+      "titulo_en": "About — Odisse",
+      "descricao_en": "Odisse — Architecture & Design Studio. Architecture, original objects and editorial research built on the tension between memory and potential."
     },
     "contato": {
       "titulo": "Contato — Odisse",
-      "descricao": "Fale com o estúdio Odisse — Arquitetura & Design, João Pessoa."
+      "descricao": "Fale com o estúdio Odisse — Arquitetura & Design, João Pessoa.",
+      "titulo_en": "Contact — Odisse",
+      "descricao_en": "Get in touch with Odisse — Architecture & Design Studio, João Pessoa, Brazil."
+    },
+    "privacidade": {
+      "titulo": "Política de privacidade — Odisse",
+      "descricao": "Como o site da Odisse trata dados de visitantes, cookies e contatos.",
+      "titulo_en": "Privacy policy — Odisse",
+      "descricao_en": "How the Odisse website handles visitor data, cookies and contact information."
     }
   },
   "imagem": null

@@ -1,0 +1,21 @@
+{%- comment -%}
+  Sobre (PT e EN). O conteúdo é editado no painel (/admin/ → Sobre e → Notícias). O HTML vem
+  pronto de _includes/gerado/ (scripts/gerar-estaticas.mjs, a partir da nuvem, com os mesmos
+  desenhos de assets/js/paginas.js); se a nuvem tiver uma versão mais nova, paginas.js redesenha.
+  Ordem: apresentação · equipe · núcleos · premiações · publicações · notícias.
+{%- endcomment -%}
+{%- assign L = page.lang | default: 'pt' -%}
+<section class="sobre" data-conteudo="sobre" data-atualizado="{{ site.data.paginas.sobre.atualizado }}" id="conteudo" tabindex="-1">
+{%- if L == 'en' %}{% include gerado/sobre-en.html %}{% else %}{% include gerado/sobre-pt.html %}{% endif -%}
+</section>
+
+{%- comment -%} Notícias: últimas 5 (painel → Notícias + textos da Elaia); as anteriores vêm da nuvem com ‹ › {%- endcomment %}
+{%- capture noticias %}{% if L == 'en' %}{% include gerado/noticias-en.html %}{% else %}{% include gerado/noticias-pt.html %}{% endif %}{% endcapture %}
+{%- assign noticias = noticias | strip %}
+<section class="sobre sobre--noticias" data-noticias{% if noticias == '' %} hidden{% endif %}>
+  <div class="sobre__doc noticias">
+    <h3><span class="t-pt">Notícias</span><span class="t-en">News</span></h3>
+    <div class="noticias__lista" aria-live="polite">{{ noticias }}</div>
+    <div class="noticias__nav" hidden></div>
+  </div>
+</section>

@@ -1,0 +1,9 @@
+{%- comment -%}
+  Política de privacidade (PT e EN). Editada no painel (/admin/ → Privacidade); HTML pronto de
+  _includes/gerado/ (ver conteudo-sobre.html). O botão "Rever minha escolha sobre cookies" é
+  ligado por analytics.js. Fora do menu do topo: o link fica no rodapé e no aviso de cookies.
+{%- endcomment -%}
+{%- assign L = page.lang | default: 'pt' -%}
+<section class="contato privacidade" data-conteudo="privacidade" data-atualizado="{{ site.data.paginas.privacidade.atualizado }}" id="conteudo" tabindex="-1">
+{%- if L == 'en' %}{% include gerado/privacidade-en.html %}{% else %}{% include gerado/privacidade-pt.html %}{% endif -%}
+</section>

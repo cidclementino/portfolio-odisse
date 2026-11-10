@@ -13,6 +13,8 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       SITE_SENHA: ${{ secrets.SITE_SENHA }}
+      # opcional: token do GitHub para o Worker disparar "Páginas estáticas" a cada gravação no painel
+      GH_DISPATCH_TOKEN: ${{ secrets.GH_DISPATCH_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -49,3 +51,8 @@ jobs:
           W="$RUNNER_TEMP/wr/node_modules/.bin/wrangler"
           "$W" deploy
           printf '%s' "$SITE_SENHA" | "$W" secret put SITE_SENHA
+          if [ -n "$GH_DISPATCH_TOKEN" ]; then
+            printf '%s' "$GH_DISPATCH_TOKEN" | "$W" secret put GH_TOKEN
+          else
+            echo "::warning::Sem o secret GH_DISPATCH_TOKEN: o Worker não dispara a geração das páginas ao salvar (fica só o agendamento diário)."
+          fi

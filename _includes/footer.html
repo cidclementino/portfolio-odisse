@@ -1,11 +1,19 @@
-<footer{% if page.url contains 'sobre' or page.url contains 'contato' %} class="footer--dark"{% endif %}>
+{%- assign L = page.lang | default: 'pt' -%}
+{%- assign R = site.data.rotas -%}
+<footer{% if page.escura %} class="footer--dark"{% endif %}>
   <div class="wrap">
-    <a class="footer__selo" href="{{ '/' | relative_url }}" aria-label="Odisse — início">{% include selo-mao.svg %}</a>
+    <a class="footer__selo" href="{{ R.home[L] }}" aria-label="{% if L == 'en' %}Odisse — home{% else %}Odisse — início{% endif %}">{% include selo-mao.svg %}</a>
     <ul>
-      <li><a href="{{ '/sobre/' | relative_url }}"><span class="t-pt">Sobre</span><span class="t-en">About</span></a></li>
-      <li><a href="{{ '/' | relative_url }}"><span class="t-pt">Projetos</span><span class="t-en">Projects</span></a></li>
-      <li><a href="{{ '/contato/' | relative_url }}"><span class="t-pt">Contato</span><span class="t-en">Contact</span></a></li>
+      <li><a href="{{ R.sobre[L] }}"><span class="t-pt">Sobre</span><span class="t-en">About</span></a></li>
+      <li><a href="{{ R.home[L] }}"><span class="t-pt">Projetos</span><span class="t-en">Projects</span></a></li>
+      <li><a href="{{ R.contato[L] }}"><span class="t-pt">Contato</span><span class="t-en">Contact</span></a></li>
     </ul>
     <p class="copy">© <span id="ano-atual">{{ 'now' | date: "%Y" }}</span> Odisse — <span class="t-pt">Estúdio de Arquitetura &amp; Design. João Pessoa, PB.</span><span class="t-en">Architecture &amp; Design Studio. João Pessoa, Brazil.</span></p>
+    {%- comment -%} links discretos: política de privacidade e o painel (/admin/, com senha) {%- endcomment %}
+    <p class="footer__extra">
+      <a href="{{ R.privacidade[L] }}"><span class="t-pt">Privacidade</span><span class="t-en">Privacy</span></a>
+      <span aria-hidden="true">·</span>
+      <a href="/admin/" rel="nofollow"><span class="t-pt">Painel</span><span class="t-en">Admin</span></a>
+    </p>
   </div>
 </footer>

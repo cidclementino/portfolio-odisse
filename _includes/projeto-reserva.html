@@ -1,0 +1,41 @@
+{%- comment -%}
+  Endereço de reserva (/projeto/?p=<slug> e /en/project/?p=<slug>) para projetos que ainda não
+  ganharam a página própria (o workflow "Páginas estáticas" cria logo depois de salvar). Também
+  usado pelo link de prévia. Fica fora do Google (noindex) para não duplicar a página própria.
+{%- endcomment -%}
+{%- assign L = page.lang | default: 'pt' -%}
+<!DOCTYPE html>
+<html lang="{% if L == 'en' %}en{% else %}pt-BR{% endif %}"{% if L == 'en' %} class="lang-en"{% endif %}>
+<head>
+{% include seo.html %}
+{% include head.html %}
+</head>
+<body data-pagina="projeto">
+
+{% include pular.html %}
+<a class="project__back" href="{{ site.data.rotas.home[L] }}">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  <span class="t-pt">Projetos</span><span class="t-en">Projects</span>
+</a>
+
+<!-- Projeto vindo da nuvem (/projeto/?p=<slug>) — montado por project.js -->
+<div class="project" id="conteudo" tabindex="-1">
+  <aside class="project__sidebar">
+    <div>
+      <div class="project__title project__title--carregando"><h1>&nbsp;</h1><span class="place">&nbsp;</span></div>
+    </div>
+  </aside>
+
+  <div class="project__spreads" tabindex="0" role="region" aria-label="{% if L == 'en' %}Project{% else %}Projeto{% endif %}"></div>
+
+  <div class="project__dots"></div>
+</div>
+
+{% include cookies.html %}
+
+<script src="{{ '/script.js' | relative_url }}" defer></script>
+<script src="{{ '/transitions.js' | relative_url }}" defer></script>
+<script src="{{ '/assets/js/projetos.js' | relative_url }}" defer></script>
+<script src="{{ '/project.js' | relative_url }}" defer></script>
+</body>
+</html>

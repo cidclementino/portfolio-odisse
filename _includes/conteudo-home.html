@@ -1,0 +1,24 @@
+{%- comment -%} Home (PT e EN): os projetos vêm da nuvem (painel /admin/) e são montados por gallery.js {%- endcomment -%}
+{%- assign L = page.lang | default: 'pt' -%}
+{%- assign pb = site.data.busca.paginas.home -%}
+<main class="gallery-page" id="conteudo" tabindex="-1">
+  <h1 class="so-leitor">{% if L == 'en' %}{{ pb.titulo_en | default: page.title }}{% else %}{{ pb.titulo | default: page.title }}{% endif %}</h1>
+  <div class="gallery" aria-live="polite">
+    <div class="gallery__esqueleto" aria-hidden="true"><span></span><span></span><span></span></div>
+  </div>
+</main>
+{%- comment -%}
+  Lista simples dos projetos para quem não executa JavaScript (alguns robôs de busca);
+  gerada de _data/projetos.json pelo workflow "Páginas estáticas".
+{%- endcomment %}
+<noscript>
+  <ul class="gallery-noscript">
+  {%- for p in site.data.projetos %}
+    {%- if L == 'en' %}
+    <li><a href="/en/projects/{{ p.slug }}/">{{ p.titulo_en | default: p.titulo }}</a>{% assign lc = p.local_en | default: p.local %}{% if lc != blank %} — {{ lc }}{% endif %}</li>
+    {%- else %}
+    <li><a href="/projetos/{{ p.slug }}/">{{ p.titulo }}</a>{% if p.local != blank %} — {{ p.local }}{% endif %}</li>
+    {%- endif %}
+  {%- endfor %}
+  </ul>
+</noscript>
