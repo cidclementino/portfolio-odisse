@@ -62,6 +62,42 @@ KV `SITE_ODISSE`. Precisa de três secrets no repositório
 | `CLOUDFLARE_API_TOKEN` | o mesmo token usado no `marketing-odisse` (Workers + KV: editar) |
 | `CLOUDFLARE_ACCOUNT_ID` | o mesmo id de conta do `marketing-odisse` |
 | `SITE_SENHA` | a senha do painel |
+| `GH_DISPATCH_TOKEN` | token do GitHub para o Worker pedir a geração das páginas estáticas a cada gravação (ver abaixo) |
+
+### Páginas estáticas (Google, previews e inglês)
+
+O workflow **Páginas estáticas** (`scripts/gerar-estaticas.mjs`) lê a nuvem e grava no repositório
+as páginas de cada projeto em português (`/projetos/<slug>/`) e em inglês (`/en/projects/<slug>/`),
+o conteúdo de Sobre, Contato, Privacidade e das últimas notícias já desenhado nos dois idiomas
+(`_includes/gerado/`), `_data/paginas.json`, `_data/busca.json`, `_data/projetos.json` e as imagens
+de preview. Quando roda:
+
+- depois de cada gravação no painel — o **Worker** pede ao GitHub (precisa do secret
+  `GH_DISPATCH_TOKEN`); várias gravações seguidas viram no máximo uma execução na fila;
+- todo dia às 6h (pedido pelo Worker, para as notícias novas da Elaia) e às 3h17 (agendamento do
+  próprio workflow, como reserva);
+- à mão em Actions, ou no painel → Busca → **Atualizar agora**.
+
+Para criar o token: GitHub → Settings → Developer settings → Personal access tokens →
+**Fine-grained tokens** → Generate new token. Repository access: **Only select repositories** →
+`portfolio-odisse`. Permissions → Repository permissions → **Actions: Read and write**. Copie o
+token e crie o secret `GH_DISPATCH_TOKEN` neste repositório; depois rode **Publicar API** (Actions →
+Run workflow) para o Worker recebê-lo. Quando o token vencer, gere outro e repita.
+
+### Inglês
+
+Tudo sob `/en/` é inglês: `/en/`, `/en/about/`, `/en/contact/`, `/en/privacy/`,
+`/en/projects/<slug>/`. Os endereços dos dois idiomas estão em `_data/rotas.yml` e
+`assets/js/i18n.js`. Cada página aponta para a outra versão (`hreflang`) e o sitemap lista as duas.
+Textos: botão **EN** em cada aba do painel (vazio = português); títulos e descrições para o Google
+em inglês na aba Busca.
+
+### Privacidade e cookies
+
+O Google Analytics e o Google Ads só carregam depois que a pessoa clica em **Aceitar** no aviso de
+cookies (`analytics.js`, `_includes/cookies.html`). A política fica em `/privacidade/` (e
+`/en/privacy/`), fora do menu do topo — o link está no rodapé, ao lado do link para o painel.
+Texto do aviso e da política: painel → **Privacidade**.
 
 Endereço: `https://site-odisse.reservaprojectbasework.workers.dev`
 (configurado em `assets/js/config.js`).
@@ -77,10 +113,14 @@ plano Workers Paid (US$ 5/mês) — nada no código muda.
 _config.yml            configuração do Jekyll
 _layouts/default.html  casca: nav + conteúdo + rodapé (Home, Sobre, Contato)
 _includes/             head, nav, rodapé, logos em SVG (marca-odisse, selo-mao)
-_data/paginas.json     versão de reserva de Sobre e Contato (o painel parte dela)
-index.html             Home — galeria montada por gallery.js com os projetos da nuvem
-projeto.html           página do projeto (/projeto/?p=<endereço>), montada por project.js
-404.html               redireciona endereços antigos (/projetos/<slug>/) para /projeto/?p=<slug>
+_data/paginas.json     Sobre, Contato e Privacidade como estão na nuvem (gerado; o painel parte dele)
+_data/rotas.yml        endereços das páginas fixas em PT e EN
+_includes/conteudo-*   corpo das páginas (o mesmo para PT e EN)
+_includes/gerado/      Sobre, Contato, Privacidade e notícias já desenhados (gerado — não editar)
+index.html, sobre.html, contato.html, privacidade.html   páginas em português
+en/                    as mesmas páginas em inglês (+ en/projects/, gerado)
+projeto.html           reserva do projeto (/projeto/?p=<endereço>), montada por project.js
+404.html               leva endereços de projeto ainda sem página própria para a reserva
 admin/                 painel (index.html, app.js, admin.css, semente.json para importar)
 assets/js/             config (endereço da API), projetos (leitura e desenho),
                        metricas (coleta), pontos (pontos laterais), marks (logos)
