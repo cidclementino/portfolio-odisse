@@ -7,11 +7,13 @@ permalink: /sitemap.xml
   Os projetos vêm de _data/projetos.json (workflow "Páginas estáticas").
 {%- endcomment -%}
 {%- assign ultimo = site.data.projetos | map: 'atualizado' | sort | last | slice: 0, 10 -%}
+{%- assign nomes = "home,sobre,contato,privacidade" | split: "," -%}
+{%- assign idiomas = "pt,en" | split: "," -%}
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:xhtml="http://www.w3.org/1999/xhtml">
-{%- for nome in "home,sobre,contato,privacidade" | split: "," %}
+{%- for nome in nomes %}
   {%- assign r = site.data.rotas[nome] %}
-  {%- for L in "pt,en" | split: "," %}
+  {%- for L in idiomas %}
   <url>
     <loc>{{ site.url }}{{ r[L] }}</loc>
     {%- if nome == 'home' and ultimo %}<lastmod>{{ ultimo }}</lastmod>{% endif %}
@@ -23,7 +25,7 @@ permalink: /sitemap.xml
   {%- endfor %}
 {%- endfor %}
 {%- for p in site.data.projetos %}
-  {%- for L in "pt,en" | split: "," %}
+  {%- for L in idiomas %}
   <url>
     <loc>{{ site.url }}{% if L == 'en' %}/en/projects/{% else %}/projetos/{% endif %}{{ p.slug }}/</loc>
     {%- if p.atualizado %}<lastmod>{{ p.atualizado | slice: 0, 10 }}</lastmod>{% endif %}
