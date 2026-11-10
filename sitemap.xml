@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>https://www.odisse.com.br/</loc><lastmod>2026-11-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/"/>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/en/</loc><lastmod>2026-11-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/"/>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/sobre/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/sobre/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/about/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/sobre/"/>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/en/about/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/sobre/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/about/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/sobre/"/>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/contato/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/contato/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/contact/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/contato/"/>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/en/contact/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/contato/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/contact/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/contato/"/>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/privacidade/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/privacidade/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/privacidade/"/>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/en/privacy/</loc>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/privacidade/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/privacidade/"/>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/projetos/residencia-yvc/</loc><lastmod>2026-11-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/projetos/residencia-yvc/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/projects/residencia-yvc/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/projetos/residencia-yvc/"/>
+    <image:image><image:loc>https://site-odisse.reservaprojectbasework.workers.dev/img/5cc0f9239a3a48c8-m</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/en/projects/residencia-yvc/</loc><lastmod>2026-11-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/projetos/residencia-yvc/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/projects/residencia-yvc/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/projetos/residencia-yvc/"/>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/projetos/residencia-dcmcc/</loc><lastmod>2026-11-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/projetos/residencia-dcmcc/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/projects/residencia-dcmcc/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/projetos/residencia-dcmcc/"/>
+    <image:image><image:loc>https://site-odisse.reservaprojectbasework.workers.dev/img/3e45195178aa4a11-m</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/en/projects/residencia-dcmcc/</loc><lastmod>2026-11-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/projetos/residencia-dcmcc/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/projects/residencia-dcmcc/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/projetos/residencia-dcmcc/"/>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/projetos/residencia-altavista/</loc><lastmod>2026-11-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/projetos/residencia-altavista/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/projects/residencia-altavista/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/projetos/residencia-altavista/"/>
+    <image:image><image:loc>https://site-odisse.reservaprojectbasework.workers.dev/img/45e096e7351a4fbc-m</image:loc></image:image>
+  </url>
+  <url>
+    <loc>https://www.odisse.com.br/en/projects/residencia-altavista/</loc><lastmod>2026-11-09</lastmod>
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="https://www.odisse.com.br/projetos/residencia-altavista/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.odisse.com.br/en/projects/residencia-altavista/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.odisse.com.br/projetos/residencia-altavista/"/>
+  </url>
+</urlset>

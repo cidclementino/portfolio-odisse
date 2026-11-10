@@ -1,0 +1,39 @@
+[
+  {
+    "titulo": "Residência YVC",
+    "slug": "residencia-yvc",
+    "local": "João Pessoa, Brasil",
+    "ano": "2024",
+    "cliente": "Privado",
+    "tipologia": "Residencial",
+    "status": "Ideia",
+    "secoes": [
+      { "tipo": "imagem", "arquivo": "/images/yvc/residencia-yvc-001.jpg", "alt": "Residência YVC — fachada" },
+      { "tipo": "texto", "texto": "Implantada em um terreno estreito e alongado, a Residência YVC organiza os ambientes sociais e íntimos em dois volumes distintos, conectados por um pátio central que resolve ventilação e iluminação natural." }
+    ]
+  },
+  {
+    "titulo": "Residência DCMCC",
+    "slug": "residencia-dcmcc",
+    "local": "João Pessoa, Brasil",
+    "ano": "2024",
+    "cliente": "Privado",
+    "tipologia": "Residencial",
+    "status": "Em construção",
+    "secoes": [
+      { "tipo": "imagem", "arquivo": "/images/dcmcc/residencia-dcmcc-001.jpg", "alt": "Residência DCMCC — fachada" }
+    ]
+  },
+  {
+    "titulo": "Residência Altavista",
+    "slug": "residencia-altavista",
+    "local": "João Pessoa, Brasil",
+    "ano": "2024",
+    "cliente": "Privado",
+    "tipologia": "Residencial",
+    "status": "Conceito",
+    "secoes": [
+      { "tipo": "imagem", "arquivo": "/images/altavista/residencia-altavista-001.jpg", "alt": "Residência Altavista — fachada" }
+    ]
+  }
+]

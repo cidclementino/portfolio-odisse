@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Odisse · Painel do site</title>
+  <link rel="icon" href="../assets/brand/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="admin.css">
+  <script src="../assets/js/config.js"></script>
+</head>
+<body class="vista-login">
+  <header class="topo">
+    <a class="marca" href="#/projetos">
+      <span class="marca-selo" data-marca="mao"></span>
+      <span class="marca-nome" data-marca="odisse"></span>
+      <span class="marca-sub">Site</span>
+    </a>
+    <nav class="menu" aria-label="Menu do painel">
+      <a href="#/projetos" data-menu="projetos">Projetos</a>
+      <a href="#/sobre" data-menu="sobre">Sobre</a>
+      <a href="#/contato" data-menu="contato">Contato</a>
+      <a href="#/privacidade" data-menu="privacidade" title="Política de privacidade e aviso de cookies">Privacidade</a>
+      <a href="#/noticias" data-menu="noticias" title="Notícias do Sobre: do estúdio, links de outros sites e textos da Elaia">Notícias</a>
+      <a href="#/busca" data-menu="busca" title="Busca no Google e compartilhamento de links">Busca</a>
+      <a href="#/metricas" data-menu="metricas">Métricas</a>
+      <a href="#/historico" data-menu="historico" title="Versões anteriores, projetos excluídos e backups">Histórico</a>
+    </nav>
+    <div class="topo-acoes">
+      <a class="ver-site" href="/" target="_blank" rel="noopener">Ver o site ↗</a>
+      <button class="sair" id="btSair" title="Sair deste computador">Sair</button>
+    </div>
+  </header>
+
+  <!-- ===================== ENTRADA ===================== -->
+  <main class="login" id="login">
+    <form class="login-caixa" id="formLogin">
+      <span class="login-selo" data-marca="mao"></span>
+      <h1>Painel do site</h1>
+      <p>Projetos, páginas e métricas de odisse.com.br.</p>
+      <label class="campo"><span>Senha</span><input type="password" id="loginSenha" autocomplete="current-password" required></label>
+      <p class="erro" id="loginErro" role="alert"></p>
+      <button type="submit" class="bt-forte" id="btEntrar">Entrar</button>
+    </form>
+  </main>
+
+  <!-- ===================== PROJETOS ===================== -->
+  <main class="pagina" id="projetos">
+    <div class="sec-cab linha">
+      <div>
+        <h1>Projetos</h1>
+        <p id="projInfo"></p>
+      </div>
+      <button class="bt-forte" id="btNovo">+ Novo projeto</button>
+    </div>
+    <div class="aviso-nuvem" id="avisoImportar" hidden>
+      <span>A nuvem ainda está vazia. Importe os três projetos que estavam no site (YVC, DCMCC e Altavista) para começar a partir deles.</span>
+      <button class="bt-forte" id="btImportar">Importar projetos atuais</button>
+    </div>
+    <div class="lista" id="lista"></div>
+  </main>
+
+  <!-- ===================== EDITOR ===================== -->
+  <div class="ed-barra" id="edBarra">
+    <a class="voltar" href="#/projetos">← Projetos</a>
+    <span class="ed-titulo" id="edTitulo"></span>
+    <div class="ed-salvar">
+      <span class="sinc" id="sinc" data-estado="pronto"><span class="bolinha"></span><span id="sincTxt"></span></span>
+      <div class="seg idioma-seg" role="group" aria-label="Idioma do conteúdo" id="edIdioma" title="Escrever a versão em inglês dos textos">
+        <button data-idioma="pt" class="ativo">PT</button><button data-idioma="en">EN</button>
+      </div>
+      <button class="bt" id="btVersoes" title="Versões anteriores deste projeto">Versões</button>
+      <a class="bt" id="btVer" href="#" target="_blank" rel="noopener">Ver no site ↗</a>
+      <button class="bt-forte" id="btSalvar" title="Salvar na nuvem (Ctrl+S)">Salvar</button>
+    </div>
+  </div>
+
+  <main class="editor" id="editor">
+    <aside class="lado">
+      <div class="lado-cab"><h2>Informações</h2></div>
+      <div class="lado-corpo">
+        <div class="grupo">
+          <label class="campo"><span>Título</span><input type="text" id="fTitulo" placeholder="Residência…"></label>
+          <label class="campo"><span>Endereço</span>
+            <span class="prefixo"><em>/projetos/</em><input type="text" id="fSlug" spellcheck="false"></span>
+            <small>Gerado a partir do título enquanto o projeto é novo; depois fica fixo. Só letras minúsculas, números e hífen. Se mudar, o endereço antigo continua funcionando e leva ao novo.</small>
+            <small class="antigos" id="fAntigos"></small>
+          </label>
+          <label class="campo"><span>Local</span><input type="text" id="fLocal" placeholder="João Pessoa, Brasil"></label>
+          <div class="duas">
+            <label class="campo"><span>Ano</span><input type="text" id="fAno" inputmode="numeric"></label>
+            <label class="campo"><span>Área</span><input type="text" id="fArea" placeholder="320 m²"></label>
+          </div>
+          <label class="campo"><span>Cliente</span><input type="text" id="fCliente" placeholder="Privado"></label>
+          <div class="duas">
+            <label class="campo"><span>Tipologia</span><input type="text" id="fTipologia" list="listaTipologia"></label>
+            <label class="campo"><span>Escala</span><input type="text" id="fEscala" list="listaEscala"></label>
+          </div>
+          <label class="campo"><span>Status</span><input type="text" id="fStatus" list="listaStatus"></label>
+          <datalist id="listaTipologia"><option>Residencial</option><option>Comercial</option><option>Corporativo</option><option>Interiores</option><option>Institucional</option><option>Retrofit</option><option>Mobiliário</option></datalist>
+          <datalist id="listaEscala"><option>Objeto</option><option>Interior</option><option>Edifício</option><option>Conjunto</option><option>Urbano</option><option>Paisagem</option></datalist>
+          <datalist id="listaStatus"><option>Ideia</option><option>Conceito</option><option>Em projeto</option><option>Em construção</option><option>Concluído</option></datalist>
+          <small style="font-size:11px;color:var(--ardosia-2)">Campos vazios não aparecem no site. Tipologia, ano e escala viram os filtros da busca do site — use sempre os mesmos nomes.</small>
+          <p class="idioma-nota">Em <b>EN</b>, os campos marcados recebem a versão em inglês; vazios, o site mostra o português. Tipologia, escala e status já são traduzidos sozinhos quando usam os nomes sugeridos.</p>
+        </div>
+        <div class="grupo">
+          <h3>Busca e compartilhamento</h3>
+          <label class="campo"><span>Descrição do projeto</span>
+            <textarea id="fDescricao" rows="4" placeholder="Uma ou duas frases sobre o projeto."></textarea>
+            <small id="fDescricaoConta"></small>
+          </label>
+          <small class="dica-lado">Aparece no Google e no preview quando o link do projeto é compartilhado. Vazia, usamos o começo do primeiro texto do projeto. A imagem do preview é a capa.</small>
+        </div>
+        <div class="grupo">
+          <h3>Exibição</h3>
+          <label class="check"><input type="checkbox" id="fVisivel"> Visível no site</label>
+          <div class="previa" id="previaBox"></div>
+          <label class="campo campo-relev"><span>Relevância na Home</span>
+            <select id="fRelevancia"><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Baixa</option></select>
+            <small>A Home sorteia a ordem a cada visita: alta primeiro, depois média, depois baixa.</small>
+          </label>
+        </div>
+        <div class="grupo">
+          <h3>Capa na Home</h3>
+          <div class="capa-escolha" id="capaEscolha"></div>
+          <small class="dica-lado">Qualquer imagem do banco pode ser a capa.</small>
+        </div>
+      </div>
+    </aside>
+
+    <section class="palco">
+      <div class="palco-barra">
+        <div class="palco-modo">
+          <div class="seg modos" role="tablist" aria-label="Vista do projeto" id="modos">
+            <button data-modo="texto" role="tab">Texto</button>
+            <button data-modo="galeria" role="tab">Galeria de imagens</button>
+            <button data-modo="sequencia" role="tab">Sequência</button>
+          </div>
+          <p class="so-texto">Escreva aqui todo o texto do projeto. Selecione um trecho e use <b>Criar card</b> para levá-lo à sequência — o trecho e o card ficam ligados: corrigir um corrige o outro.</p>
+          <p class="so-galeria">Todas as imagens do projeto. Envie, escolha a capa e mande para a sequência com <b>+</b>. Descreva cada imagem no campo abaixo dela — é o que o Google Imagens e os leitores de tela leem. <span class="galeria-alt" id="galeriaAlt"></span></p>
+          <p class="so-sequencia">Imagens e textos na ordem em que aparecem no projeto. Arraste imagens do banco para cá; arraste pelo rótulo para reordenar.</p>
+        </div>
+        <div class="acoes so-sequencia">
+          <button class="bt" id="btAddImg">+ Imagem</button>
+          <button class="bt" id="btAddTxt">+ Texto</button>
+          <button class="bt bt-banco" id="btBanco" title="Mostrar ou ocultar o banco de imagens"></button>
+        </div>
+        <div class="acoes so-galeria">
+          <div class="seg" role="group" aria-label="Filtrar a galeria" id="galeriaFiltro">
+            <button data-f="todas" class="ativo">Todas</button>
+            <button data-f="livres">Não usadas</button>
+          </div>
+          <button class="bt-forte" id="btGaleriaEnviar">+ Enviar imagens</button>
+        </div>
+        <div class="acoes so-texto">
+          <span class="red-info" id="redInfo"></span>
+        </div>
+      </div>
+
+      <div class="redacao-en so-texto">
+        <p><b>A redação é escrita em português.</b> Para a versão em inglês, use a <b>Sequência</b>: cada card de texto mostra o original e o campo para a tradução.</p>
+        <button class="bt" data-modo-ir="sequencia">Ir para a Sequência</button>
+      </div>
+
+      <div class="redacao-pane so-texto" id="redacaoPane">
+        <div class="redacao-folha">
+          <div class="redacao" id="redacao" spellcheck="true" data-vazio="Comece a escrever o texto do projeto…"></div>
+        </div>
+        <button class="criar-card" id="criarCard" hidden>Criar card</button>
+      </div>
+
+      <div class="galeria-pane so-galeria" id="galeriaPane">
+        <div class="galeria-corpo" id="galeria"></div>
+      </div>
+
+      <div class="esteira so-sequencia" id="esteira"></div>
+    </section>
+
+    <aside class="banco" id="bancoLado">
+      <div class="lado-cab banco-cab">
+        <div>
+          <h2>Banco de imagens</h2>
+          <p id="bancoInfo"></p>
+        </div>
+        <button class="bt" id="btBancoEnviar" title="Enviar imagens do computador para o banco">+ Enviar</button>
+      </div>
+      <div class="banco-filtro seg" role="group" aria-label="Filtrar o banco" id="bancoFiltro">
+        <button data-f="todas" class="ativo">Todas</button>
+        <button data-f="livres">Não usadas</button>
+      </div>
+      <div class="banco-corpo" id="banco"></div>
+      <p class="banco-dica">Arraste para a sequência, ou use <b>+</b> na imagem para pôr no fim. Solte arquivos aqui para enviar. Arrastar uma imagem da sequência para cá tira ela da sequência (fica no banco).</p>
+    </aside>
+
+    <aside class="trechos" id="trechosLado">
+      <div class="lado-cab">
+        <h2>Trechos em cards</h2>
+        <p id="trechosInfo"></p>
+      </div>
+      <div class="trechos-corpo" id="trechos"></div>
+    </aside>
+    <input type="file" id="arquivo" accept="image/*" multiple hidden>
+  </main>
+
+  <!-- ===================== PÁGINAS (Sobre e Contato) ===================== -->
+  <main class="pagina pagina-ed" id="paginaEd">
+    <div class="sec-cab linha pag-cab">
+      <div>
+        <h1 id="pagTitulo">Página</h1>
+        <p id="pagInfo"></p>
+      </div>
+      <div class="ed-salvar">
+        <span class="sinc" id="pagSinc" data-estado="pronto"><span class="bolinha"></span><span id="pagSincTxt"></span></span>
+        <div class="seg idioma-seg" role="group" aria-label="Idioma do conteúdo" id="pagIdioma" title="Escrever a versão em inglês dos textos">
+          <button data-idioma="pt" class="ativo">PT</button><button data-idioma="en">EN</button>
+        </div>
+        <button class="bt" id="pagVersoes" title="Versões anteriores desta página">Versões</button>
+        <a class="bt" id="pagVer" href="#" target="_blank" rel="noopener">Ver no site ↗</a>
+        <button class="bt-forte" id="pagSalvar" title="Salvar na nuvem (Ctrl+S)">Salvar</button>
+      </div>
+    </div>
+    <div class="formato">
+      <b>Como escrever os textos</b>
+      <span><kbd>Enter</kbd> quebra a linha</span>
+      <span>linha em branco abre novo parágrafo</span>
+      <span>link: <code>[texto](https://…)</code></span>
+      <span>e-mail: <code>[contato@…](mailto:contato@…)</code></span>
+      <span>negrito: <code>**texto**</code></span>
+    </div>
+    <div id="pagForm"></div>
+    <input type="file" id="pagArquivo" accept="image/*" hidden>
+  </main>
+
+  <!-- ===================== MÉTRICAS ===================== -->
+  <main class="pagina" id="metricas">
+    <div class="sec-cab linha">
+      <div>
+        <h1>Métricas</h1>
+        <p id="metInfo"></p>
+      </div>
+      <div class="seg" role="group" aria-label="Período" id="periodo">
+        <button data-dias="7">7 dias</button>
+        <button data-dias="30" class="ativo">30 dias</button>
+        <button data-dias="90">90 dias</button>
+      </div>
+    </div>
+    <div id="painelMetricas"></div>
+  </main>
+
+  <!-- ===================== HISTÓRICO ===================== -->
+  <main class="pagina" id="historico">
+    <div class="sec-cab linha">
+      <div>
+        <h1>Histórico</h1>
+        <p>Cada projeto e cada página guardam as <b>10 últimas versões</b> (salvamentos seguidos, com menos de 10 minutos entre si, contam como uma só).
+        Uma vez por mês é feito um <b>backup</b> de tudo — ficam os 12 últimos.</p>
+      </div>
+      <button class="bt-forte" id="btBackup">Fazer backup agora</button>
+    </div>
+    <div id="painelHistorico"></div>
+  </main>
+
+  <!-- versões de um projeto ou página (gaveta lateral) -->
+  <aside class="gaveta" id="gaveta" hidden aria-labelledby="gavetaTitulo">
+    <div class="gaveta-cab">
+      <div><h2 id="gavetaTitulo">Versões</h2><p id="gavetaInfo"></p></div>
+      <button class="bt ico" id="gavetaFechar" title="Fechar">✕</button>
+    </div>
+    <div class="gaveta-corpo" id="gavetaCorpo"></div>
+  </aside>
+
+  <div class="aviso" id="aviso" role="status"></div>
+  <div class="dica" id="dica" hidden></div>
+  <div class="seletor" id="seletor" hidden></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<title>Página não encontrada — Odisse</title>
+<script>
+  (function () {
+    var path = window.location.pathname;
+    // Endereços antigos de projeto — /projetos/<slug>/ (Jekyll) e /projects/<slug>
+    // (primeira versão) — passam para a página única /projeto/?p=<slug>
+    var en = /^\/en(\/|$)/.test(path);
+    if (en) document.documentElement.className = 'lang-en';
+    var match = path.match(/^(?:\/en)?\/(?:projetos|projects)\/([^\/]+?)(?:\.html)?\/?$/);
+    if (match) {
+      window.location.replace((en ? '/en/project/?p=' : '/projeto/?p=') + encodeURIComponent(match[1]));
+      return;
+    }
+    if (/^(\/en)?\/(projetos|projects)\/?$/.test(path)) {
+      window.location.replace(en ? '/en/' : '/');
+    }
+  })();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="/assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/assets/brand/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/assets/brand/favicon-180.png">
+<meta name="theme-color" content="#495763">
+<link rel="preload" href="/assets/fonts/inter-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preconnect" href="https://site-odisse.reservaprojectbasework.workers.dev" crossorigin>
+<link rel="stylesheet" href="/styles.css">
+<script src="/assets/js/i18n.js"></script>
+<script src="/assets/js/config.js"></script>
+<script src="/analytics.js" defer></script>
+<script src="/assets/js/metricas.js" defer></script>
+<script src="/assets/js/pontos.js" defer></script>
+
+</head>
+<body data-pagina="404">
+<div class="cookies" id="cookies" role="region" aria-label="Aviso de cookies" hidden>
+  <p class="cookies__txt">Usamos cookies do Google Analytics e do Google Ads para entender como o site é usado e medir anúncios. Eles só são ativados se você aceitar.
+    <a href="/privacidade/">Política de privacidade</a></p>
+  <div class="cookies__acoes">
+    <button type="button" class="cookies__bt" data-cookies="recusar">Recusar</button>
+    <button type="button" class="cookies__bt cookies__bt--sim" data-cookies="aceitar">Aceitar</button>
+  </div>
+</div>
+
+  <main class="nao-encontrada">
+    <h1><span class="t-pt">Página não encontrada</span><span class="t-en">Page not found</span></h1>
+    <p><a class="t-pt" href="/">Voltar para os projetos</a><a class="t-en" href="/en/">Back to the projects</a></p>
+  </main>
+</body>
+</html>
