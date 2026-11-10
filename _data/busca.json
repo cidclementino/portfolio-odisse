@@ -44,10 +44,11 @@
     "email": "contato@odisse.com.br",
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": "Rua Bananeiras, 361 – Sala 107, Manaíra",
+      "streetAddress": "Rua Bananeiras, nº 361 – Sala 107, Manaíra",
+      "postOfficeBoxNumber": "393",
       "addressLocality": "João Pessoa",
       "addressRegion": "PB",
-      "postalCode": "58038-170",
+      "postalCode": "58.038-170",
       "addressCountry": "BR"
     },
     "areaServed": "João Pessoa, Paraíba e outras cidades do Brasil",

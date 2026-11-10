@@ -65,20 +65,20 @@
   "contato": {
     "secoes": [
       {
-        "tipo": "contato",
         "titulo": "Contato",
+        "tipo": "contato",
         "email": "contato@odisse.com.br",
         "telefone": "+55 83 99122-3088",
         "whatsapp": "+55 83 99122-3088"
       },
       {
-        "tipo": "texto",
         "titulo": "Trabalhe conosco",
-        "texto": "Estamos sempre atentos a pessoas que compartilham nossa forma de olhar a Arquitetura e o Design.\n\nPara se candidatar, responda nosso [Formulário de Candidatura](#)."
+        "texto": "Estamos sempre atentos a pessoas que compartilham nossa forma de olhar a Arquitetura e o Design.\n\nPara se candidatar, responda nosso [Formulário de Candidatura](#).",
+        "tipo": "texto"
       },
       {
-        "tipo": "endereco",
         "titulo": "Endereço",
+        "tipo": "endereco",
         "logradouro": "Rua Bananeiras, nº 361 – Sala 107",
         "caixa_postal": "393",
         "bairro": "Manaíra",
@@ -87,8 +87,8 @@
         "cep": "58.038-170"
       },
       {
-        "tipo": "links",
         "titulo": "Redes sociais",
+        "tipo": "links",
         "itens": [
           {
             "nome": "Instagram",
@@ -105,17 +105,17 @@
         ]
       },
       {
-        "tipo": "texto",
         "titulo": "Elaia",
-        "texto": "Elaia é o braço editorial do Odisse — nosso espaço de pesquisa e escrita sobre arquitetura, design e os arquétipos que atravessam o que construímos.\n\n[Leia Elaia](https://odisse.substack.com/)"
+        "texto": "Elaia é o braço editorial do Odisse — nosso espaço de pesquisa e escrita sobre arquitetura, design e os arquétipos que atravessam o que construímos.\n\n[Leia Elaia](https://odisse.substack.com/)",
+        "tipo": "texto"
       },
       {
-        "tipo": "texto",
         "titulo": "Também em",
-        "texto": "Criamos Arquitetura em diferentes escopos. Saiba mais sobre [nossos serviços](https://projetos.odisse.com.br).\n\nPara adquirir nossas peças autorais, visite [Odisse Objetos](https://www.odisseobjetos.com/)."
+        "texto": "Criamos Arquitetura em diferentes escopos. Saiba mais sobre [nossos serviços](https://projetos.odisse.com.br).\n\nPara adquirir nossas peças autorais, visite [Odisse Objetos](https://www.odisseobjetos.com/).",
+        "tipo": "texto"
       }
     ],
-    "atualizado": "2026-11-09T04:34:58.786Z"
+    "atualizado": "2026-11-10T18:19:14.274Z"
   },
   "privacidade": {
     "titulo": "Política de privacidade",
