@@ -172,6 +172,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       e.preventDefault();
+      // aberto pelo teclado (Enter): o foco vai para a sequência, onde ← → navegam
+      item._teclado = e.detail === 0;
       startOpen();
     });
 
@@ -213,7 +215,8 @@ document.addEventListener('DOMContentLoaded', function () {
         return Math.max(64, (window.innerHeight - alturaPainel()) / 2);
       }, SCROLL_MS).then(function () {
         item._abrindo = false;
-        openProject(row, panel, item._info, item._thumb, item._url, item._slug);
+        openProject(row, panel, item._info, item._thumb, item._url, item._slug, item._teclado);
+        item._teclado = false;
       });
     }
   });
@@ -223,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function () {
   function marcarBotao() {
     if (!botaoVista) return;
     var g = emGrade();
-    var rotulo = g ? 'Ver em lista' : 'Ver em galeria';
+    var rotulo = g ? P.T('ver_lista', 'Ver em lista') : P.T('ver_galeria', 'Ver em galeria');
     botaoVista.setAttribute('aria-label', rotulo);
     botaoVista.setAttribute('title', rotulo);
     botaoVista.setAttribute('aria-pressed', g ? 'true' : 'false');
@@ -268,14 +271,17 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Esc fecha o projeto aberto
+  // Esc fecha o projeto aberto (e, se o foco estava dentro dele, devolve o foco à linha do projeto)
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') fecharOutros(null);
+    if (e.key !== 'Escape' || document.documentElement.classList.contains('busca-aberta')) return;
+    var dentro = document.activeElement && document.activeElement.closest && document.activeElement.closest('.gallery__item');
+    fecharOutros(null);
+    if (dentro) { var rw = dentro.querySelector('.gallery__row'); if (rw) rw.focus(); }
   });
 
   } // fim de ligar()
 
-  function openProject(row, panel, info, thumb, url, slug) {
+  function openProject(row, panel, info, thumb, url, slug, teclado) {
     row.setAttribute('aria-expanded', 'true');
     var isMobile = window.innerWidth <= 640;
 
@@ -316,6 +322,10 @@ document.addEventListener('DOMContentLoaded', function () {
         // recria, não duplica; os metadados entram logo depois dele
         sidebar.insertBefore(info, sidebar.firstChild);
         panel.classList.add('is-revealed');
+        if (teclado) {
+          var trilha = panel.querySelector('.panel__spreads');
+          if (trilha) trilha.focus({ preventScroll: true });
+        }
       }
     });
   }
@@ -374,7 +384,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="panel__inner">' +
             '<aside class="panel__sidebar"></aside>' +
             '<div class="panel__reveal">' +
-              '<div class="panel__spreads">' + P.spreads(p) + P.relacionados(todos, p, 3) + '</div>' +
+              '<div class="panel__spreads" tabindex="0" role="region" aria-label="' + P.esc(P.tr(p, 'titulo')) + '">' + P.spreads(p) + P.relacionados(todos, p, 3) + '</div>' +
             '</div>' +
             '<div class="panel__dots"></div>' +
           '</div>';
@@ -387,7 +397,10 @@ document.addEventListener('DOMContentLoaded', function () {
         sidebar.querySelector('.panel__fechar').addEventListener('click', function (e) {
           e.stopPropagation();
           var item = panel.closest('.gallery__item');
-          closeProject(item.querySelector('.gallery__row'), panel, item._info, item._thumb);
+          var rw = item.querySelector('.gallery__row');
+          closeProject(rw, panel, item._info, item._thumb);
+          if (e.detail === 0) rw.focus(); // fechado pelo teclado: o foco volta para a linha
+          
         });
 
         if (window.Odisse.metricas) panel._registro = window.Odisse.metricas.projeto(slug, 'home');
@@ -469,6 +482,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }, { passive: false });
 
     track.addEventListener('scroll', updateActiveDot, { passive: true });
+
+    // teclado: com a sequência em foco, ← → passam de um item para o outro (Home / End: início e fim)
+    track.addEventListener('keydown', function (e) {
+      var passo = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (passo) {
+        e.preventDefault();
+        var atual = spreads.reduce(function (m, s, i) {
+          var c = s.offsetLeft + s.offsetWidth / 2, alvo = track.scrollLeft + track.clientWidth / 2;
+          return Math.abs(c - alvo) < Math.abs(spreads[m].offsetLeft + spreads[m].offsetWidth / 2 - alvo) ? i : m;
+        }, 0);
+        var prox = spreads[Math.max(0, Math.min(spreads.length - 1, atual + passo))];
+        if (prox) track.scrollTo({ left: centerScrollFor(track, prox), behavior: 'smooth' });
+      } else if (e.key === 'Home' || e.key === 'End') {
+        e.preventDefault();
+        track.scrollTo({ left: e.key === 'Home' ? 0 : track.scrollWidth, behavior: 'smooth' });
+      }
+    });
 
     // arrastar com o mouse (touch já rola nativamente)
     var isDown = false;

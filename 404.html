@@ -12,22 +12,25 @@ layout: null
     var path = window.location.pathname;
     // Endereços antigos de projeto — /projetos/<slug>/ (Jekyll) e /projects/<slug>
     // (primeira versão) — passam para a página única /projeto/?p=<slug>
-    var match = path.match(/^\/(?:projetos|projects)\/([^\/]+?)(?:\.html)?\/?$/);
+    var en = /^\/en(\/|$)/.test(path);
+    if (en) document.documentElement.className = 'lang-en';
+    var match = path.match(/^(?:\/en)?\/(?:projetos|projects)\/([^\/]+?)(?:\.html)?\/?$/);
     if (match) {
-      window.location.replace('/projeto/?p=' + encodeURIComponent(match[1]));
+      window.location.replace((en ? '/en/project/?p=' : '/projeto/?p=') + encodeURIComponent(match[1]));
       return;
     }
-    if (/^\/(projetos|projects)\/?$/.test(path)) {
-      window.location.replace('/');
+    if (/^(\/en)?\/(projetos|projects)\/?$/.test(path)) {
+      window.location.replace(en ? '/en/' : '/');
     }
   })();
 </script>
 {% include head.html %}
 </head>
 <body data-pagina="404">
+{% include cookies.html %}
   <main class="nao-encontrada">
-    <h1>Página não encontrada</h1>
-    <p><a href="{{ '/' | relative_url }}">Voltar para os projetos</a></p>
+    <h1><span class="t-pt">Página não encontrada</span><span class="t-en">Page not found</span></h1>
+    <p><a class="t-pt" href="/">Voltar para os projetos</a><a class="t-en" href="/en/">Back to the projects</a></p>
   </main>
 </body>
 </html>

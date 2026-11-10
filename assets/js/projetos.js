@@ -98,9 +98,11 @@
   }
 
   // página própria do projeto (gerada pelo workflow "Páginas estáticas"); enquanto
-  // ela não existe, o 404.html leva para a página de reserva /projeto/?p=<slug>
+  // ela não existe, o 404.html leva para a página de reserva /projeto/?p=<slug>.
+  // Em inglês: /en/projects/<slug>/ (assets/js/i18n.js → Odisse.url)
+  function local(caminho) { return O.url ? O.url(caminho) : caminho; }
   function url(slug) {
-    return '/projetos/' + encodeURIComponent(slug) + '/';
+    return local('/projetos/' + encodeURIComponent(slug) + '/');
   }
 
   function paragrafos(texto) {
@@ -187,7 +189,7 @@
           '<span class="relacionados__txt"><span class="relacionados__nome">' + esc(tr(r, 'titulo')) + '</span>' +
           '<span class="relacionados__local">' + esc(tr(r, 'local')) + '</span></span></a></li>';
       }).join('') + '</ul>' +
-      '<a class="relacionados__todos" href="/">' + esc(T('ver_todos', 'Ver todos os projetos')) + ' →</a>' +
+      '<a class="relacionados__todos" href="' + local('/') + '">' + esc(T('ver_todos', 'Ver todos os projetos')) + ' →</a>' +
       '</div></div>';
   }
 
@@ -204,6 +206,7 @@
     tr: tr,
     img: img,
     url: url,
+    local: local,
     esc: esc,
     meta: meta,
     titulo: titulo,

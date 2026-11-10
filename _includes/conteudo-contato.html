@@ -1,0 +1,8 @@
+{%- comment -%}
+  Contato (PT e EN). Editado no painel (/admin/ → Contato); HTML pronto de _includes/gerado/
+  (ver conteudo-sobre.html).
+{%- endcomment -%}
+{%- assign L = page.lang | default: 'pt' -%}
+<section class="contato" data-conteudo="contato" data-atualizado="{{ site.data.paginas.contato.atualizado }}" id="conteudo" tabindex="-1">
+{%- if L == 'en' %}{% include gerado/contato-en.html %}{% else %}{% include gerado/contato-pt.html %}{% endif -%}
+</section>

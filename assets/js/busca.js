@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function () {
           return '<li><a href="' + P.url(r.slug) + '" data-via="busca"><span class="busca__capa">' + (src ? '<img src="' + esc(src) + '" alt="" loading="lazy">' : '') + '</span>' +
             '<span><b>' + esc(tr(r, 'titulo')) + '</b><small>' + esc(linha) + '</small></span></a></li>';
         }).join('') + '</ul>' +
-        '<a class="busca__todos" href="/?' + parametros() + '">' + esc(T('ver_todos_busca', 'Ver na página de projetos')) + ' →</a>'
+        '<a class="busca__todos" href="' + P.local('/') + '?' + parametros() + '">' + esc(T('ver_todos_busca', 'Ver na página de projetos')) + ' →</a>'
       : '<p class="busca__nada">' + esc(T('nenhum', 'Nenhum projeto encontrado.')) + '</p>';
   }
 
@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', function () {
   campo.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (!naHome && ativo()) { registrar(norm(estado.q)); location.href = '/?' + parametros(); }
+      if (!naHome && ativo()) { registrar(norm(estado.q)); location.href = P.local('/') + '?' + parametros(); }
       else campo.blur();
     }
   });

@@ -1213,11 +1213,6 @@ footer .copy { font-size: 0.68rem; color: inherit; opacity: 0.7; margin: 0; }
 .nao-encontrada h1 { font-weight: 700; letter-spacing: -0.02em; font-size: 1.6rem; margin: 0 0 8px; }
 .nao-encontrada a { color: var(--slate); }
 
-/* Sobre e Contato: o conteúdo editado no painel chega da nuvem; até lá (no
-   máximo 1,5 s) a seção fica invisível, pra não piscar a versão antiga */
-.sobre, .contato { transition: opacity 0.25s ease; }
-.pag-aguarda .sobre, .pag-aguarda .contato { opacity: 0; }
-
 /* visível só para leitores de tela e robôs (ex.: o h1 da Home) */
 .so-leitor { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .gallery-noscript { list-style: none; padding: 0 24px; line-height: 2; }
@@ -1231,4 +1226,91 @@ footer .copy { font-size: 0.68rem; color: inherit; opacity: 0.7; margin: 0; }
   }
   .sobre__wide h3::before, .sobre .eyebrow::before, .sobre__doc h3::before,
   .contato__doc .eyebrow::before, .contato__doc h3::before { left: -22px; width: 12px; }
+}
+
+/* ==========================================================================
+   ACESSIBILIDADE — pular para o conteúdo e foco do teclado
+   ========================================================================== */
+/* invisível até receber o foco (primeiro Tab da página): aparece no canto superior esquerdo */
+.pular {
+  position: fixed;
+  top: 12px; left: 12px;
+  z-index: 200;
+  padding: 10px 16px;
+  background: var(--escuro);
+  color: var(--claro);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  border-radius: 2px;
+  transform: translateY(-160%);
+  transition: transform 0.15s ease;
+}
+.pular:focus { transform: none; outline: 2px solid var(--gold); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .pular { transition: none; } }
+/* o destino do salto recebe o foco sem desenhar contorno */
+#conteudo:focus { outline: none; }
+/* nas páginas azuis o contorno de foco fica claro */
+.is-dark-page :focus-visible, .nav--on-dark :focus-visible, footer.footer--dark :focus-visible { outline-color: var(--claro); }
+/* sequência de imagens com foco (← → navegam): contorno por dentro, para não ser cortado */
+.project__spreads:focus-visible, .panel__spreads:focus-visible { outline: 2px solid var(--slate); outline-offset: -2px; }
+.gallery__row:focus-visible { outline-offset: -2px; }
+
+/* ==========================================================================
+   RODAPÉ — links discretos (privacidade · painel)
+   ========================================================================== */
+footer .footer__extra { margin: -6px 0 0; font-size: 0.62rem; opacity: 0.55; display: flex; gap: 8px; align-items: center; }
+footer .footer__extra a { font-size: 0.62rem; letter-spacing: 0.12em; }
+footer .footer__extra:hover, footer .footer__extra:focus-within { opacity: 0.9; }
+
+/* ==========================================================================
+   PRIVACIDADE (mesma composição do Contato)
+   ========================================================================== */
+.privacidade__doc h1.eyebrow { line-height: 1.6; }
+.privacidade__data { opacity: 0.7; font-size: 0.8rem !important; margin: 0 0 28px !important; }
+.contato__doc ul { margin: 0 0 8px; padding-left: 1.1em; font-size: 0.95rem; line-height: 1.7; }
+.privacidade__doc p + p { margin-top: 10px; }
+.privacidade__acoes { margin-top: 40px !important; }
+.privacidade__rever {
+  font: inherit; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase;
+  background: none; color: var(--claro); border: 1px solid rgba(244,244,244,0.6);
+  padding: 10px 16px; cursor: pointer; transition: border-color 0.2s ease, color 0.2s ease;
+}
+.privacidade__rever:hover { color: var(--gold); border-color: var(--gold); }
+
+/* ==========================================================================
+   AVISO DE COOKIES — canto inferior esquerdo (os atalhos da Home ficam à direita)
+   ========================================================================== */
+.cookies {
+  position: fixed;
+  left: var(--gutter); bottom: 22px;
+  z-index: 60;
+  max-width: 420px;
+  padding: 16px 18px;
+  background: var(--claro);
+  color: var(--escuro);
+  border: 1px solid rgba(26,26,26,0.15);
+  box-shadow: 0 8px 28px rgba(26,26,26,0.12);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+.cookies[hidden] { display: none; }
+.cookies__txt { margin: 0 0 12px; }
+.cookies__txt a { color: var(--slate); text-underline-offset: 3px; white-space: nowrap; }
+.cookies__acoes { display: flex; gap: 8px; justify-content: flex-end; }
+.cookies__bt {
+  font: inherit; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 8px 14px; cursor: pointer;
+  background: transparent; color: var(--escuro); border: 1px solid rgba(26,26,26,0.3);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.cookies__bt:hover { border-color: var(--slate); }
+.cookies__bt--sim { background: var(--slate); border-color: var(--slate); color: var(--claro); }
+.cookies__bt--sim:hover { background: var(--escuro); border-color: var(--escuro); }
+.cookies :focus-visible { outline: 2px solid var(--slate); outline-offset: 2px; }
+@media (max-width: 640px) {
+  .cookies { left: 12px; right: 12px; bottom: 12px; max-width: none; }
+  /* no celular o aviso ocupa a largura: os atalhos da Home sobem enquanto ele está aberto */
+  .cookies-aberto .dock { bottom: calc(22px + var(--cookies-h, 150px)); }
 }

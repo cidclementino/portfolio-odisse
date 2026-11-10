@@ -1,12 +1,17 @@
 name: Páginas estáticas (Google e previews)
 
-# Regrava, a partir da nuvem, as páginas próprias dos projetos (/projetos/<slug>/),
-# as imagens de preview, _data/busca.json e _data/projetos.json (sitemap).
-# Roda a cada 15 minutos, depois de cada publicação da API e à mão em Actions.
+# Regrava, a partir da nuvem, as páginas próprias dos projetos (PT e EN), Sobre, Contato,
+# Privacidade e notícias já desenhados, as imagens de preview, _data/busca.json,
+# _data/projetos.json (sitemap) e _data/paginas.json.
+# Quando roda:
+#   - o Worker pede (workflow_dispatch) depois de cada gravação no painel e uma vez por dia;
+#   - depois de cada publicação da API;
+#   - uma vez por dia por conta própria (reserva, se o Worker não puder pedir);
+#   - à mão em Actions → "Páginas estáticas" → Run workflow.
 # Só faz commit quando algo mudou.
 on:
   schedule:
-    - cron: '7,22,37,52 * * * *'
+    - cron: '17 6 * * *' # 3h17 de Brasília
   workflow_run:
     workflows: ['Publicar API (Cloudflare Worker)']
     types: [completed]
@@ -35,7 +40,7 @@ jobs:
       - name: Gravar se mudou
         id: gravar
         run: |
-          git add -A projetos assets/og _data/busca.json _data/projetos.json
+          git add -A projetos en/projects assets/og _includes/gerado _data/busca.json _data/projetos.json _data/paginas.json
           if git diff --cached --quiet; then
             echo "Nada mudou."
             echo "mudou=0" >> "$GITHUB_OUTPUT"

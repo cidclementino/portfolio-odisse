@@ -3,18 +3,22 @@
 // Binding (wrangler.toml): KV Namespace `SITE`
 //   indice                 -> lista ordenada de resumos dos projetos
 //   projeto:<id>           -> projeto completo (JSON)
-//   pagina:<nome>          -> Sobre, Contato, Busca e Notícias (JSON)
+//   pagina:<nome>          -> Sobre, Contato, Privacidade, Busca e Notícias (JSON)
 //   img:<ref>              -> imagem (binário; content-type nos metadados). <ref>-m = média (1200 px), <ref>-s = pequena (960 px)
 //   ev:<dia>:<id>          -> uma visita (dados nos metadados da chave; expira em 400 dias)
 //   ver:<tipo>:<id>:<iso>  -> versão anterior de um projeto ou página (as 10 últimas de cada um)
 //   backup:<motivo>:<iso>  -> cópia de tudo (mensal: 12 últimas; manual: 5 últimas)
 //   rss:cache              -> textos da Elaia (Substack), guardados por 1 hora
-// Secret: SITE_SENHA -> senha do painel (Authorization: Bearer <senha>)
+//   gerar:pedido           -> quando a geração das páginas estáticas foi pedida pela última vez (e a resposta do GitHub)
+// Secrets: SITE_SENHA -> senha do painel (Authorization: Bearer <senha>)
+//          GH_TOKEN   -> token do GitHub (fine-grained, só este repositório, Actions: read and write) para
+//                        disparar o workflow "Páginas estáticas" — sem ele, nada é disparado (o agendamento
+//                        diário do próprio workflow continua valendo)
 //
 // Rotas públicas
 //   GET  /api/projetos                    -> projetos visíveis, na ordem do site
 //   GET  /api/projetos/:slug[?previa=tok] -> projeto visível completo (ou oculto, com o link de prévia)
-//   GET  /api/paginas/:nome               -> Sobre, Contato ou Busca (404 = ainda não editada)
+//   GET  /api/paginas/:nome               -> Sobre, Contato, Privacidade ou Busca (404 = ainda não editada)
 //   GET  /api/noticias?de=0&n=5           -> notícias (próprias, links e Elaia), da mais nova para a mais antiga
 //   GET  /img/:ref                        -> imagem
 //   POST /api/coleta                      -> registra uma visita (enviado pelo próprio site)
@@ -35,7 +39,12 @@
 //   POST   /api/admin/link                -> lê título/descrição/imagem de um endereço (notícias)
 //   GET    /api/admin/rss                 -> textos da Elaia, lidos agora
 //   GET    /api/admin/metricas?dias=      -> painel de métricas do período (e do período anterior)
-// Agendado (wrangler.toml → crons): dia 1 de cada mês, backup mensal.
+//   GET    /api/admin/gerar               -> estado do último pedido de geração das páginas estáticas
+//   POST   /api/admin/gerar               -> pede a geração agora
+// Depois de cada gravação (projeto, ordem, exclusão, página), o Worker pede ao GitHub a geração das
+// páginas estáticas (Google, previews e a versão em inglês) — elas ficam prontas em ~2 minutos.
+// Agendado (wrangler.toml → crons): todo dia, pede a geração (notícias da Elaia entram nas páginas);
+// no dia 1 de cada mês, também o backup mensal.
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -49,7 +58,10 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // relevância na Home: sorteio a cada visita, em camadas (alta → média → baixa)
 const RELEVANCIAS = ['alta', 'media', 'baixa'];
 // busca = ficha do estúdio, títulos/descrições das páginas e imagem de compartilhamento
-const PAGINAS = new Set(['sobre', 'contato', 'busca', 'noticias']);
+const PAGINAS = new Set(['sobre', 'contato', 'privacidade', 'busca', 'noticias']);
+// workflow que regrava as páginas estáticas (disparado pelo Worker depois de cada gravação)
+const REPO = 'cidclementino/portfolio-odisse';
+const WORKFLOW = 'estaticas.yml';
 const MAX_PAGINA = 400 * 1024;
 const TZ = 'America/Sao_Paulo';
 const ORIGENS = /^https?:\/\/(www\.)?odisse\.com\.br$|^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
@@ -739,6 +751,35 @@ async function gravarPagina(kv, ctx, nome, pg, motivo) {
   return pg;
 }
 
+// ---------------------------------------------------------------- páginas estáticas (GitHub Actions)
+
+// Pede ao GitHub uma execução do workflow "Páginas estáticas". O próprio workflow tem
+// concurrency: várias gravações seguidas viram, no máximo, uma execução em andamento e
+// uma na fila (que já lê o estado mais novo da nuvem).
+async function pedirGeracao(env, motivo) {
+  if (!env.GH_TOKEN) return { ok: false, erro: 'sem GH_TOKEN' };
+  let r, txt = '';
+  try {
+    r = await fetch(`https://api.github.com/repos/${REPO}/actions/workflows/${WORKFLOW}/dispatches`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.GH_TOKEN}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'User-Agent': 'odisse-site-worker',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ ref: 'main' }),
+    });
+    if (!r.ok) txt = (await r.text()).slice(0, 200);
+  } catch (e) {
+    txt = e.message;
+  }
+  const estado = { quando: new Date().toISOString(), motivo, ok: !!r?.ok, status: r?.status || 0, ...(txt ? { erro: txt } : {}) };
+  try { await env.SITE.put('gerar:pedido', JSON.stringify(estado)); } catch { /* limite de escrita: segue */ }
+  return estado;
+}
+
 // ---------------------------------------------------------------- roteador
 
 export default {
@@ -799,6 +840,32 @@ export default {
     if (partes[1] !== 'admin') return erro('rota não encontrada', 404);
     if (!autorizado(request, env)) return erro('não autorizado', 401);
     const [, , recurso, id, id2] = partes;
+
+    if (recurso === 'gerar') {
+      if (request.method === 'POST') return json(await pedirGeracao(env, 'manual'));
+      if (request.method === 'GET') return json((await kv.get('gerar:pedido', 'json')) || {});
+    }
+    // o que muda o site (projetos, ordem, páginas) pede a geração das páginas estáticas
+    // (a busca/compartilhamento e as notícias também: estão nas páginas geradas)
+    const resposta = await rotaAdmin(request, env, ctx, kv, url, recurso, id, id2);
+    if (resposta.ok && ['PUT', 'DELETE'].includes(request.method) && ['projetos', 'ordem', 'paginas'].includes(recurso)) {
+      ctx.waitUntil(pedirGeracao(env, `${recurso}${id ? ':' + id : ''}`));
+    }
+    return resposta;
+  },
+
+  // todo dia: pede a geração (notícias novas da Elaia entram nas páginas); dia 1: backup mensal
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(pedirGeracao(env, 'diario'));
+    if (new Date(event.scheduledTime).getUTCDate() !== 1) return;
+    const b = await fazerBackup(env.SITE, 'mensal');
+    ctx.waitUntil(apagarOrfas(env.SITE, b.candidatas, b.protegidas));
+  },
+};
+
+// ---------------------------------------------------------------- rotas do painel (senha já conferida)
+async function rotaAdmin(request, env, ctx, kv, url, recurso, id, id2) {
+  {
     const motivo = request.headers.get('X-Motivo') === 'restauracao' ? 'restauracao' : 'edicao';
 
     if (recurso === 'paginas') {
@@ -917,11 +984,5 @@ export default {
     }
 
     return erro('rota não encontrada', 404);
-  },
-
-  // backup mensal (wrangler.toml → [triggers] crons)
-  async scheduled(event, env, ctx) {
-    const b = await fazerBackup(env.SITE, 'mensal');
-    ctx.waitUntil(apagarOrfas(env.SITE, b.candidatas, b.protegidas));
-  },
-};
+  }
+}

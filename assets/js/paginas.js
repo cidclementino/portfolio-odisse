@@ -1,21 +1,18 @@
-// Sobre e Contato vindos da nuvem (painel /admin/ → Sobre, Contato).
-// A página já chega com a versão de reserva (gerada pelo Jekyll a partir de
-// _data/paginas.json). Se a nuvem tiver um conteúdo salvo pelo painel, a seção
-// é redesenhada com ele — com a MESMA marcação de sobre.html / contato.html.
+// Sobre, Contato e Privacidade vindos da nuvem (painel /admin/ → Sobre, Contato,
+// Privacidade). A página já chega com o conteúdo no HTML (gerado pelo workflow
+// "Páginas estáticas" a partir da nuvem, no idioma da página). Se a nuvem tiver
+// uma versão mais nova, a seção é redesenhada — com a MESMA marcação: os desenhos
+// abaixo (Odisse.paginasHtml) são usados também pelo gerador (scripts/gerar-estaticas.mjs).
 //
 // Formato dos textos: Enter quebra a linha; linha em branco abre parágrafo;
-// [texto](endereço) vira link; **texto** vira negrito.
+// [texto](endereço) vira link; **texto** vira negrito; um parágrafo começado por
+// "## " vira subtítulo; linhas começadas por "- " viram lista.
 
 (function () {
-  var raiz = document.documentElement;
-  var secao = document.querySelector('[data-conteudo]');
-  function mostrar() { raiz.classList.remove('pag-aguarda'); }
-  if (!secao) return mostrar();
-  var nome = secao.getAttribute('data-conteudo');
-  var O = window.Odisse || {};
-  var emIngles = O.lang === 'en';
+  var O = (window.Odisse = window.Odisse || {});
   // campo no idioma da página (titulo_en, texto_en…; sem tradução, o português)
   function tr(obj, k) { return O.tr ? O.tr(obj, k) : (obj && obj[k]) || ''; }
+  function T(k, pt) { return O.t ? O.t(k) : pt; }
   function titulo(t, k, padrao) {
     var v = tr(t || {}, k);
     return v || (O.t ? O.t(k) : padrao);
@@ -31,19 +28,32 @@
   }
   function linkSeguro(url) { return /^(https?:\/\/|mailto:|tel:|\/|#)/i.test(url); }
   function externo(url) { return /^https?:\/\//i.test(url) && !/^https?:\/\/(www\.)?odisse\.com\.br(\/|$)/i.test(url); }
+  // link interno escrito em português (/contato/) leva à versão no idioma da página
+  function interno(url) { return O.url && /^\/(?!\/)/.test(url) && !/^\/(admin|img|images|assets)\//.test(url) ? O.url(url) : url; }
   function linha(t) {
     return esc(t)
       .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
       .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, function (m, txt, url) {
         var bruto = url.replace(/&amp;/g, '&');
         if (!linkSeguro(bruto)) return txt;
-        return '<a href="' + url + '"' + (externo(bruto) ? ' target="_blank" rel="noopener"' : '') + '>' + txt + '</a>';
+        return '<a href="' + esc(interno(bruto)) + '"' + (externo(bruto) ? ' target="_blank" rel="noopener"' : '') + '>' + txt + '</a>';
       });
   }
   function inline(t) { return String(t || '').trim().split(/\n/).map(linha).join('<br>'); }
   function texto(t) {
     return String(t || '').replace(/\r\n/g, '\n').split(/\n\s*\n/).map(function (p) { return p.trim(); })
-      .filter(Boolean).map(function (p) { return '<p>' + inline(p) + '</p>'; }).join('');
+      .filter(Boolean).map(function (p) {
+        var linhas = p.split('\n');
+        // "## Subtítulo" (o texto pode vir logo na linha de baixo)
+        if (/^##\s+/.test(linhas[0])) {
+          var resto = linhas.slice(1).join('\n').trim();
+          return '<h3>' + linha(linhas[0].replace(/^##\s+/, '')) + '</h3>' + (resto ? texto(resto) : '');
+        }
+        if (linhas.every(function (l) { return /^\s*[-•]\s+/.test(l); })) {
+          return '<ul>' + linhas.map(function (l) { return '<li>' + linha(l.replace(/^\s*[-•]\s+/, '')) + '</li>'; }).join('') + '</ul>';
+        }
+        return '<p>' + inline(p) + '</p>';
+      }).join('');
   }
   function img(f, grande) {
     if (!f) return '';
@@ -53,7 +63,7 @@
   function link(url, txt) {
     if (!txt) return '';
     if (!url || !linkSeguro(url)) return esc(txt);
-    return '<a href="' + esc(url) + '"' + (externo(url) ? ' target="_blank" rel="noopener"' : '') + '>' + esc(txt) + '</a>';
+    return '<a href="' + esc(interno(url)) + '"' + (externo(url) ? ' target="_blank" rel="noopener"' : '') + '>' + esc(txt) + '</a>';
   }
 
   // ordem: apresentação · equipe · núcleos · premiações · publicações (as notícias vêm à parte)
@@ -96,37 +106,15 @@
     }).join('') + '</div>';
   }
 
-  function desenhar(d) {
-    if (!d) return;
-    try { secao.innerHTML = nome === 'sobre' ? sobre(d) : contato(d); } catch (e) { console.error(e); }
+  // política de privacidade + botão para rever a escolha sobre cookies (assets/js/cookies.js)
+  function privacidade(d) {
+    return '<div class="contato__doc privacidade__doc">' +
+      '<h1 class="eyebrow">' + esc(tr(d, 'titulo') || T('privacidade', 'Política de privacidade')) + '</h1>' +
+      (d.atualizado && O.data ? '<p class="privacidade__data">' + esc(T('atualizada_em', 'Atualizada em')) + ' ' + esc(O.data(d.atualizado)) + '</p>' : '') +
+      texto(tr(d, 'texto')) +
+      '<p class="privacidade__acoes"><button type="button" class="privacidade__rever" data-cookies-rever>' + esc(T('rever_cookies', 'Rever minha escolha sobre cookies')) + '</button></p>' +
+      '</div>';
   }
-
-  var chave = 'odisse:pagina:' + nome;
-  var guardado = null;
-  try { guardado = JSON.parse(sessionStorage.getItem(chave) || 'null'); } catch (e) { /* idem */ }
-  if (guardado) { desenhar(guardado); mostrar(); }
-
-  fetch(base() + '/api/paginas/' + nome).then(function (res) {
-    if (res.status === 404) return null; // ainda não editada no painel: fica a versão do site
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    return res.json();
-  }).then(function (d) {
-    if (d && (!guardado || emIngles || guardado.atualizado !== d.atualizado)) desenhar(d);
-    try { if (d) sessionStorage.setItem(chave, JSON.stringify(d)); else sessionStorage.removeItem(chave); } catch (e) { /* idem */ }
-  }).catch(function (err) {
-    console.warn('Conteúdo da página indisponível na nuvem; mantendo a versão do site.', err);
-  }).then(mostrar);
-
-  // ---------------------------------------------------------------- notícias (Sobre)
-  // As 5 mais recentes; ‹ › passam para as mais antigas, de 5 em 5 (como no e-mail).
-  // Fontes: notícias escritas no painel, links de outros sites e os textos da Elaia.
-  var hub = document.querySelector('[data-noticias]');
-  if (!hub) return;
-  var listaEl = hub.querySelector('.noticias__lista');
-  var navEl = hub.querySelector('.noticias__nav');
-  var POR_PAGINA = 5;
-  var T = function (k, pt) { return O.t ? O.t(k) : pt; };
-  var memoria = {};
 
   function urlImg(x) {
     if (x.imagem && x.imagem.ref) return base() + '/img/' + encodeURIComponent(x.imagem.ref) + '-s';
@@ -151,6 +139,51 @@
       '</div></article>';
   }
 
+  var DESENHOS = { sobre: sobre, contato: contato, privacidade: privacidade };
+  O.paginasHtml = { sobre: sobre, contato: contato, privacidade: privacidade, noticia: noticia, texto: texto, inline: inline };
+
+  // ---------------------------------------------------------------- no navegador
+  if (typeof document === 'undefined' || !document.querySelector) return; // gerador das páginas
+  var raiz = document.documentElement;
+  var secao = document.querySelector('[data-conteudo]');
+  function mostrar() { raiz.classList.remove('pag-aguarda'); }
+  if (!secao) return mostrar();
+  var nome = secao.getAttribute('data-conteudo');
+
+  function desenhar(d) {
+    if (!d || !DESENHOS[nome]) return;
+    try { secao.innerHTML = DESENHOS[nome](d); } catch (e) { console.error(e); }
+  }
+
+  // a página já traz no HTML a versão gerada (data-atualizado): só redesenha se a nuvem tiver outra
+  var naPagina = secao.getAttribute('data-atualizado') || '';
+  var chave = 'odisse:pagina:' + nome;
+  var guardado = null;
+  try { guardado = JSON.parse(sessionStorage.getItem(chave) || 'null'); } catch (e) { /* idem */ }
+  if (guardado && guardado.atualizado !== naPagina) desenhar(guardado);
+  mostrar();
+
+  fetch(base() + '/api/paginas/' + nome).then(function (res) {
+    if (res.status === 404) return null; // ainda não editada no painel: fica a versão do site
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }).then(function (d) {
+    if (d && d.atualizado !== naPagina && (!guardado || guardado.atualizado !== d.atualizado)) desenhar(d);
+    try { if (d) sessionStorage.setItem(chave, JSON.stringify(d)); else sessionStorage.removeItem(chave); } catch (e) { /* idem */ }
+  }).catch(function (err) {
+    console.warn('Conteúdo da página indisponível na nuvem; mantendo a versão do site.', err);
+  });
+
+  // ---------------------------------------------------------------- notícias (Sobre)
+  // As 5 mais recentes; ‹ › passam para as mais antigas, de 5 em 5 (como no e-mail).
+  // Fontes: notícias escritas no painel, links de outros sites e os textos da Elaia.
+  var hub = document.querySelector('[data-noticias]');
+  if (!hub) return;
+  var listaEl = hub.querySelector('.noticias__lista');
+  var navEl = hub.querySelector('.noticias__nav');
+  var POR_PAGINA = 5;
+  var memoria = {};
+
   function pagina(de) {
     var chaveM = 'n' + de;
     var pedido = memoria[chaveM] || (memoria[chaveM] = fetch(base() + '/api/noticias?de=' + de + '&n=' + POR_PAGINA).then(function (r) {
@@ -171,7 +204,7 @@
       if (O.pontos) O.pontos.atualizar();
     }).catch(function (err) {
       delete memoria[chaveM];
-      if (de === 0) hub.hidden = true;
+      if (de === 0 && !listaEl.querySelector('.noticia')) hub.hidden = true; // sem nuvem: fica a versão da página, se houver
       console.warn('Notícias indisponíveis agora.', err);
     });
   }

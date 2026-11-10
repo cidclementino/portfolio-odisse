@@ -9,10 +9,11 @@ kv_namespaces = [
   { binding = "SITE", id = "__KV_ID__" },
 ]
 
-# A senha do painel (SITE_SENHA) é enviada pelo GitHub Actions a partir do
-# secret do repositório — nunca coloque o valor aqui.
+# A senha do painel (SITE_SENHA) e o token do GitHub (GH_TOKEN, a partir do secret
+# GH_DISPATCH_TOKEN) são enviados pelo GitHub Actions — nunca coloque os valores aqui.
 
-# Backup mensal de projetos e páginas: dia 1 de cada mês, 6h de Brasília (9h UTC).
-# Os backups ficam no próprio KV (12 mensais + 5 manuais) e aparecem no painel → Histórico.
+# Todo dia às 6h de Brasília (9h UTC): pede ao GitHub a geração das páginas estáticas
+# (para as notícias novas da Elaia entrarem). No dia 1 de cada mês, também o backup mensal
+# de projetos e páginas — fica no próprio KV (12 mensais + 5 manuais), painel → Histórico.
 [triggers]
-crons = ["0 9 1 * *"]
+crons = ["0 9 * * *"]

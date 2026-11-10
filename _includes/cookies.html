@@ -1,0 +1,15 @@
+{%- comment -%}
+  Aviso de cookies (Google Analytics e Google Ads só carregam depois de "Aceitar").
+  O texto vem do painel (aba Privacidade → Aviso de cookies), por _data/paginas.json.
+  Começa escondido; analytics.js mostra quando a pessoa ainda não escolheu.
+{%- endcomment -%}
+{%- assign L = page.lang | default: 'pt' -%}
+{%- assign pv = site.data.paginas.privacidade -%}
+<div class="cookies" id="cookies" role="region" aria-label="{% if L == 'en' %}Cookie notice{% else %}Aviso de cookies{% endif %}" hidden>
+  <p class="cookies__txt">{% if L == 'en' and pv.aviso_en != blank %}{{ pv.aviso_en | escape }}{% else %}{{ pv.aviso | escape }}{% endif %}
+    <a href="{{ site.data.rotas.privacidade[L] }}">{% if L == 'en' %}Privacy policy{% else %}Política de privacidade{% endif %}</a></p>
+  <div class="cookies__acoes">
+    <button type="button" class="cookies__bt" data-cookies="recusar">{% if L == 'en' %}Decline{% else %}Recusar{% endif %}</button>
+    <button type="button" class="cookies__bt cookies__bt--sim" data-cookies="aceitar">{% if L == 'en' %}Accept{% else %}Aceitar{% endif %}</button>
+  </div>
+</div>

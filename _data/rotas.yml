@@ -1,0 +1,8 @@
+# Endereços das páginas fixas nos dois idiomas (o mesmo mapa de assets/js/i18n.js).
+# Páginas de projeto: /projetos/<slug>/ ⇄ /en/projects/<slug>/
+home:        { pt: /,             en: /en/ }
+sobre:       { pt: /sobre/,       en: /en/about/ }
+contato:     { pt: /contato/,     en: /en/contact/ }
+privacidade: { pt: /privacidade/, en: /en/privacy/ }
+projeto:     { pt: /projeto/,     en: /en/project/ }
+projetos:    { pt: /projetos/,    en: /en/projects/ }

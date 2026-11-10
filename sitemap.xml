@@ -2,18 +2,40 @@
 layout: null
 permalink: /sitemap.xml
 ---
+{%- comment -%}
+  Cada página nos dois idiomas, com as versões ligadas entre si (hreflang).
+  Os projetos vêm de _data/projetos.json (workflow "Páginas estáticas").
+{%- endcomment -%}
+{%- assign ultimo = site.data.projetos | map: 'atualizado' | sort | last | slice: 0, 10 -%}
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
-  <url><loc>{{ site.url }}/</loc>{% if site.data.projetos.size > 0 %}<lastmod>{{ site.data.projetos | map: 'atualizado' | sort | last | slice: 0, 10 }}</lastmod>{% endif %}</url>
-  <url><loc>{{ site.url }}/sobre/</loc></url>
-  <url><loc>{{ site.url }}/contato/</loc></url>
-{%- for p in site.data.projetos %}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+{%- for nome in "home,sobre,contato,privacidade" | split: "," %}
+  {%- assign r = site.data.rotas[nome] %}
+  {%- for L in "pt,en" | split: "," %}
   <url>
-    <loc>{{ site.url }}/projetos/{{ p.slug }}/</loc>
+    <loc>{{ site.url }}{{ r[L] }}</loc>
+    {%- if nome == 'home' and ultimo %}<lastmod>{{ ultimo }}</lastmod>{% endif %}
+    {%- if nome == 'sobre' or nome == 'contato' or nome == 'privacidade' %}{% assign at = site.data.paginas[nome].atualizado %}{% if at %}<lastmod>{{ at | slice: 0, 10 }}</lastmod>{% endif %}{% endif %}
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="{{ site.url }}{{ r.pt }}"/>
+    <xhtml:link rel="alternate" hreflang="en" href="{{ site.url }}{{ r.en }}"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="{{ site.url }}{{ r.pt }}"/>
+  </url>
+  {%- endfor %}
+{%- endfor %}
+{%- for p in site.data.projetos %}
+  {%- for L in "pt,en" | split: "," %}
+  <url>
+    <loc>{{ site.url }}{% if L == 'en' %}/en/projects/{% else %}/projetos/{% endif %}{{ p.slug }}/</loc>
     {%- if p.atualizado %}<lastmod>{{ p.atualizado | slice: 0, 10 }}</lastmod>{% endif %}
+    <xhtml:link rel="alternate" hreflang="pt-BR" href="{{ site.url }}/projetos/{{ p.slug }}/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="{{ site.url }}/en/projects/{{ p.slug }}/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="{{ site.url }}/projetos/{{ p.slug }}/"/>
+    {%- if L == 'pt' %}
     {%- for im in p.imagens %}
     <image:image><image:loc>{{ im.url | xml_escape }}</image:loc></image:image>
     {%- endfor %}
+    {%- endif %}
   </url>
+  {%- endfor %}
 {%- endfor %}
 </urlset>

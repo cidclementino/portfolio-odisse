@@ -2,85 +2,10 @@
 layout: default
 title: Sobre — Odisse
 pagina: sobre
+escura: true
+alt: /en/about/
 description: >
   Odisse — Estúdio de Arquitetura & Design. Arquitetura, objetos autorais
   e pesquisa editorial construídos na tensão entre memória e potencialidade.
 ---
-{% comment %}
-  O conteúdo é editado no painel (/admin/ → Sobre e → Notícias) e vem da nuvem:
-  assets/js/paginas.js redesenha esta seção com ele. O que está abaixo é a versão de
-  reserva, gerada de _data/paginas.json. A marcação precisa continuar igual à de paginas.js.
-  Ordem: apresentação · equipe · núcleos · premiações · publicações · notícias.
-{% endcomment %}
-{% assign s = site.data.paginas.sobre %}
-<section class="sobre" data-conteudo="sobre">
-
-  <div class="sobre__wide">
-    <p class="eyebrow">{{ s.titulos.sobre }}</p>
-    <div class="sobre__intro-photo">
-      <div class="frame">
-        <img src="{{ s.foto.src | relative_url }}" alt="Odisse — Estúdio de Arquitetura &amp; Design">
-      </div>
-    </div>
-    <div class="sobre__intro-text">
-      {{ s.descricao | markdownify }}
-    </div>
-  </div>
-
-  <div class="sobre__doc">
-    <h3>{{ s.titulos.equipe }}</h3>
-    <div class="equipe-grid">
-      {% for pessoa in s.equipe %}
-      <div class="pessoa">
-        <div class="pessoa__foto frame">
-          <img src="{{ pessoa.foto.src | relative_url }}" alt="{{ pessoa.nome }}">
-        </div>
-        <h4>{{ pessoa.nome }}</h4>
-        <p class="pessoa__cargo">{{ pessoa.cargo }}</p>
-        {{ pessoa.bio | markdownify }}
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <div class="sobre__wide">
-    <h3>{{ s.titulos.nucleos }}</h3>
-    <div class="nucleos-grid">
-      {% for nucleo in s.nucleos %}
-      <div class="nucleo-box">
-        <h4>{{ nucleo.nome }}</h4>
-        <p><a href="{{ nucleo.link_url }}"{% if nucleo.link_url contains 'http' %} target="_blank" rel="noopener"{% endif %}>{{ nucleo.link_texto }}</a></p>
-        {{ nucleo.descricao | markdownify }}
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  {% if s.premiacoes.size > 0 or s.publicacoes.size > 0 %}
-  <div class="sobre__doc">
-    {% if s.premiacoes.size > 0 %}
-    <h3>{{ s.titulos.premiacoes }}</h3>
-    {% for item in s.premiacoes %}
-    <p><strong>{{ item.ano }}</strong> — {{ item.descricao | markdownify | remove: '<p>' | remove: '</p>' | strip }}</p>
-    {% endfor %}
-    {% endif %}
-
-    {% if s.publicacoes.size > 0 %}
-    <h3>{{ s.titulos.publicacoes }}</h3>
-    {% for item in s.publicacoes %}
-    <p><strong>{{ item.ano }}</strong> — {{ item.descricao | markdownify | remove: '<p>' | remove: '</p>' | strip }}</p>
-    {% endfor %}
-    {% endif %}
-  </div>
-  {% endif %}
-
-</section>
-
-{%- comment -%} Notícias: últimas 5, da nuvem (painel → Notícias + textos da Elaia); fora da seção redesenhada {%- endcomment %}
-<section class="sobre sobre--noticias" data-noticias hidden>
-  <div class="sobre__doc noticias">
-    <h3><span class="t-pt">Notícias</span><span class="t-en">News</span></h3>
-    <div class="noticias__lista" aria-live="polite"></div>
-    <div class="noticias__nav" hidden></div>
-  </div>
-</section>
+{% include conteudo-sobre.html %}

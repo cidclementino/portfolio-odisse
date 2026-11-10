@@ -2,18 +2,8 @@
 layout: default
 title: Contato — Odisse
 pagina: contato
+escura: true
+alt: /en/contact/
 description: Fale com o estúdio Odisse — Arquitetura & Design, João Pessoa.
 ---
-{% comment %}
-  O conteúdo é editado no painel (/admin/ → Contato) e vem da nuvem: assets/js/paginas.js
-  redesenha esta seção com ele. O que está abaixo é a versão de reserva, gerada de
-  _data/paginas.json. A marcação precisa continuar igual à de paginas.js.
-{% endcomment %}
-<section class="contato" data-conteudo="contato">
-  <div class="contato__doc">
-    {% for secao in site.data.paginas.contato.secoes %}
-    {% if secao.titulo != '' %}{% if forloop.first %}<p class="eyebrow">{{ secao.titulo }}</p>{% else %}<h3>{{ secao.titulo }}</h3>{% endif %}{% endif %}
-    {{ secao.texto | markdownify }}
-    {% endfor %}
-  </div>
-</section>
+{% include conteudo-contato.html %}

@@ -48,6 +48,9 @@ const nuvem = {
   backup: (chave) => req(`/api/admin/backups/${encodeURIComponent(chave)}`),
   link: (url) => req('/api/admin/link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) }),
   rss: (url) => req('/api/admin/rss' + (url ? `?url=${encodeURIComponent(url)}` : '')),
+  // páginas estáticas (Google, previews, versão em inglês): estado do último pedido e pedir agora
+  geracao: () => req('/api/admin/gerar'),
+  gerar: () => req('/api/admin/gerar', { method: 'POST' }),
 };
 const SITE = 'https://www.odisse.com.br';
 const imgUrl = (ref, m = true) => `${API}/img/${ref}${m ? '-m' : ''}`;
@@ -108,7 +111,7 @@ function rota() {
   const [nome, id] = h.split('/');
   if (nome === 'metricas') { mostrar('metricas'); return carregarMetricas(); }
   if (nome === 'historico') { mostrar('historico'); return carregarHistorico(); }
-  if (['sobre', 'contato', 'busca', 'noticias'].includes(nome)) { mostrar('pagina', nome); return abrirPagina(nome); }
+  if (['sobre', 'contato', 'privacidade', 'busca', 'noticias'].includes(nome)) { mostrar('pagina', nome); return abrirPagina(nome); }
   if (nome === 'novo') { mostrar('editor'); return abrirEditor(null); }
   if (nome === 'projeto' && id) { mostrar('editor'); return abrirEditor(id); }
   mostrar('projetos');
@@ -1481,7 +1484,7 @@ $('#btSalvar').addEventListener('click', salvar);
 // nunca foi salva pelo painel, o formulário abre com o conteúdo que está hoje
 // no site (paginas-semente.json, gerado de _data/paginas.json).
 const pg = { nome: '', d: null, sujo: false, enviando: 0, alvoImg: null, idioma: 'pt', rss: null };
-const PAG_NOME = { sobre: 'Sobre', contato: 'Contato', busca: 'Busca e compartilhamento', noticias: 'Notícias' };
+const PAG_NOME = { sobre: 'Sobre', contato: 'Contato', privacidade: 'Privacidade', busca: 'Busca e compartilhamento', noticias: 'Notícias' };
 const NOTICIAS_SEMENTE = () => ({ rss: 'https://odisse.substack.com/feed', mostrar_rss: true, rss_ocultos: [], itens: [] });
 const hojeISO = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const porData = (a, b) => String(b.data || '').localeCompare(String(a.data || ''));
@@ -1503,7 +1506,7 @@ async function abrirPagina(nome) {
   pg.rss = null;
   $('#pagTitulo').textContent = PAG_NOME[nome];
   $('#pagVer').href = nome === 'busca' ? '/' : nome === 'noticias' ? '/sobre/' : `/${nome}/`;
-  $('#pagIdioma').hidden = nome === 'busca';
+  $('#pagIdioma').hidden = false;
   $('#paginaEd').dataset.nome = nome;
   $('#pagInfo').textContent = '';
   $('#pagForm').innerHTML = '<p class="vazio">Carregando…</p>';
@@ -1533,6 +1536,7 @@ async function abrirPagina(nome) {
   $('#pagInfo').textContent = semente
     ? (nome === 'busca' ? 'Já preenchida com o que o site usa hoje. Revise, complete e salve.'
       : nome === 'noticias' ? 'Os textos da Elaia já entram sozinhos. Acrescente notícias do estúdio e links de outros sites, e salve.'
+      : nome === 'privacidade' ? 'Texto inicial da política, já em português e inglês. Revise (de preferência com quem cuida da parte jurídica do estúdio) e salve.'
       : 'Este é o conteúdo que está hoje no site. Ao salvar, a página passa a ser editada só por aqui.')
     : pg.d.atualizado ? `Última alteração em ${new Date(pg.d.atualizado).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.` : '';
   if (semente) estadoPag('pendente', 'Ainda não salva na nuvem');
@@ -1610,7 +1614,8 @@ const NOVOS = {
 };
 
 // contador de caracteres para descrições (o Google mostra ~155)
-const fConta = (cam, ideal) => {
+const fConta = (cam, ideal, opc = {}) => {
+  if (emIngles(opc)) cam += '_en';
   const n = String(pegarCaminho(pg.d, cam) || '').length;
   return `<small class="conta${n > ideal ? ' passou' : ''}" data-conta="${cam}" data-ideal="${ideal}">${n} caracteres · ideal até ${ideal}</small>`;
 };
@@ -1618,16 +1623,20 @@ const fConta = (cam, ideal) => {
 function formBusca() {
   const pagina = (k, nome) => `
     <div class="item-ed"><div class="item-cab"><b>${nome}</b></div><div class="item-corpo">
-      ${fLinha(`paginas.${k}.titulo`, 'Título (aba do navegador e resultado do Google)')}
-      ${fArea(`paginas.${k}.descricao`, 'Descrição (texto abaixo do título no Google e no preview do link)', { linhas: 3 })}
-      ${fConta(`paginas.${k}.descricao`, 155)}
+      ${fLinha(`paginas.${k}.titulo`, 'Título (aba do navegador e resultado do Google)', { tr: true })}
+      ${fArea(`paginas.${k}.descricao`, 'Descrição (texto abaixo do título no Google e no preview do link)', { linhas: 3, tr: true })}
+      ${fConta(`paginas.${k}.descricao`, 155, { tr: true })}
     </div></div>`;
   return `
   <section class="bloco-ed"><h2>Como o site aparece</h2>
     <p class="nota-ed">O que está nesta aba não aparece como texto no site: é o que o Google e os aplicativos (WhatsApp,
     Instagram, LinkedIn…) leem para mostrar o site nas buscas e nos previews de link. As páginas de cada projeto usam
     a <b>descrição de busca</b> do projeto (editor do projeto, coluna Informações) e a capa; a descrição de cada imagem
-    fica na Galeria de imagens do projeto. Depois de salvar, as páginas lidas pelo Google se atualizam em até ~20 minutos.</p>
+    fica na Galeria de imagens do projeto. Depois de salvar, as páginas lidas pelo Google se atualizam em ~2 minutos.</p>
+    <p class="nota-ed">Com o botão <b>EN</b> da barra, escreva os títulos e descrições da versão em inglês do site
+    (odisse.com.br/en/). Vazios, o site usa um texto padrão em inglês.</p>
+    <div class="geracao" id="geracao"><span id="geracaoTxt">Páginas para o Google: verificando…</span>
+      <button class="bt" data-acao="gerar">Atualizar agora</button></div>
   </section>
   <section class="bloco-ed"><h2>Imagem de compartilhamento</h2>
     ${fImagem('imagem', 'Imagem do preview (Home, Sobre e Contato)')}
@@ -1635,14 +1644,14 @@ function formBusca() {
     o centro da imagem é o que fica. Sem imagem, usamos a capa do primeiro projeto.</p>
   </section>
   <section class="bloco-ed"><h2>Páginas</h2>
-    <div class="lista-ed">${pagina('home', 'Home')}${pagina('sobre', 'Sobre')}${pagina('contato', 'Contato')}</div>
+    <div class="lista-ed">${pagina('home', 'Home')}${pagina('sobre', 'Sobre')}${pagina('contato', 'Contato')}${pagina('privacidade', 'Política de privacidade')}</div>
   </section>
   <section class="bloco-ed"><h2>Ficha do estúdio</h2>
     <p class="nota-ed">Vai para o Google como dados do negócio (nome, contato, endereço, redes). Ajuda o estúdio a aparecer
     no quadro lateral das buscas e em buscas locais. Campos vazios ficam de fora.</p>
     ${fLinha('estudio.nome', 'Nome')}
-    ${fArea('estudio.descricao', 'Descrição curta do estúdio', { linhas: 3 })}
-    ${fConta('estudio.descricao', 200)}
+    ${fArea('estudio.descricao', 'Descrição curta do estúdio', { linhas: 3, tr: true })}
+    ${fConta('estudio.descricao', 200, { tr: true })}
     <div class="duas">${fLinha('estudio.telefone', 'Telefone', { ph: '+55 83 …' })}${fLinha('estudio.email', 'E-mail')}</div>
     ${fLinha('estudio.endereco.rua', 'Rua e número')}
     <div class="duas">${fLinha('estudio.endereco.bairro', 'Bairro')}${fLinha('estudio.endereco.cep', 'CEP')}</div>
@@ -1689,6 +1698,23 @@ function formSobre() {
   </section>
   <section class="bloco-ed"><h2>Notícias</h2>
     <p class="nota-ed">As notícias do fim da página (do estúdio, links de outros sites e textos da Elaia) ficam na aba <a href="#/noticias">Notícias</a>.</p>
+  </section>`;
+}
+
+function formPrivacidade() {
+  return `
+  <section class="bloco-ed"><h2>Aviso de cookies</h2>
+    <p class="nota-ed">A caixa que aparece no canto da tela na primeira visita, com os botões <b>Aceitar</b> e <b>Recusar</b>.
+    O Google Analytics e o Google Ads só são carregados depois de "Aceitar". O link para a política entra sozinho no fim do texto.</p>
+    ${fArea('aviso', 'Texto do aviso', { linhas: 3, tr: true })}
+    ${fConta('aviso', 200, { tr: true })}
+  </section>
+  <section class="bloco-ed"><h2>Política de privacidade</h2>
+    <p class="nota-ed">Página odisse.com.br/privacidade/ (em inglês, /en/privacy/). Fica fora do menu do topo: o link está no rodapé
+    e no aviso de cookies. No fim da página entra sozinho o botão para a pessoa rever a escolha sobre cookies, e no topo a data
+    da última alteração.</p>
+    ${fLinha('titulo', 'Título', { tr: true })}
+    ${fArea('texto', 'Texto', { linhas: 24, tr: true, dica: 'Linha em branco separa parágrafos. Um parágrafo começado por <b>## </b> vira subtítulo; linhas começadas por <b>- </b> viram lista; [texto](https://…) vira link; **texto** vira negrito.' })}
   </section>`;
 }
 
@@ -1767,12 +1793,31 @@ async function carregarRss() {
   if (el2 && pg.nome === nome) el2.innerHTML = desenharRss();
 }
 
+// estado das páginas estáticas (aba Busca): quando o painel pediu a última atualização ao GitHub
+async function mostrarGeracao() {
+  const el = $('#geracaoTxt');
+  if (!el) return;
+  try {
+    const g = await nuvem.geracao();
+    if (!$('#geracaoTxt')) return;
+    const quando = g.quando ? new Date(g.quando).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+    $('#geracaoTxt').textContent = !g.quando ? 'Páginas para o Google: nenhuma atualização pedida pelo painel ainda.'
+      : g.ok ? `Páginas para o Google: atualização pedida em ${quando} (ficam prontas ~2 min depois).`
+      : g.erro === 'sem GH_TOKEN' ? 'Páginas para o Google: falta o token do GitHub (secret GH_DISPATCH_TOKEN) — elas só se atualizam uma vez por dia.'
+      : `Páginas para o Google: o último pedido (${quando}) falhou — ${g.erro || 'HTTP ' + g.status}. Confira o token do GitHub.`;
+  } catch {
+    if ($('#geracaoTxt')) $('#geracaoTxt').textContent = 'Páginas para o Google: estado indisponível agora.';
+  }
+}
+
 function desenharPagina() {
   const rolagem = $('#paginaEd').scrollTop;
   $$('#pagIdioma button').forEach((b) => b.classList.toggle('ativo', b.dataset.idioma === pg.idioma));
-  const avisoEn = pg.idioma === 'en' && pg.nome !== 'busca'
+  const avisoEn = pg.idioma === 'en'
     ? '<div class="aviso-en"><b>Versão em inglês.</b> Os campos marcados com EN recebem a tradução; o texto em cinza é o original. Campo vazio = o site mostra o português.</div>' : '';
-  $('#pagForm').innerHTML = avisoEn + (pg.nome === 'sobre' ? formSobre() : pg.nome === 'busca' ? formBusca() : pg.nome === 'noticias' ? formNoticias() : formContato());
+  $('#pagForm').innerHTML = avisoEn + (pg.nome === 'sobre' ? formSobre() : pg.nome === 'busca' ? formBusca()
+    : pg.nome === 'noticias' ? formNoticias() : pg.nome === 'privacidade' ? formPrivacidade() : formContato());
+  if (pg.nome === 'busca') mostrarGeracao();
   $('#paginaEd').scrollTop = rolagem;
   if (pg.nome === 'noticias' && !pg.rss) carregarRss();
 }
@@ -1825,6 +1870,14 @@ $('#pagForm').addEventListener('click', (e) => {
   const acao = b.dataset.acao;
   if (acao === 'img') { pg.alvoImg = b.dataset.cam; return $('#pagArquivo').click(); }
   if (acao === 'rss-alternar') return; // tratado no change
+  if (acao === 'gerar') {
+    b.disabled = true;
+    nuvem.gerar().then((g) => {
+      aviso(g.ok ? 'Pedido enviado. As páginas para o Google ficam prontas em ~2 minutos.' : `Não consegui pedir: ${g.erro || 'HTTP ' + g.status}`, !g.ok);
+      mostrarGeracao();
+    }).catch((err) => aviso(`Não consegui pedir: ${err.message}`, true)).finally(() => { b.disabled = false; });
+    return;
+  }
   if (acao === 'noticia-nova') {
     pg.d.itens ||= [];
     pg.d.itens.unshift({ id: novoId(), tipo: b.dataset.tipo, data: hojeISO(), titulo: '', texto: '', url: '', fonte: '', imagem: null, imagem_url: '' });

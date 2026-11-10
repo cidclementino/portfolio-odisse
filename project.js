@@ -18,9 +18,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var busca = new URLSearchParams(location.search);
   var slug = document.body.dataset.slug || busca.get('p') || '';
   var codigoPrevia = busca.get('previa') || '';
-  if (!slug) { location.replace('/'); return; }
+  if (!slug) { location.replace(P.local('/')); return; }
   var pronto = !!document.body.dataset.atualizado && !!track.querySelector('.spread');
-  var emIngles = O.lang === 'en';
 
   // por onde a pessoa chegou (card de outros projetos, busca…), marcado no clique
   var via = '';
@@ -37,11 +36,11 @@ document.addEventListener('DOMContentLoaded', function () {
   pedido.then(function (p) {
     // endereço antigo (o projeto mudou de endereço): vai para o atual
     if (p.slug && p.slug !== slug) { location.replace(P.url(p.slug) + location.search + location.hash); return; }
-    // a página própria só é redesenhada se o projeto mudou desde que ela foi gerada (ou em inglês)
-    if (!pronto || emIngles || codigoPrevia || p.atualizado !== document.body.dataset.atualizado) {
+    // a página própria (já no idioma dela) só é redesenhada se o projeto mudou desde que foi gerada
+    if (!pronto || codigoPrevia || p.atualizado !== document.body.dataset.atualizado) {
       document.title = P.tr(p, 'titulo') + ' — Odisse';
       var desc = document.querySelector('meta[name="description"]');
-      if (desc && !pronto) desc.setAttribute('content', p.descricao || (p.titulo + (p.local ? ' — ' + p.local : '') + '. Projeto do estúdio Odisse.'));
+      if (desc && !pronto) desc.setAttribute('content', P.tr(p, 'descricao') || (p.titulo + (p.local ? ' — ' + p.local : '') + '. Projeto do estúdio Odisse.'));
       lateral.innerHTML = P.titulo(p) + P.meta(p) +
         (codigoPrevia ? '<p class="project__previa">' + P.esc(P.T('previa', 'Prévia — este projeto ainda não está publicado.')) + '</p>' : '');
       track.innerHTML = P.spreads(p);
@@ -52,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function () {
     console.error(err);
     if (pronto) return iniciar(null); // sem nuvem, fica a versão da página
     lateral.innerHTML = '<div class="project__title"><h1>' + P.esc(P.T('nao_encontrado', 'Projeto não encontrado')) + '</h1>' +
-      '<span class="place"><a href="/">' + P.esc(P.T('ver_todos', 'Ver todos os projetos')) + '</a></span></div>';
+      '<span class="place"><a href="' + P.local('/') + '">' + P.esc(P.T('ver_todos', 'Ver todos os projetos')) + '</a></span></div>';
   });
 
   // o último card: outros projetos (só os publicados; a prévia também mostra)
@@ -159,10 +158,25 @@ document.addEventListener('DOMContentLoaded', function () {
     track.addEventListener('scroll', atualizar, { passive: true });
     window.addEventListener('resize', atualizar);
 
+    // teclado (computador): ← → passam de um item para o outro, Home / End vão ao início e ao fim
+    // (fora de campos de texto e de botões com setas próprias)
     document.addEventListener('keydown', function (e) {
-      if (celular.matches) return;
-      if (e.key === 'ArrowRight') track.scrollBy({ left: track.clientWidth, behavior: 'smooth' });
-      if (e.key === 'ArrowLeft') track.scrollBy({ left: -track.clientWidth, behavior: 'smooth' });
+      if (celular.matches || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (/input|textarea|select/i.test((e.target && e.target.tagName) || '')) return;
+      var passo = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
+      if (passo) {
+        e.preventDefault();
+        var alvo = track.scrollLeft + track.clientWidth / 2, atual = 0, melhor = Infinity;
+        spreads.forEach(function (s, i) {
+          var d = Math.abs(s.offsetLeft + s.offsetWidth / 2 - alvo);
+          if (d < melhor) { melhor = d; atual = i; }
+        });
+        var prox = spreads[Math.max(0, Math.min(spreads.length - 1, atual + passo))];
+        if (prox) track.scrollTo({ left: centerScrollFor(prox), behavior: 'smooth' });
+      } else if ((e.key === 'Home' || e.key === 'End') && (e.target === track || e.target === document.body)) {
+        e.preventDefault();
+        track.scrollTo({ left: e.key === 'Home' ? 0 : track.scrollWidth, behavior: 'smooth' });
+      }
     });
 
     // arrastar com o mouse (só no computador; o toque rola a página)
