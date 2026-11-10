@@ -17,20 +17,23 @@
       <span class="marca-sub">Site</span>
     </a>
     <nav class="menu" aria-label="Menu do painel">
+      <!-- o que se edita: conteúdo que muda sempre e as páginas fixas -->
       <a href="#/projetos" data-menu="projetos">Projetos</a>
-      <a href="#/sobre" data-menu="sobre">Sobre</a>
-      <a href="#/contato" data-menu="contato">Contato</a>
-      <a href="#/privacidade" data-menu="privacidade" title="Política de privacidade e aviso de cookies">Privacidade</a>
       <a href="#/noticias" data-menu="noticias" title="Notícias do Sobre: do estúdio, links de outros sites e textos da Elaia">Notícias</a>
-      <a href="#/busca" data-menu="busca" title="Busca no Google e compartilhamento de links">Busca</a>
-      <a href="#/metricas" data-menu="metricas">Métricas</a>
-      <a href="#/historico" data-menu="historico" title="Versões anteriores, projetos excluídos e backups">Histórico</a>
+      <a href="#/sobre" data-menu="paginas" title="Sobre, Contato e Privacidade">Páginas</a>
+      <span class="menu-sep" aria-hidden="true"></span>
+      <!-- o que se consulta ou configura -->
+      <a class="menu-sec" href="#/metricas" data-menu="metricas">Métricas</a>
+      <a class="menu-sec" href="#/busca" data-menu="ajustes" title="Busca e compartilhamento, histórico e backups">Ajustes</a>
     </nav>
     <div class="topo-acoes">
       <a class="ver-site" href="/" target="_blank" rel="noopener">Ver o site ↗</a>
       <button class="sair" id="btSair" title="Sair deste computador">Sair</button>
     </div>
   </header>
+
+  <!-- segunda linha do menu: as partes de Páginas e de Ajustes (montada por app.js) -->
+  <nav class="submenu" id="submenu" aria-label="Seções"></nav>
 
   <!-- ===================== ENTRADA ===================== -->
   <main class="login" id="login">

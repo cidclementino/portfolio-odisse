@@ -92,6 +92,18 @@ Tudo sob `/en/` é inglês: `/en/`, `/en/about/`, `/en/contact/`, `/en/privacy/`
 Textos: botão **EN** em cada aba do painel (vazio = português); títulos e descrições para o Google
 em inglês na aba Busca.
 
+### Painel: menu e Contato
+
+Menu: **Projetos · Notícias · Páginas** (Sobre, Contato, Privacidade) | **Métricas · Ajustes** (Busca e
+compartilhamento, Histórico e backups). Páginas e Ajustes abrem uma segunda linha com as suas partes.
+
+No Contato, cada seção tem um tipo — **Contato** (e-mail, telefone, WhatsApp), **Endereço** (rua,
+caixa postal, bairro, cidade, UF, CEP), **Links** (nome + endereço) ou **Texto** (livre, com links) —
+e o título é editado no cabeçalho do próprio cartão (no Sobre, no cabeçalho de cada bloco). O site
+monta o texto corrido a partir dos campos (`assets/js/paginas.js`). Os mesmos dados alimentam a
+ficha do estúdio para o Google e o botão de WhatsApp da Home. Seções antigas (só título e texto) são
+convertidas ao abrir a aba.
+
 ### Privacidade e cookies
 
 O Google Analytics e o Google Ads só carregam depois que a pessoa clica em **Aceitar** no aviso de

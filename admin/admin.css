@@ -66,6 +66,25 @@ input, textarea, select { font: inherit; color: inherit; }
   border-bottom: 2px solid transparent;
 }
 .menu a.ativo { border-bottom-color: var(--papel); font-weight: 600; }
+/* Métricas e Ajustes: consulta e configuração, separados e mais discretos */
+.menu-sep { width: 1px; align-self: center; height: 18px; background: rgba(255,255,255,.25); margin: 0 10px; }
+.menu a.menu-sec { opacity: .72; }
+.menu a.menu-sec:hover, .menu a.menu-sec.ativo { opacity: 1; }
+
+/* segunda linha do menu (Páginas e Ajustes) */
+body.com-sub { grid-template-rows: var(--topo) 42px 1fr; }
+body:not(.com-sub) .submenu { display: none; }
+.submenu {
+  display: flex; justify-content: center; gap: 4px; align-items: stretch;
+  background: var(--papel); border-bottom: 1px solid rgba(63,75,87,.12);
+}
+.submenu a {
+  display: flex; align-items: center; padding: 0 14px;
+  font-size: 13px; font-weight: 500; color: var(--ardosia); text-decoration: none; opacity: .7;
+  border-bottom: 2px solid transparent;
+}
+.submenu a:hover { opacity: 1; }
+.submenu a.ativo { opacity: 1; font-weight: 600; border-bottom-color: var(--ardosia); }
 .topo-acoes { justify-self: end; display: flex; align-items: center; gap: 12px; }
 .ver-site { font-size: 12px; color: inherit; opacity: .75; text-decoration: none; }
 .ver-site:hover { opacity: 1; }
@@ -96,7 +115,7 @@ body:not(.vista-historico) #historico { display: none; }
 .login-caixa .erro { color: var(--perigo); font-size: 12.5px; min-height: 1.2em; margin: 0 0 10px; }
 .bt-forte { border: 1px solid var(--ardosia); background: var(--ardosia); color: var(--papel); border-radius: 7px; padding: 8px 16px; font-size: 13px; font-weight: 600; }
 .bt-forte:disabled { opacity: .5; cursor: default; }
-.bt { border: 1px solid var(--linha-2); background: var(--papel); color: var(--ardosia); border-radius: 7px; padding: 7px 14px; font-size: 12.5px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+.bt { white-space: nowrap; border: 1px solid var(--linha-2); background: var(--papel); color: var(--ardosia); border-radius: 7px; padding: 7px 14px; font-size: 12.5px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
 .bt:hover { border-color: var(--ardosia-2); }
 .bt.perigo:hover { color: var(--perigo); border-color: var(--perigo); }
 #btEntrar { padding: 10px; font-size: 14px; }
@@ -628,3 +647,18 @@ details.ref-pt div { white-space: pre-wrap; max-height: 180px; overflow: auto; p
 /* aba Busca: estado das páginas para o Google (geradas pelo GitHub a cada gravação) */
 .geracao { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--ardosia-2); margin: 4px 0 0; }
 .geracao .bt { padding: 4px 10px; font-size: 12px; }
+
+/* título editável no próprio cabeçalho (cartões do Contato, blocos do Sobre) = título da seção no site */
+.titulo-cartao {
+  flex: 1; min-width: 0; font: inherit; font-size: 13px; font-weight: 650; color: var(--ardosia);
+  background: transparent; border: 1px solid transparent; border-radius: 5px; padding: 3px 6px; margin-left: -7px;
+}
+.titulo-cartao:hover { border-color: var(--nevoa); background: #fff; }
+.titulo-cartao:focus { outline: 2px solid var(--azul); outline-offset: -1px; background: #fff; }
+.titulo-cartao.traduz { font-style: italic; }
+.h2-editavel { display: flex; }
+.h2-editavel .titulo-cartao { font-size: inherit; font-weight: inherit; padding: 2px 6px; }
+.item-cab .chip-tipo { flex: none; }
+.tres { display: grid; grid-template-columns: 1fr 1fr 110px; gap: 0 10px; }
+.add-tipos { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: var(--ardosia-2); }
+.add-tipos span { margin-right: 4px; }

@@ -65,26 +65,52 @@
   "contato": {
     "secoes": [
       {
+        "tipo": "contato",
         "titulo": "Contato",
-        "texto": "[contato@odisse.com.br](mailto:contato@odisse.com.br)\n+55 83 99122-3088\n\nFale com a gente também pelo [WhatsApp](https://wa.me/5583991223088)."
+        "email": "contato@odisse.com.br",
+        "telefone": "+55 83 99122-3088",
+        "whatsapp": "+55 83 99122-3088"
       },
       {
+        "tipo": "texto",
         "titulo": "Trabalhe conosco",
         "texto": "Estamos sempre atentos a pessoas que compartilham nossa forma de olhar a Arquitetura e o Design.\n\nPara se candidatar, responda nosso [Formulário de Candidatura](#)."
       },
       {
+        "tipo": "endereco",
         "titulo": "Endereço",
-        "texto": "Rua Bananeiras, nº 361 – Sala 107\nCaixa Postal 393\nManaíra, João Pessoa – PB\nCEP: 58.038-170"
+        "logradouro": "Rua Bananeiras, nº 361 – Sala 107",
+        "caixa_postal": "393",
+        "bairro": "Manaíra",
+        "cidade": "João Pessoa",
+        "uf": "PB",
+        "cep": "58.038-170"
       },
       {
+        "tipo": "links",
         "titulo": "Redes sociais",
-        "texto": "[Instagram](https://www.instagram.com/odisseestudio/)\n\n[TikTok](https://www.tiktok.com/@odisseestudio)\n\n[YouTube](https://www.youtube.com/@odisseestudio)"
+        "itens": [
+          {
+            "nome": "Instagram",
+            "url": "https://www.instagram.com/odisseestudio/"
+          },
+          {
+            "nome": "TikTok",
+            "url": "https://www.tiktok.com/@odisseestudio"
+          },
+          {
+            "nome": "YouTube",
+            "url": "https://www.youtube.com/@odisseestudio"
+          }
+        ]
       },
       {
+        "tipo": "texto",
         "titulo": "Elaia",
         "texto": "Elaia é o braço editorial do Odisse — nosso espaço de pesquisa e escrita sobre arquitetura, design e os arquétipos que atravessam o que construímos.\n\n[Leia Elaia](https://odisse.substack.com/)"
       },
       {
+        "tipo": "texto",
         "titulo": "Também em",
         "texto": "Criamos Arquitetura em diferentes escopos. Saiba mais sobre [nossos serviços](https://projetos.odisse.com.br).\n\nPara adquirir nossas peças autorais, visite [Odisse Objetos](https://www.odisseobjetos.com/)."
       }

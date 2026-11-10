@@ -98,11 +98,44 @@
       '</div>' : '');
   }
 
+  // Contato: cada seção tem um tipo (painel → Páginas → Contato). O painel guarda os dados em
+  // campos separados e aqui eles viram o mesmo texto corrido de sempre:
+  //   texto    -> texto livre (com links)
+  //   contato  -> e-mail, telefone e WhatsApp
+  //   endereco -> endereço, caixa postal, bairro, cidade, UF e CEP
+  //   links    -> lista de nome + endereço (redes sociais)
+  // Seções antigas (só título e texto) são tratadas como texto.
+  function digitos(t) { return String(t || '').replace(/\D/g, ''); }
+  function blocoContato(s) {
+    var linhas = [];
+    if (s.email) linhas.push('<a href="mailto:' + esc(s.email) + '">' + esc(s.email) + '</a>');
+    if (s.telefone) linhas.push(esc(s.telefone));
+    var zap = digitos(s.whatsapp);
+    return (linhas.length ? '<p>' + linhas.join('<br>') + '</p>' : '') +
+      (zap ? '<p>' + esc(T('whatsapp_frase', 'Fale com a gente também pelo')) + ' <a href="https://wa.me/' + zap + '" target="_blank" rel="noopener">WhatsApp</a>.</p>' : '');
+  }
+  function blocoEndereco(s) {
+    var cidade = [s.bairro, s.cidade].filter(Boolean).join(', ') + (s.uf ? (s.cidade || s.bairro ? ' – ' : '') + s.uf : '');
+    var linhas = [
+      s.logradouro ? esc(s.logradouro) : '',
+      s.caixa_postal ? esc(T('caixa_postal', 'Caixa Postal')) + ' ' + esc(s.caixa_postal) : '',
+      cidade ? esc(cidade) : '',
+      s.cep ? esc(T('cep', 'CEP:')) + ' ' + esc(s.cep) : '',
+    ].filter(Boolean);
+    return linhas.length ? '<p>' + linhas.join('<br>') + '</p>' : '';
+  }
+  function blocoLinks(s) {
+    return (s.itens || []).filter(function (x) { return x && (x.nome || x.url); }).map(function (x) {
+      return '<p>' + link(x.url, tr(x, 'nome') || x.url) + '</p>';
+    }).join('');
+  }
   function contato(d) {
     return '<div class="contato__doc">' + (d.secoes || []).map(function (s, i) {
       var tt = tr(s, 'titulo');
       var tit = tt ? (i === 0 ? '<p class="eyebrow">' + esc(tt) + '</p>' : '<h3>' + esc(tt) + '</h3>') : '';
-      return tit + texto(tr(s, 'texto'));
+      var corpo = s.tipo === 'contato' ? blocoContato(s) : s.tipo === 'endereco' ? blocoEndereco(s)
+        : s.tipo === 'links' ? blocoLinks(s) : texto(tr(s, 'texto'));
+      return corpo ? tit + corpo : '';
     }).join('') + '</div>';
   }
 

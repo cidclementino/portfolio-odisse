@@ -204,8 +204,17 @@ permalink: ${base}${velho}/
 
 // ---- busca.json (com a ficha pronta para o Google)
 const ogPadrao = (await ogDe(busca.imagem?.ref)) || primeiraOg;
-const end = est.endereco || {};
-const redes = (est.redes || []).map((x) => limpar(x.url)).filter((u) => /^https?:\/\//.test(u));
+// e-mail, telefone, endereço e redes vêm do Contato (seções com tipo); os campos antigos da aba Busca são reserva
+const reservaPaginas = JSON.parse(fs.readFileSync(path.join(RAIZ, '_data/paginas.json'), 'utf8'));
+const contatoNuvem = (await pegar('/api/paginas/contato')) || reservaPaginas.contato || {};
+const secoesContato = contatoNuvem.secoes || [];
+const cont = secoesContato.find((x) => x.tipo === 'contato') || {};
+const endC = secoesContato.find((x) => x.tipo === 'endereco');
+const end = endC
+  ? { rua: endC.logradouro, caixa: endC.caixa_postal, bairro: endC.bairro, cidade: endC.cidade, uf: endC.uf, cep: endC.cep }
+  : est.endereco || {};
+const linksContato = secoesContato.filter((x) => x.tipo === 'links').flatMap((x) => x.itens || []);
+const redes = [...new Set([...linksContato, ...(est.redes || [])].map((x) => limpar(x.url)).filter((u) => /^https?:\/\//.test(u)))];
 const fundadores = String(est.fundadores || '').split(',').map(limpar).filter(Boolean);
 const ficha = {
   '@context': 'https://schema.org',
@@ -217,12 +226,13 @@ const ficha = {
   ...(ogPadrao ? { image: SITE + ogPadrao } : {}),
   ...(limpar(est.descricao) ? { description: limpar(est.descricao) } : {}),
   ...(limpar(est.descricao_en) ? { disambiguatingDescription: limpar(est.descricao_en) } : {}),
-  ...(limpar(est.telefone) ? { telephone: limpar(est.telefone) } : {}),
-  ...(limpar(est.email) ? { email: limpar(est.email) } : {}),
+  ...(limpar(cont.telefone || est.telefone) ? { telephone: limpar(cont.telefone || est.telefone) } : {}),
+  ...(limpar(cont.email || est.email) ? { email: limpar(cont.email || est.email) } : {}),
   ...((end.rua || end.cidade) ? {
     address: {
       '@type': 'PostalAddress',
       ...(limpar(end.rua) ? { streetAddress: [limpar(end.rua), limpar(end.bairro)].filter(Boolean).join(', ') } : {}),
+      ...(limpar(end.caixa) ? { postOfficeBoxNumber: limpar(end.caixa) } : {}),
       ...(limpar(end.cidade) ? { addressLocality: limpar(end.cidade) } : {}),
       ...(limpar(end.uf) ? { addressRegion: limpar(end.uf) } : {}),
       ...(limpar(end.cep) ? { postalCode: limpar(end.cep) } : {}),

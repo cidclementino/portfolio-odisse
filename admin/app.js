@@ -97,12 +97,24 @@ async function enviarImagem(arquivo) {
 
 // ------------------------------------------------------------------ vistas
 let vista = '';
+// menu: Projetos · Notícias · Páginas (Sobre, Contato, Privacidade) | Métricas · Ajustes (Busca, Histórico)
+// Páginas e Ajustes abrem uma segunda linha com as suas partes
+const GRUPOS = {
+  paginas: [['sobre', 'Sobre'], ['contato', 'Contato'], ['privacidade', 'Privacidade']],
+  ajustes: [['busca', 'Busca e compartilhamento'], ['historico', 'Histórico e backups']],
+};
+const GRUPO_DE = Object.fromEntries(Object.entries(GRUPOS).flatMap(([g, l]) => l.map(([k]) => [k, g])));
 function mostrar(v, menu = v === 'editor' ? 'projetos' : v) {
   vista = v;
-  document.body.className = `vista-${v}`;
+  const grupo = GRUPO_DE[menu];
+  document.body.className = `vista-${v}${grupo ? ' com-sub' : ''}`;
   if (v !== 'editor') fecharSeletor();
   fecharGaveta();
-  $$('.menu a').forEach((a) => a.classList.toggle('ativo', a.dataset.menu === menu));
+  $$('.menu a').forEach((a) => a.classList.toggle('ativo', a.dataset.menu === (grupo || menu)));
+  $('#submenu').innerHTML = grupo ? GRUPOS[grupo].map(([k, rot]) =>
+    `<a href="#/${k}"${k === menu ? ' class="ativo" aria-current="page"' : ''}>${rot}</a>`).join('') : '';
+  // "Páginas" e "Ajustes" voltam para a última parte aberta do grupo
+  if (grupo) { const a = $(`.menu a[data-menu="${grupo}"]`); if (a) a.href = `#/${menu}`; }
 }
 
 function rota() {
@@ -111,6 +123,8 @@ function rota() {
   const [nome, id] = h.split('/');
   if (nome === 'metricas') { mostrar('metricas'); return carregarMetricas(); }
   if (nome === 'historico') { mostrar('historico'); return carregarHistorico(); }
+  if (nome === 'ajustes') { location.replace('#/busca'); return; }
+  if (nome === 'paginas') { location.replace('#/sobre'); return; }
   if (['sobre', 'contato', 'privacidade', 'busca', 'noticias'].includes(nome)) { mostrar('pagina', nome); return abrirPagina(nome); }
   if (nome === 'novo') { mostrar('editor'); return abrirEditor(null); }
   if (nome === 'projeto' && id) { mostrar('editor'); return abrirEditor(id); }
@@ -1532,6 +1546,7 @@ async function abrirPagina(nome) {
   }
   if (pg.nome !== nome) return;
   if (nome === 'noticias') { pg.d.itens = (pg.d.itens || []).sort(porData); pg.d.rss_ocultos ||= []; }
+  const convertida = nome === 'contato' && separarContato(pg.d);
   desenharPagina();
   $('#pagInfo').textContent = semente
     ? (nome === 'busca' ? 'Já preenchida com o que o site usa hoje. Revise, complete e salve.'
@@ -1540,6 +1555,10 @@ async function abrirPagina(nome) {
       : 'Este é o conteúdo que está hoje no site. Ao salvar, a página passa a ser editada só por aqui.')
     : pg.d.atualizado ? `Última alteração em ${new Date(pg.d.atualizado).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}.` : '';
   if (semente) estadoPag('pendente', 'Ainda não salva na nuvem');
+  if (convertida) {
+    $('#pagInfo').textContent = 'Separado em campos (o site fica igual). Confira e salve.';
+    pagMudou();
+  }
 }
 
 function estadoPag(e, txt) {
@@ -1581,27 +1600,38 @@ function fImagem(cam, rot, opc = {}) {
     </div></div>`;
 }
 const TIT_EN = { sobre: 'About', nucleos: 'Studios', premiacoes: 'Awards', publicacoes: 'Publications', equipe: 'Team' };
+// título do bloco do Sobre = título da seção no site (editável no próprio cabeçalho do bloco)
 function fTitulo(chave, padrao) {
-  if (pg.idioma === 'en') {
-    return `<label class="campo campo-rotulo traduz"><span>Título da seção no site</span>
-    <input type="text" data-cam="titulos.${chave}_en" value="${esc(pegarCaminho(pg.d, 'titulos.' + chave + '_en') || '')}" placeholder="${esc(TIT_EN[chave] || '')}"></label>`;
-  }
-  return `<label class="campo campo-rotulo"><span>Título da seção no site</span>
-  <input type="text" data-cam="titulos.${chave}" value="${esc(pegarCaminho(pg.d, 'titulos.' + chave) ?? padrao)}"></label>`;
+  const en = pg.idioma === 'en';
+  const c = `titulos.${chave}${en ? '_en' : ''}`;
+  const v = en ? pegarCaminho(pg.d, c) || '' : pegarCaminho(pg.d, c) ?? padrao;
+  const ph = en ? TIT_EN[chave] || '' : padrao;
+  return `<h2 class="h2-editavel"><input class="titulo-cartao${en ? ' traduz' : ''}" type="text" data-cam="${c}" value="${esc(v)}"
+    placeholder="${esc(ph)}" aria-label="Título da seção no site${en ? ' (inglês)' : ''}" title="Título da seção no site — clique para editar"></h2>`;
 }
 
 function fLista(cam, rotItem, corpo, opc = {}) {
   const itens = pegarCaminho(pg.d, cam) || [];
   return `<div class="lista-ed${opc.compacta ? ' compacta' : ''}">` + itens.map((it, i) => `
     <div class="item-ed">
-      <div class="item-cab"><b>${esc(opc.nome?.(it) || `${rotItem} ${i + 1}`)}</b>
+      <div class="item-cab">${opc.titulo ? fTituloCartao(`${cam}.${i}.titulo`, `${rotItem} ${i + 1}`) : `<b>${esc(opc.nome?.(it) || `${rotItem} ${i + 1}`)}</b>`}
+        ${opc.tipo ? `<span class="chip-tipo">${esc(opc.tipo(it))}</span>` : ''}
         <button class="bt ico" data-acao="item-subir" data-lista="${cam}" data-i="${i}" title="Subir" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button class="bt ico" data-acao="item-descer" data-lista="${cam}" data-i="${i}" title="Descer" ${i === itens.length - 1 ? 'disabled' : ''}>↓</button>
         <button class="bt ico perigo" data-acao="item-apagar" data-lista="${cam}" data-i="${i}" title="Excluir">✕</button>
       </div>
       <div class="item-corpo">${corpo(`${cam}.${i}`, it, i)}</div>
     </div>`).join('') +
-    `<button class="bt add-item" data-acao="item-novo" data-lista="${cam}">+ ${opc.add || rotItem}</button></div>`;
+    (opc.semAdd ? '' : `<button class="bt add-item" data-acao="item-novo" data-lista="${cam}">+ ${opc.add || rotItem}</button>`) + '</div>';
+}
+
+// título editável no próprio cabeçalho (cartão do Contato, blocos do Sobre): é o título da seção no site
+function fTituloCartao(cam, ph) {
+  const en = pg.idioma === 'en';
+  const c = en ? cam + '_en' : cam;
+  const pt = pegarCaminho(pg.d, cam) || '';
+  return `<input class="titulo-cartao${en ? ' traduz' : ''}" type="text" data-cam="${c}" value="${esc(pegarCaminho(pg.d, c) || '')}"
+    placeholder="${esc(en ? pt || ph : ph)}" aria-label="Título da seção no site${en ? ' (inglês)' : ''}" title="Título da seção no site — clique para editar">`;
 }
 
 const NOVOS = {
@@ -1611,6 +1641,13 @@ const NOVOS = {
   equipe: () => ({ nome: '', cargo: '', foto: null, bio: '' }),
   secoes: () => ({ titulo: '', texto: '' }),
   redes: () => ({ nome: '', url: '' }),
+  itens: () => ({ nome: '', url: '' }), // links de uma seção do Contato
+};
+const NOVA_SECAO = {
+  texto: () => ({ tipo: 'texto', titulo: '', texto: '' }),
+  contato: () => ({ tipo: 'contato', titulo: 'Contato', email: '', telefone: '', whatsapp: '' }),
+  endereco: () => ({ tipo: 'endereco', titulo: 'Endereço', logradouro: '', caixa_postal: '', bairro: '', cidade: '', uf: '', cep: '' }),
+  links: () => ({ tipo: 'links', titulo: 'Redes sociais', itens: [{ nome: '', url: '' }] }),
 };
 
 // contador de caracteres para descrições (o Google mostra ~155)
@@ -1652,13 +1689,11 @@ function formBusca() {
     ${fLinha('estudio.nome', 'Nome')}
     ${fArea('estudio.descricao', 'Descrição curta do estúdio', { linhas: 3, tr: true })}
     ${fConta('estudio.descricao', 200, { tr: true })}
-    <div class="duas">${fLinha('estudio.telefone', 'Telefone', { ph: '+55 83 …' })}${fLinha('estudio.email', 'E-mail')}</div>
-    ${fLinha('estudio.endereco.rua', 'Rua e número')}
-    <div class="duas">${fLinha('estudio.endereco.bairro', 'Bairro')}${fLinha('estudio.endereco.cep', 'CEP')}</div>
-    <div class="duas">${fLinha('estudio.endereco.cidade', 'Cidade')}${fLinha('estudio.endereco.uf', 'Estado (sigla)', { ph: 'PB' })}</div>
+    <p class="nota-ed">E-mail, telefone, endereço e redes sociais vêm da aba <a href="#/contato">Páginas → Contato</a> — não é preciso repetir aqui.</p>
     ${fLinha('estudio.atende', 'Onde atende', { ph: 'João Pessoa, Paraíba e outras cidades do Brasil' })}
     <div class="duas">${fLinha('estudio.fundacao', 'Ano de fundação', { ph: '2021' })}${fLinha('estudio.fundadores', 'Fundadores', { dica: 'Separados por vírgula.' })}</div>
-    <h3 class="sub-ed">Redes e outros endereços do estúdio</h3>
+    <h3 class="sub-ed">Outros endereços do estúdio</h3>
+    <p class="nota-ed">Além das redes do Contato: Elaia, loja, outros sites do estúdio…</p>
     ${fLista('estudio.redes', 'Endereço', (c) => `<div class="duas">${fLinha(c + '.nome', 'Nome', { ph: 'Instagram' })}${fLinha(c + '.url', 'Endereço', { ph: 'https://…' })}</div>`,
       { compacta: true, nome: (it) => it.nome, add: 'Endereço' })}
   </section>`;
@@ -1668,30 +1703,30 @@ function formBusca() {
 function formSobre() {
   const anoDesc = (c) => `<div class="ano-desc">${fLinha(c + '.ano', 'Ano')}${fLinha(c + '.descricao', 'Descrição', { tr: true })}</div>`;
   return `
-  <section class="bloco-ed"><h2>Abertura</h2>
+  <section class="bloco-ed">
     ${fTitulo('sobre', 'Sobre')}
     ${fImagem('foto', 'Foto do estúdio')}
     ${fArea('descricao', 'Texto de apresentação', { linhas: 14, dica: 'Uma linha em branco separa os parágrafos.', tr: true })}
   </section>
-  <section class="bloco-ed"><h2>Equipe</h2>
+  <section class="bloco-ed">
     ${fTitulo('equipe', 'Equipe')}
     ${fLista('equipe', 'Pessoa', (c) => `
       <div class="pessoa-ed">${fImagem(c + '.foto', 'Foto', { quadrada: true })}
         <div>${fLinha(c + '.nome', 'Nome')}${fLinha(c + '.cargo', 'Cargo', { tr: true })}${fArea(c + '.bio', 'Apresentação', { linhas: 5, tr: true })}</div>
       </div>`, { nome: (it) => it.nome, add: 'Pessoa' })}
   </section>
-  <section class="bloco-ed"><h2>Núcleos</h2>
+  <section class="bloco-ed">
     ${fTitulo('nucleos', 'Núcleos')}
     ${fLista('nucleos', 'Núcleo', (c) => `
       ${fLinha(c + '.nome', 'Nome', { tr: true })}
       <div class="duas">${fLinha(c + '.link_texto', 'Texto do link', { ph: 'Visite nossa loja', tr: true })}${fLinha(c + '.link_url', 'Endereço do link', { ph: 'https://…' })}</div>
       ${fArea(c + '.descricao', 'Descrição', { linhas: 3, tr: true })}`, { nome: (it) => it.nome })}
   </section>
-  <section class="bloco-ed"><h2>Premiações</h2>
+  <section class="bloco-ed">
     ${fTitulo('premiacoes', 'Premiações')}
     ${fLista('premiacoes', 'Prêmio', anoDesc, { compacta: true, nome: (it) => [it.ano, it.descricao].filter(Boolean).join(' — ') })}
   </section>
-  <section class="bloco-ed"><h2>Publicações</h2>
+  <section class="bloco-ed">
     ${fTitulo('publicacoes', 'Publicações')}
     <p class="nota-ed">Sem nenhum item, a seção não aparece no site.</p>
     ${fLista('publicacoes', 'Publicação', anoDesc, { compacta: true, nome: (it) => [it.ano, it.descricao].filter(Boolean).join(' — ') })}
@@ -1718,11 +1753,72 @@ function formPrivacidade() {
   </section>`;
 }
 
+// ---- Contato: seções com tipo; o painel guarda campos separados e o site monta o texto corrido
+// (assets/js/paginas.js → contato). O título de cada seção é editado no próprio cabeçalho do cartão.
+const TIPOS_CONTATO = { contato: 'Contato', endereco: 'Endereço', links: 'Links', texto: 'Texto' };
+// converte seções antigas (só título e texto) em campos separados, quando o texto tem esse formato
+function separarContato(d) {
+  let mudou = false;
+  const linkMd = /^\[([^\]]+)\]\(([^)\s]+)\)$/;
+  d.secoes = (d.secoes || []).map((s) => {
+    if (s.tipo) return s;
+    const t = String(s.texto || '').trim();
+    const linhas = t.split('\n').map((l) => l.trim()).filter(Boolean);
+    const base = { titulo: s.titulo || '', ...(s.titulo_en ? { titulo_en: s.titulo_en } : {}) };
+    let nova = null;
+    if (linhas.length && linhas.every((l) => linkMd.test(l))) {
+      nova = { ...base, tipo: 'links', itens: linhas.map((l) => { const m = l.match(linkMd); return { nome: m[1], url: m[2] }; }) };
+    } else if (/mailto:|wa\.me\//.test(t)) {
+      const email = (t.match(/mailto:([^)\s]+)/) || t.match(/[\w.+-]+@[\w-]+\.[\w.]+/) || [])[1] || '';
+      const zap = (t.match(/wa\.me\/(\d+)/) || [])[1] || '';
+      const tel = (linhas.find((l) => /^\+?[\d\s().-]{8,}$/.test(l)) || '').trim();
+      const resto = linhas.filter((l) => !/mailto:|wa\.me\//.test(l) && l !== tel);
+      // WhatsApp igual ao telefone: fica com o número como está escrito (+55 83 99122-3088)
+      const whatsapp = zap && tel.replace(/\D/g, '') === zap ? tel : zap ? '+' + zap : '';
+      if (!resto.length) nova = { ...base, tipo: 'contato', email, telefone: tel, whatsapp };
+    } else if (/endere|address/i.test(s.titulo || '') && linhas.length <= 6) {
+      const e = { ...base, tipo: 'endereco', logradouro: '', caixa_postal: '', bairro: '', cidade: '', uf: '', cep: '' };
+      const sobra = [];
+      for (const l of linhas) {
+        let m;
+        if ((m = l.match(/^caixa postal\s*(.+)$/i))) e.caixa_postal = m[1];
+        else if ((m = l.match(/^cep:?\s*(.+)$/i))) e.cep = m[1];
+        else if ((m = l.match(/^(?:(.+?),\s*)?(.+?)\s*[–-]\s*([A-Z]{2})$/))) { e.bairro = m[1] || ''; e.cidade = m[2]; e.uf = m[3]; }
+        else if (!e.logradouro) e.logradouro = l;
+        else sobra.push(l);
+      }
+      if (!sobra.length) nova = e;
+    }
+    if (!nova) return { ...s, tipo: 'texto' };
+    mudou = true;
+    return nova;
+  });
+  return mudou;
+}
+function corpoSecaoContato(c, it) {
+  if (it.tipo === 'contato') {
+    return `<div class="duas">${fLinha(c + '.email', 'E-mail', { ph: 'contato@odisse.com.br' })}${fLinha(c + '.telefone', 'Telefone', { ph: '+55 83 …' })}</div>
+      ${fLinha(c + '.whatsapp', 'WhatsApp (número)', { ph: '+55 83 9…', dica: 'Vira a frase “Fale com a gente também pelo WhatsApp.” com o link. Também é o número do botão de WhatsApp da Home.' })}`;
+  }
+  if (it.tipo === 'endereco') {
+    return `${fLinha(c + '.logradouro', 'Rua, número e complemento', { ph: 'Rua Bananeiras, nº 361 – Sala 107' })}
+      <div class="duas">${fLinha(c + '.caixa_postal', 'Caixa postal', { ph: '393' })}${fLinha(c + '.cep', 'CEP', { ph: '58.038-170' })}</div>
+      <div class="tres">${fLinha(c + '.bairro', 'Bairro')}${fLinha(c + '.cidade', 'Cidade')}${fLinha(c + '.uf', 'Estado (sigla)', { ph: 'PB' })}</div>`;
+  }
+  if (it.tipo === 'links') {
+    return fLista(c + '.itens', 'Link', (ci) => `<div class="duas">${fLinha(ci + '.nome', 'Nome', { ph: 'Instagram' })}${fLinha(ci + '.url', 'Endereço', { ph: 'https://…' })}</div>`,
+      { compacta: true, nome: (x) => x.nome, add: 'Link' });
+  }
+  return fArea(c + '.texto', 'Texto', { linhas: 5, tr: true, dica: '[texto](https://…) vira link; **texto** vira negrito; linha em branco separa parágrafos.' });
+}
 function formContato() {
   return `
   <section class="bloco-ed"><h2>Seções</h2>
-    <p class="nota-ed">Cada seção é um título e um texto, nesta ordem. A primeira abre a página.</p>
-    ${fLista('secoes', 'Seção', (c) => `${fLinha(c + '.titulo', 'Título', { tr: true })}${fArea(c + '.texto', 'Texto', { linhas: 5, tr: true })}`, { nome: (it) => it.titulo })}
+    <p class="nota-ed">Na ordem em que aparecem no site; a primeira abre a página. O nome de cada cartão é o título da seção
+    no site — clique nele para editar. Os campos viram o mesmo texto corrido da página.</p>
+    ${fLista('secoes', 'Seção', corpoSecaoContato, { titulo: true, semAdd: true, tipo: (it) => TIPOS_CONTATO[it.tipo || 'texto'] })}
+    <div class="add-tipos"><span>Nova seção:</span>${Object.entries(TIPOS_CONTATO).map(([k, rot]) =>
+      `<button class="bt" data-acao="secao-nova" data-tipo="${k}">+ ${rot}</button>`).join('')}</div>
   </section>`;
 }
 
@@ -1853,7 +1949,7 @@ $('#pagForm').addEventListener('input', (e) => {
     conta.classList.toggle('passou', n > ideal);
   }
   // o nome do item no cabeçalho do cartão acompanha o que é digitado
-  const cab = e.target.closest('.item-ed')?.querySelector('.item-cab b');
+  const cab = e.target.classList.contains('titulo-cartao') ? null : e.target.closest('.item-ed')?.querySelector(':scope > .item-cab b');
   if (cab && /\.(nome|titulo|ano|descricao)$/.test(cam) && !e.target.closest('textarea')) {
     const base = cam.replace(/\.[^.]+$/, '');
     const it = pegarCaminho(pg.d, base);
@@ -1887,6 +1983,13 @@ $('#pagForm').addEventListener('click', (e) => {
     return;
   }
   if (acao === 'link-ler') return lerLinkNoticia(+b.dataset.i, b);
+  if (acao === 'secao-nova') {
+    (pg.d.secoes ||= []).push(NOVA_SECAO[b.dataset.tipo]());
+    desenharPagina();
+    pagMudou();
+    $$('#pagForm .titulo-cartao').at(-1)?.focus();
+    return;
+  }
   const cam = b.dataset.lista;
   const lista = pegarCaminho(pg.d, cam) || [];
   const i = +b.dataset.i;
@@ -1895,7 +1998,7 @@ $('#pagForm').addEventListener('click', (e) => {
   else if (acao === 'item-descer' && i < lista.length - 1) [lista[i + 1], lista[i]] = [lista[i], lista[i + 1]];
   else if (acao === 'item-apagar') {
     const it = lista[i];
-    const nome = it?.nome || it?.titulo || it?.descricao || '';
+    const nome = it?.nome || it?.titulo || it?.descricao || it?.url || '';
     if (!confirm(`Excluir ${nome ? `“${nome}”` : 'este item'}?`)) return;
     lista.splice(i, 1);
   } else return;
