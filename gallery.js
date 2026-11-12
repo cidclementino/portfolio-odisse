@@ -536,6 +536,28 @@ document.addEventListener('DOMContentLoaded', function () {
       if (a) try { sessionStorage.setItem('odisse-via', a.getAttribute('data-via')); } catch (er) { /* idem */ }
     }, true);
 
+    // clique simples no conteúdo: recentraliza o projeto aberto na tela
+    // (útil quando a roda do mouse, nas pontas da sequência, devolveu a
+    // rolagem à página e o projeto escorregou para cima ou para baixo).
+    // Clique duplo: fecha o projeto. Links e botões seguem normais.
+    function noConteudo(e) {
+      return !(e.target.closest && e.target.closest('a, button, input, textarea, select'));
+    }
+    track.addEventListener('click', function (e) {
+      if (!noConteudo(e) || e.detail > 1) return;
+      seguir(panel, function () {
+        return Math.max(64, (window.innerHeight - panel.offsetHeight) / 2);
+      }, 420);
+    });
+    track.addEventListener('dblclick', function (e) {
+      if (!noConteudo(e)) return;
+      rolagemAtual++; // interrompe a recentralização iniciada pelo primeiro clique
+      var item = panel.closest('.gallery__item');
+      if (!item || !panel.classList.contains('is-open')) return;
+      var rw = item.querySelector('.gallery__row');
+      closeProject(rw, panel, item._info, item._thumb);
+    });
+
     updateActiveDot();
   }
 });

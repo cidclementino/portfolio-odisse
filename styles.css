@@ -191,15 +191,16 @@ html:not(.lang-en) .nav__idioma [data-idioma="pt"],
 }
 .busca__barra {
   position: relative;
-  width: 36px; height: 36px;
-  border-radius: 18px;
-  border: 1px solid transparent;
+  width: 40px; height: 40px;
+  border-radius: 20px;
+  /* fechada, a lupa leva o mesmo círculo dos outros botões (atalhos, fechar projeto) */
+  border: 1px solid rgba(26,26,26,0.2);
   overflow: hidden;
   transition: width 0.45s cubic-bezier(.4,0,.2,1), background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
 }
 .busca__abrir, .busca__fechar {
   position: absolute; top: -1px;
-  width: 36px; height: 36px;
+  width: 40px; height: 40px;
   padding: 0; border: 0; background: none;
   color: inherit; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
@@ -208,12 +209,13 @@ html:not(.lang-en) .nav__idioma [data-idioma="pt"],
 .busca__abrir svg { width: 17px; height: 17px; }
 .busca__fechar { right: 0; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
 .busca__fechar svg { width: 14px; height: 14px; }
-.busca__abrir:hover { color: var(--slate); }
-.nav--on-dark .busca__abrir:hover { color: var(--gold); }
+.nav--on-dark .busca__barra { border-color: rgba(244,244,244,0.35); }
+.busca:not(.is-aberta) .busca__barra:hover { background: var(--slate); border-color: var(--slate); color: var(--claro); }
+.nav--on-dark .busca:not(.is-aberta) .busca__barra:hover { background: var(--claro); border-color: var(--claro); color: var(--slate); }
 .busca__campo {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
-  padding: 0 38px 0 38px;
+  padding: 0 40px;
   border: 0; outline: none; background: transparent;
   font: inherit; font-size: 0.85rem; letter-spacing: 0.01em;
   color: inherit;
@@ -325,13 +327,13 @@ html:not(.lang-en) .nav__idioma [data-idioma="pt"],
 
   .busca {
     --busca-w: calc(100vw - 2 * var(--gutter) - 40px);
-    left: auto; right: calc(var(--gutter) + 36px);
+    left: auto; right: calc(var(--gutter) + 40px);
     transform: translateY(-50%);
   }
   .busca.is-aberta .busca__barra { width: var(--busca-w); }
   .busca-aberta .nav__mark { opacity: 0; pointer-events: none; }
   .busca__painel {
-    left: auto; right: -36px; transform: none;
+    left: auto; right: -40px; transform: none;
     width: calc(100vw - 2 * var(--gutter));
     max-height: calc(100svh - 96px);
   }
@@ -434,8 +436,13 @@ html:not(.lang-en) .nav__idioma [data-idioma="pt"],
    a quantidade por linha acompanha a largura da tela (2 no celular);
    cada capa leva direto à página do projeto */
 .vista-grade .gallery {
+  /* esticada sobre a tela: as bordas da grade alinham com a marca ODISSE
+     (à esquerda) e com o PT/EN (à direita) — o mesmo respiro do cabeçalho */
+  max-width: none;
+  padding-left: var(--gutter);
+  padding-right: var(--gutter);
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(clamp(220px, 19vw, 300px), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(clamp(220px, 19vw, 300px), 1fr));
   gap: 44px clamp(16px, 2vw, 28px);
 }
 .vista-grade .gallery__row,
