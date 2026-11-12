@@ -1,5 +1,18 @@
 [
   {
+    "slug": "vestiarios-vrv",
+    "titulo": "Vestiários VRV",
+    "titulo_en": "",
+    "local": "Alhandra, Brasil",
+    "local_en": "Alhandra, Brazil",
+    "atualizado": "2026-11-12T03:25:11.704Z",
+    "imagens": [
+      {
+        "url": "https://site-odisse.reservaprojectbasework.workers.dev/img/e5c55e87d3354023-m"
+      }
+    ]
+  },
+  {
     "slug": "residencia-yvc",
     "titulo": "Residência YVC",
     "titulo_en": "",
