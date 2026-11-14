@@ -1,5 +1,18 @@
 [
   {
+    "slug": "atelie-santo-fio",
+    "titulo": "Ateliê Santo fio",
+    "titulo_en": "",
+    "local": "João Pessoa, Brasil",
+    "local_en": "João Pessoa, Brazil",
+    "atualizado": "2026-11-14T02:55:21.624Z",
+    "imagens": [
+      {
+        "url": "https://site-odisse.reservaprojectbasework.workers.dev/img/ce3aafb1b9954234-m"
+      }
+    ]
+  },
+  {
     "slug": "vestiarios-vrv",
     "titulo": "Vestiários VRV",
     "titulo_en": "",
