@@ -58,7 +58,8 @@ const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 // relevância na Home: sorteio a cada visita, em camadas (alta → média → baixa)
 const RELEVANCIAS = ['alta', 'media', 'baixa'];
 // busca = ficha do estúdio, títulos/descrições das páginas e imagem de compartilhamento
-const PAGINAS = new Set(['sobre', 'contato', 'privacidade', 'busca', 'noticias']);
+// opcoes: listas de Tipologia, Escala e Status sugeridas no painel (com a versão em inglês)
+const PAGINAS = new Set(['sobre', 'contato', 'privacidade', 'busca', 'noticias', 'opcoes']);
 // workflow que regrava as páginas estáticas (disparado pelo Worker depois de cada gravação)
 const REPO = 'cidclementino/portfolio-odisse';
 const WORKFLOW = 'estaticas.yml';
@@ -111,7 +112,7 @@ function capaDe(p) {
   return s ? { ref: s.ref, w: s.w, h: s.h } : null;
 }
 
-const VERSAO_INDICE = 2; // sobe quando o resumo ganha campos novos (o índice é refeito sozinho)
+const VERSAO_INDICE = 3; // sobe quando o resumo ganha campos novos (o índice é refeito sozinho)
 
 function resumo(p) {
   return {
@@ -128,6 +129,9 @@ function resumo(p) {
     titulo_en: p.titulo_en || '',
     local_en: p.local_en || '',
     descricao_en: curto(p.descricao_en, 240),
+    tipologia_en: p.tipologia_en || '',
+    escala_en: p.escala_en || '',
+    status_en: p.status_en || '',
     visivel: p.visivel !== false,
     relevancia: RELEVANCIAS.includes(p.relevancia) ? p.relevancia : 'media',
     antigos: p.enderecos_antigos || [],
@@ -153,7 +157,7 @@ async function lerIndice(kv, cacheTtl) {
 }
 
 // versão pública: sem campos internos (banco de imagens, redação e link de prévia são só do painel)
-const publico = ({ visivel, criado, banco, redacao, previa, ...resto }) => ({
+const publico = ({ visivel, criado, banco, textos, redacao, previa, ...resto }) => ({
   ...resto,
   secoes: (resto.secoes || []).map(({ id, ...s }) => s),
   capa: capaDe(resto),
@@ -174,6 +178,10 @@ function validar(p, id) {
   if (p.banco !== undefined) {
     if (!Array.isArray(p.banco)) return 'banco de imagens inválido';
     for (const b of p.banco) if (!b || !ID.test(b.ref || '')) return 'imagem do banco inválida';
+  }
+  if (p.textos !== undefined) {
+    if (!Array.isArray(p.textos)) return 'banco de textos inválido';
+    for (const t of p.textos) if (!t || !ID.test(t.id || '') || typeof t.texto !== 'string') return 'texto do banco inválido';
   }
   if (p.redacao !== undefined) {
     if (!Array.isArray(p.redacao)) return 'redação inválida';

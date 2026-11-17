@@ -54,13 +54,33 @@
         <h1>Projetos</h1>
         <p id="projInfo"></p>
       </div>
-      <button class="bt-forte" id="btNovo">+ Novo projeto</button>
+      <div class="sec-acoes">
+        <button class="bt" id="btOpcoes" title="Editar as listas de Tipologia, Escala e Status">Opções dos campos</button>
+        <button class="bt-forte" id="btNovo">+ Novo projeto</button>
+      </div>
     </div>
     <div class="aviso-nuvem" id="avisoImportar" hidden>
       <span>A nuvem ainda está vazia. Importe os três projetos que estavam no site (YVC, DCMCC e Altavista) para começar a partir deles.</span>
       <button class="bt-forte" id="btImportar">Importar projetos atuais</button>
     </div>
     <div class="lista" id="lista"></div>
+  </main>
+
+  <!-- ===================== OPÇÕES DOS CAMPOS ===================== -->
+  <main class="pagina" id="opcoes">
+    <div class="sec-cab linha">
+      <div>
+        <a class="voltar-lista" href="#/projetos">← Projetos</a>
+        <h1>Opções dos campos</h1>
+        <p>As listas sugeridas em <b>Tipologia</b>, <b>Escala</b> e <b>Status</b> dos projetos. A ordem aqui é a ordem das listas.
+        O inglês é o que o site mostra na versão em inglês; vazio, usa o vocabulário padrão ou o próprio português.</p>
+      </div>
+      <div class="ed-salvar">
+        <span class="opc-info" id="opcInfo"></span>
+        <button class="bt-forte" id="opcSalvar" title="Salvar na nuvem (Ctrl+S)">Salvar</button>
+      </div>
+    </div>
+    <div class="opc-grade" id="opcForm"></div>
   </main>
 
   <!-- ===================== EDITOR ===================== -->
@@ -135,18 +155,18 @@
       <div class="palco-barra">
         <div class="palco-modo">
           <div class="seg modos" role="tablist" aria-label="Vista do projeto" id="modos">
-            <button data-modo="texto" role="tab">Texto</button>
+            <button data-modo="texto" role="tab">Narrativa projetual</button>
             <button data-modo="galeria" role="tab">Galeria de imagens</button>
             <button data-modo="sequencia" role="tab">Sequência</button>
           </div>
-          <p class="so-texto">Escreva aqui todo o texto do projeto. Selecione um trecho e use <b>Criar card</b> para levá-lo à sequência — o trecho e o card ficam ligados: corrigir um corrige o outro.</p>
+          <p class="so-texto">Escreva aqui a narrativa do projeto. Selecione um trecho e use <b>Criar card</b>: ele vai para o <b>banco de textos</b>, pronto para ser arrastado para a sequência. O trecho e o card ficam ligados — corrigir um corrige o outro.</p>
           <p class="so-galeria">Todas as imagens do projeto. Envie, escolha a capa e mande para a sequência com <b>+</b>. Descreva cada imagem no campo abaixo dela — é o que o Google Imagens e os leitores de tela leem. <span class="galeria-alt" id="galeriaAlt"></span></p>
-          <p class="so-sequencia">Imagens e textos na ordem em que aparecem no projeto. Arraste imagens do banco para cá; arraste pelo rótulo para reordenar.</p>
+          <p class="so-sequencia">Imagens e textos na ordem em que aparecem no projeto. Arraste imagens e textos dos bancos para cá; arraste pelo rótulo para reordenar. A roda do mouse corre a sequência.</p>
         </div>
         <div class="acoes so-sequencia">
           <button class="bt" id="btAddImg">+ Imagem</button>
           <button class="bt" id="btAddTxt">+ Texto</button>
-          <button class="bt bt-banco" id="btBanco" title="Mostrar ou ocultar o banco de imagens"></button>
+          <button class="bt bt-banco" id="btBanco" title="Mostrar ou ocultar os bancos de imagens e de textos"></button>
         </div>
         <div class="acoes so-galeria">
           <div class="seg" role="group" aria-label="Filtrar a galeria" id="galeriaFiltro">
@@ -179,25 +199,42 @@
       <div class="esteira so-sequencia" id="esteira"></div>
     </section>
 
-    <aside class="banco" id="bancoLado">
-      <div class="lado-cab banco-cab">
+    <aside class="banco" id="bancoLado" data-aba="imagens">
+      <div class="banco-abas seg" role="tablist" aria-label="Bancos" id="bancoAbas">
+        <button data-aba="imagens" role="tab" class="ativo">Imagens</button><button data-aba="textos" role="tab">Textos</button>
+      </div>
+      <div class="lado-cab banco-cab so-aba-imagens">
         <div>
           <h2>Banco de imagens</h2>
           <p id="bancoInfo"></p>
         </div>
         <button class="bt" id="btBancoEnviar" title="Enviar imagens do computador para o banco">+ Enviar</button>
       </div>
-      <div class="banco-filtro seg" role="group" aria-label="Filtrar o banco" id="bancoFiltro">
+      <div class="banco-filtro seg so-aba-imagens" role="group" aria-label="Filtrar o banco" id="bancoFiltro">
         <button data-f="todas" class="ativo">Todas</button>
         <button data-f="livres">Não usadas</button>
       </div>
-      <div class="banco-corpo" id="banco"></div>
-      <p class="banco-dica">Arraste para a sequência, ou use <b>+</b> na imagem para pôr no fim. Solte arquivos aqui para enviar. Arrastar uma imagem da sequência para cá tira ela da sequência (fica no banco).</p>
+      <div class="banco-corpo so-aba-imagens" id="banco"></div>
+      <p class="banco-dica so-aba-imagens">Arraste para a sequência, ou use <b>+</b> na imagem para pôr no fim. Solte arquivos aqui para enviar. Arrastar uma imagem da sequência para cá tira ela da sequência (fica no banco).</p>
+
+      <div class="lado-cab banco-cab so-aba-textos">
+        <div>
+          <h2>Banco de textos</h2>
+          <p id="bancoTextosInfo"></p>
+        </div>
+        <button class="bt" id="btTextoNovo" title="Escrever um card de texto novo, no fim da sequência">+ Texto</button>
+      </div>
+      <div class="banco-filtro seg so-aba-textos" role="group" aria-label="Filtrar o banco de textos" id="textosFiltro">
+        <button data-f="todas" class="ativo">Todos</button>
+        <button data-f="livres">Não usados</button>
+      </div>
+      <div class="banco-corpo so-aba-textos" id="bancoTextos"></div>
+      <p class="banco-dica so-aba-textos">Os cards criados na <b>Narrativa projetual</b> chegam aqui. Arraste para a sequência, ou use <b>+</b> para pôr no fim. Arrastar um texto da sequência para cá tira ele da sequência (fica no banco).</p>
     </aside>
 
     <aside class="trechos" id="trechosLado">
       <div class="lado-cab">
-        <h2>Trechos em cards</h2>
+        <h2>Banco de textos</h2>
         <p id="trechosInfo"></p>
       </div>
       <div class="trechos-corpo" id="trechos"></div>

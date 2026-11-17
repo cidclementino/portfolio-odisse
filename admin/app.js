@@ -126,6 +126,7 @@ function rota() {
   if (nome === 'ajustes') { location.replace('#/busca'); return; }
   if (nome === 'paginas') { location.replace('#/sobre'); return; }
   if (['sobre', 'contato', 'privacidade', 'busca', 'noticias'].includes(nome)) { mostrar('pagina', nome); return abrirPagina(nome); }
+  if (nome === 'opcoes') { mostrar('opcoes', 'projetos'); return abrirOpcoes(); }
   if (nome === 'novo') { mostrar('editor'); return abrirEditor(null); }
   if (nome === 'projeto' && id) { mostrar('editor'); return abrirEditor(id); }
   mostrar('projetos');
@@ -140,6 +141,10 @@ window.addEventListener('hashchange', () => {
     }
     ed.sujo = false;
   }
+  if (vista === 'opcoes' && opc.sujo && location.hash !== '#/opcoes') {
+    if (!confirm('Há alterações não salvas nas opções. Sair mesmo assim?')) { history.replaceState(null, '', '#/opcoes'); return; }
+    opc.sujo = false;
+  }
   if (vista === 'pagina' && pg.sujo && location.hash !== `#/${pg.nome}`) {
     if (!confirm(`Há alterações não salvas na página ${PAG_NOME[pg.nome]}. Sair mesmo assim?`)) {
       history.replaceState(null, '', `#/${pg.nome}`);
@@ -150,7 +155,7 @@ window.addEventListener('hashchange', () => {
   rota();
 });
 window.addEventListener('beforeunload', (e) => {
-  if ((vista === 'editor' && (ed.sujo || ed.enviando)) || (vista === 'pagina' && (pg.sujo || pg.enviando))) { e.preventDefault(); e.returnValue = ''; }
+  if ((vista === 'editor' && (ed.sujo || ed.enviando)) || (vista === 'pagina' && (pg.sujo || pg.enviando)) || (vista === 'opcoes' && opc.sujo)) { e.preventDefault(); e.returnValue = ''; }
 });
 
 // ------------------------------------------------------------------ entrada
@@ -185,7 +190,7 @@ async function carregarLista() {
   const lista = $('#lista');
   if (!indice.length) lista.innerHTML = '<p class="vazio">Carregando…</p>';
   try {
-    indice = await nuvem.lista();
+    [indice] = await Promise.all([nuvem.lista(), carregarOpcoes()]);
   } catch (err) {
     lista.innerHTML = `<p class="vazio">Não foi possível carregar os projetos: ${esc(err.message)}</p>`;
     return;
@@ -196,30 +201,34 @@ async function carregarLista() {
 function desenharLista() {
   const vis = indice.filter((r) => r.visivel).length;
   $('#projInfo').textContent = indice.length
-    ? `${indice.length} ${indice.length === 1 ? 'projeto' : 'projetos'} · ${vis} no site. Na Home, a ordem é sorteada a cada nova visita, por relevância: primeiro os de alta, depois média, depois baixa.`
+    ? `${indice.length} ${indice.length === 1 ? 'projeto' : 'projetos'} · ${vis} no site. Na Home, a ordem é sorteada a cada nova visita, por prioridade: primeiro os de alta, depois média, depois baixa.`
     : 'Nenhum projeto na nuvem ainda.';
   $('#avisoImportar').hidden = indice.length > 0;
   const lista = $('#lista');
   if (!indice.length) { lista.innerHTML = ''; return; }
-  lista.innerHTML = indice.map((r, i) => `
+  lista.innerHTML = indice.map((r) => `
     <div class="proj${r.visivel ? '' : ' oculto'}" data-id="${r.id}" draggable="true">
       <span class="alca" title="Arraste para reordenar">⋮⋮</span>
-      <span class="proj-n">${i + 1}</span>
       <a class="proj-capa" href="#/projeto/${r.id}">${r.capa?.ref ? `<img src="${imgUrl(r.capa.ref)}" alt="" loading="lazy">` : ''}</a>
       <div class="proj-info">
         <a class="proj-nome" href="#/projeto/${r.id}">${esc(r.titulo) || 'Sem título'}</a>
-        <div class="proj-meta">
-          ${[r.local, r.ano].filter(Boolean).map(esc).join(' · ')}
-          ${r.status ? `<span class="chip">${esc(r.status)}</span>` : ''}
-          <span>${r.nimagens} ${r.nimagens === 1 ? 'imagem' : 'imagens'} · ${r.ntextos} ${r.ntextos === 1 ? 'texto' : 'textos'}</span>
-        </div>
+        <span class="proj-local">${[r.local, r.ano].filter(Boolean).map(esc).join(' · ') || '<em>Sem local</em>'}</span>
+        <span class="proj-conta">${r.nimagens} ${r.nimagens === 1 ? 'imagem' : 'imagens'} · ${r.ntextos} ${r.ntextos === 1 ? 'texto' : 'textos'}</span>
       </div>
-      <div class="seg relev" role="group" aria-label="Relevância na Home" title="Relevância na Home">${RELEV.map(([k, n]) =>
-        `<button data-acao="relev" data-r="${k}" class="${(r.relevancia || 'media') === k ? 'ativo' : ''}">${n}</button>`).join('')}</div>
-      <label class="chave" title="Mostrar ou esconder do site"><input type="checkbox" data-acao="visivel" ${r.visivel ? 'checked' : ''}><b>${r.visivel ? 'No site' : 'Oculto'}</b></label>
+      <div class="proj-campo">
+        <span class="proj-rot">Prioridade</span>
+        <div class="seg relev" role="group" aria-label="Prioridade na Home" title="Prioridade na Home: a ordem é sorteada dentro de cada nível">${RELEV.map(([k, n]) =>
+          `<button data-acao="relev" data-r="${k}" class="${(r.relevancia || 'media') === k ? 'ativo' : ''}">${n}</button>`).join('')}</div>
+      </div>
+      <label class="proj-campo">
+        <span class="proj-rot">Status</span>
+        <select class="proj-status" data-acao="status" aria-label="Status do projeto">${opcoesSelect('status', r.status, 'Sem status')}</select>
+      </label>
+      <div class="proj-campo">
+        <span class="proj-rot">Site</span>
+        <label class="chave" title="Mostrar ou esconder do site"><input type="checkbox" data-acao="visivel" ${r.visivel ? 'checked' : ''}><b>${r.visivel ? 'No site' : 'Oculto'}</b></label>
+      </div>
       <div class="proj-acoes">
-        <button class="bt ico" data-acao="subir" title="Subir" ${i === 0 ? 'disabled' : ''}>↑</button>
-        <button class="bt ico" data-acao="descer" title="Descer" ${i === indice.length - 1 ? 'disabled' : ''}>↓</button>
         <a class="bt" href="#/projeto/${r.id}">Editar</a>
         <button class="bt perigo" data-acao="apagar">Excluir</button>
       </div>
@@ -232,6 +241,7 @@ const RELEV = [['alta', 'Alta'], ['media', 'Média'], ['baixa', 'Baixa']];
 async function gravarCampo(id, campo, valor) {
   const p = await nuvem.ler(id);
   p[campo] = valor;
+  traduzirEscolhas(p);
   const res = await nuvem.gravar(p);
   indice[indice.findIndex((r) => r.id === id)] = res.resumo;
   desenharLista();
@@ -252,6 +262,7 @@ $('#lista').addEventListener('click', async (e) => {
   if (!bt || bt.dataset.acao === 'visivel') return;
   const id = bt.closest('.proj').dataset.id;
   const i = indice.findIndex((r) => r.id === id);
+  if (bt.dataset.acao === 'status') return;
   if (bt.dataset.acao === 'relev') {
     const v = bt.dataset.r;
     if ((indice[i].relevancia || 'media') === v) return;
@@ -265,8 +276,6 @@ $('#lista').addEventListener('click', async (e) => {
     }
     return;
   }
-  if (bt.dataset.acao === 'subir' && i > 0) { [indice[i - 1], indice[i]] = [indice[i], indice[i - 1]]; salvarOrdem(); }
-  if (bt.dataset.acao === 'descer' && i < indice.length - 1) { [indice[i + 1], indice[i]] = [indice[i], indice[i + 1]]; salvarOrdem(); }
   if (bt.dataset.acao === 'apagar') {
     if (!confirm(`Excluir “${indice[i].titulo}”? O projeto e as imagens dele saem da nuvem e do site.`)) return;
     try {
@@ -279,6 +288,19 @@ $('#lista').addEventListener('click', async (e) => {
 });
 
 $('#lista').addEventListener('change', async (e) => {
+  if (e.target.dataset.acao === 'status') {
+    const sel = e.target;
+    const id = sel.closest('.proj').dataset.id;
+    sel.disabled = true;
+    try {
+      await gravarCampo(id, 'status', sel.value);
+      aviso(sel.value ? `Status: ${sel.value}.` : 'Status apagado.');
+    } catch (err) {
+      desenharLista();
+      aviso(`Não foi possível alterar: ${err.message}`, true);
+    }
+    return;
+  }
   if (e.target.dataset.acao !== 'visivel') return;
   const linha = e.target.closest('.proj');
   const id = linha.dataset.id;
@@ -302,7 +324,7 @@ $('#lista').addEventListener('change', async (e) => {
 let arrastado = null;
 $('#lista').addEventListener('dragstart', (e) => {
   const linha = e.target.closest?.('.proj');
-  if (!linha) return;
+  if (!linha || e.target.closest?.('select, input, button')) return;
   arrastado = linha;
   linha.classList.add('arrastando');
   e.dataTransfer.effectAllowed = 'move';
@@ -337,6 +359,206 @@ $('#lista').addEventListener('dragend', () => {
 });
 
 $('#btNovo').addEventListener('click', () => { location.hash = '#/novo'; });
+$('#btOpcoes').addEventListener('click', () => { location.hash = '#/opcoes'; });
+
+// ------------------------------------------------------------------ opções dos campos
+// As listas sugeridas de Tipologia, Escala e Status (com a versão em inglês) ficam na
+// nuvem como a "página" opcoes. Ao gravar um projeto, a tradução da opção escolhida
+// vai junto (tipologia_en…), e o site a usa no lugar do vocabulário fixo.
+const OPC_CAMPOS = [
+  ['tipologia', 'Tipologia', 'Vira filtro na busca do site.'],
+  ['escala', 'Escala', 'Vira filtro na busca do site.'],
+  ['status', 'Status', 'Aparece na ficha do projeto; também se troca direto na lista de projetos.'],
+];
+const OPC_PADRAO = {
+  tipologia: [['Residencial', 'Residential'], ['Comercial', 'Commercial'], ['Corporativo', 'Corporate'], ['Interiores', 'Interiors'], ['Institucional', 'Institutional'], ['Retrofit', 'Retrofit'], ['Mobiliário', 'Furniture']],
+  escala: [['Objeto', 'Object'], ['Interior', 'Interior'], ['Edifício', 'Building'], ['Conjunto', 'Complex'], ['Urbano', 'Urban'], ['Paisagem', 'Landscape']],
+  status: [['Ideia', 'Idea'], ['Conceito', 'Concept'], ['Em projeto', 'In design'], ['Em construção', 'Under construction'], ['Concluído', 'Completed'], ['Não construído', 'Unbuilt']],
+};
+const normOpc = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+let opcoes = null;
+function opcoesDe(d) {
+  const out = {};
+  for (const [c] of OPC_CAMPOS) {
+    const l = Array.isArray(d?.[c]) ? d[c] : OPC_PADRAO[c].map(([pt, en]) => ({ pt, en }));
+    out[c] = l.filter((o) => o && String(o.pt || '').trim()).map((o) => ({ pt: String(o.pt).trim(), en: String(o.en || '').trim() }));
+  }
+  return out;
+}
+async function carregarOpcoes(forcar = false) {
+  if (opcoes && !forcar) return opcoes;
+  try { opcoes = opcoesDe(await nuvem.pagina('opcoes')); }
+  catch (err) { if (err.status !== 404 && opcoes) return opcoes; opcoes = opcoesDe(null); }
+  encherListas();
+  return opcoes;
+}
+// sugestões dos campos do editor
+function encherListas() {
+  const ids = { tipologia: 'listaTipologia', escala: 'listaEscala', status: 'listaStatus' };
+  for (const [c] of OPC_CAMPOS) {
+    const dl = document.getElementById(ids[c]);
+    if (dl) dl.innerHTML = opcoes[c].map((o) => `<option value="${esc(o.pt)}">`).join('');
+  }
+}
+// <option>s de um campo; um valor que não está na lista também aparece (marcado)
+function opcoesSelect(campo, atual, vazio) {
+  const l = opcoes?.[campo] || [];
+  const tem = !atual || l.some((o) => normOpc(o.pt) === normOpc(atual));
+  return `<option value="">${esc(vazio)}</option>` +
+    (tem ? '' : `<option value="${esc(atual)}" selected>${esc(atual)} (fora da lista)</option>`) +
+    l.map((o) => `<option value="${esc(o.pt)}"${normOpc(o.pt) === normOpc(atual) ? ' selected' : ''}>${esc(o.pt)}</option>`).join('');
+}
+// grava no projeto a versão em inglês das escolhas (vazia: o site usa o vocabulário fixo)
+function traduzirEscolhas(p) {
+  if (!opcoes) return p;
+  for (const [c] of OPC_CAMPOS) {
+    const o = opcoes[c].find((x) => normOpc(x.pt) === normOpc(p[c]));
+    if (p[c] && o?.en) p[c + '_en'] = o.en; else delete p[c + '_en'];
+  }
+  return p;
+}
+
+const opc = { sujo: false, salvando: false };
+async function abrirOpcoes() {
+  $('#opcForm').innerHTML = '<p class="vazio">Carregando…</p>';
+  try {
+    const [l] = await Promise.all([nuvem.lista(), carregarOpcoes(true)]);
+    indice = l;
+  } catch (err) {
+    $('#opcForm').innerHTML = `<p class="vazio">Não foi possível carregar: ${esc(err.message)}</p>`;
+    return;
+  }
+  opc.sujo = false;
+  desenharOpcoes();
+}
+const usoDe = (campo, v) => indice.filter((r) => v && normOpc(r[campo]) === normOpc(v)).length;
+function linhaOpc(campo, o = { pt: '', en: '' }, orig = o.pt) {
+  const n = usoDe(campo, orig);
+  return `<li class="opc-item" data-orig="${esc(orig)}">
+    <span class="alca" draggable="true" title="Arraste para reordenar">⋮⋮</span>
+    <input type="text" class="opc-pt" value="${esc(o.pt)}" placeholder="Nome em português" aria-label="Português">
+    <input type="text" class="opc-en" value="${esc(o.en)}" placeholder="${esc(o.pt) || 'In English'}" aria-label="Inglês">
+    <span class="opc-uso" title="${n ? `Usada em ${n} ${n === 1 ? 'projeto' : 'projetos'}` : 'Nenhum projeto usa'}">${n || ''}</span>
+    <button class="bt ico perigo" data-acao="opc-tirar" title="Tirar da lista">✕</button>
+  </li>`;
+}
+function desenharOpcoes() {
+  $('#opcForm').innerHTML = OPC_CAMPOS.map(([c, rot, nota]) => {
+    const fora = [...new Set(indice.map((r) => (r[c] || '').trim()).filter((v) => v && !opcoes[c].some((o) => normOpc(o.pt) === normOpc(v))))];
+    return `<section class="opc-cartao" data-campo="${c}">
+      <div class="opc-cab"><h2>${rot}</h2><p>${nota}</p></div>
+      <div class="opc-cols"><span></span><span>Português</span><span>Inglês</span><span title="Projetos que usam">Usos</span><span></span></div>
+      <ol class="opc-lista">${opcoes[c].map((o) => linhaOpc(c, o)).join('')}</ol>
+      <button class="bt opc-add" data-acao="opc-add">+ Adicionar opção</button>
+      ${fora.length ? `<div class="opc-fora"><span>Em uso nos projetos, fora da lista:</span>${fora.map((v) =>
+        `<button class="chip" data-acao="opc-incluir" data-v="${esc(v)}" title="Incluir na lista">${esc(v)} +</button>`).join('')}</div>` : ''}
+    </section>`;
+  }).join('');
+}
+function opcMudou() {
+  opc.sujo = true;
+  $('#opcInfo').textContent = 'Alterações não salvas';
+}
+$('#opcForm').addEventListener('input', (e) => {
+  if (e.target.classList.contains('opc-pt')) e.target.nextElementSibling.placeholder = e.target.value || 'In English';
+  opcMudou();
+});
+$('#opcForm').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-acao]');
+  if (!b) return;
+  const cartao = b.closest('.opc-cartao');
+  const lista = $('.opc-lista', cartao);
+  if (b.dataset.acao === 'opc-add' || b.dataset.acao === 'opc-incluir') {
+    const v = b.dataset.v || '';
+    lista.insertAdjacentHTML('beforeend', linhaOpc(cartao.dataset.campo, { pt: v, en: '' }, v));
+    if (v) b.remove(); else lista.lastElementChild.querySelector('.opc-pt').focus();
+    opcMudou();
+  }
+  if (b.dataset.acao === 'opc-tirar') {
+    const li = b.closest('.opc-item');
+    const n = usoDe(cartao.dataset.campo, li.dataset.orig);
+    if (n && !confirm(`“${li.dataset.orig}” está em ${n} ${n === 1 ? 'projeto' : 'projetos'}. Tirar da lista não muda esses projetos — só deixa de ser sugerida. Continuar?`)) return;
+    li.remove();
+    opcMudou();
+  }
+});
+// reordenar arrastando pela alça
+let opcArrastada = null;
+$('#opcForm').addEventListener('dragstart', (e) => {
+  const li = e.target.closest?.('.opc-item');
+  if (!li) return;
+  opcArrastada = li;
+  li.classList.add('arrastando');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', 'opcao');
+  e.dataTransfer.setDragImage(li, 12, 12);
+});
+$('#opcForm').addEventListener('dragover', (e) => {
+  if (!opcArrastada) return;
+  const li = e.target.closest('.opc-item');
+  if (!li || li === opcArrastada || li.parentElement !== opcArrastada.parentElement) return;
+  e.preventDefault();
+  const r = li.getBoundingClientRect();
+  li.parentElement.insertBefore(opcArrastada, e.clientY < r.top + r.height / 2 ? li : li.nextSibling);
+});
+$('#opcForm').addEventListener('dragend', () => {
+  if (opcArrastada) { opcArrastada.classList.remove('arrastando'); opcArrastada = null; opcMudou(); }
+});
+
+async function salvarOpcoes() {
+  if (opc.salvando) return;
+  const novas = {};
+  const renomear = [];
+  for (const cartao of $$('#opcForm .opc-cartao')) {
+    const c = cartao.dataset.campo;
+    const vistos = new Set();
+    novas[c] = [];
+    for (const li of $$('.opc-item', cartao)) {
+      const pt = $('.opc-pt', li).value.trim();
+      const en = $('.opc-en', li).value.trim();
+      const orig = li.dataset.orig;
+      if (!pt || vistos.has(normOpc(pt))) continue;
+      vistos.add(normOpc(pt));
+      novas[c].push({ pt, en });
+      if (orig && orig !== pt && usoDe(c, orig)) renomear.push({ c, de: orig, para: pt });
+    }
+  }
+  const afetados = indice.filter((r) => renomear.some((x) => normOpc(r[x.c]) === normOpc(x.de)));
+  let trocar = false;
+  if (afetados.length) {
+    trocar = confirm(`Opções renomeadas: ${renomear.map((x) => `“${x.de}” → “${x.para}”`).join(', ')}.\n\nAtualizar também ${afetados.length === 1 ? 'o projeto que usa' : `os ${afetados.length} projetos que usam`} o nome antigo? (Cancelar: só a lista muda.)`);
+  }
+  opc.salvando = true;
+  $('#opcSalvar').disabled = true;
+  $('#opcInfo').textContent = 'Salvando…';
+  try {
+    await nuvem.gravarPagina('opcoes', novas);
+    opcoes = opcoesDe(novas);
+    encherListas();
+    let n = 0;
+    // projetos: troca o nome antigo e, em todos que usam uma opção com inglês, atualiza a tradução
+    const usamTraducao = indice.filter((r) => OPC_CAMPOS.some(([c]) => r[c] && (r[c + '_en'] || '') !== (opcoes[c].find((o) => normOpc(o.pt) === normOpc(r[c]))?.en || '')));
+    const alvos = [...new Set([...(trocar ? afetados : []), ...usamTraducao])];
+    for (const r of alvos) {
+      $('#opcInfo').textContent = `Atualizando projetos… ${++n} de ${alvos.length}`;
+      const p = await nuvem.ler(r.id);
+      if (trocar) for (const x of renomear) if (normOpc(p[x.c]) === normOpc(x.de)) p[x.c] = x.para;
+      const res = await nuvem.gravar(traduzirEscolhas(p));
+      indice[indice.findIndex((y) => y.id === r.id)] = res.resumo;
+    }
+    opc.sujo = false;
+    desenharOpcoes();
+    $('#opcInfo').textContent = '';
+    aviso(alvos.length ? `Opções salvas · ${alvos.length} ${alvos.length === 1 ? 'projeto atualizado' : 'projetos atualizados'}.` : 'Opções salvas.');
+  } catch (err) {
+    $('#opcInfo').textContent = 'Alterações não salvas';
+    aviso(`Não foi possível salvar: ${err.message}`, true);
+  } finally {
+    opc.salvando = false;
+    $('#opcSalvar').disabled = false;
+  }
+}
+$('#opcSalvar').addEventListener('click', salvarOpcoes);
 
 // importar os projetos que estavam no site (Jekyll) para a nuvem
 $('#btImportar').addEventListener('click', async () => {
@@ -384,6 +606,7 @@ const ed = {
   p: null, novo: false, sujo: false, enviando: 0, slugManual: false, filtro: 'todas',
   modo: ['texto', 'galeria', 'sequencia'].includes(lerPref('odisse-painel-modo')) ? lerPref('odisse-painel-modo') : 'sequencia',
   semBanco: lerPref('odisse-painel-sem-banco') === '1',
+  aba: lerPref('odisse-painel-aba') === 'textos' ? 'textos' : 'imagens', filtroTextos: 'todas',
 };
 const CAMPOS = { fTitulo: 'titulo', fSlug: 'slug', fLocal: 'local', fAno: 'ano', fArea: 'area', fCliente: 'cliente', fTipologia: 'tipologia', fEscala: 'escala', fStatus: 'status', fDescricao: 'descricao' };
 // campos com versão em inglês (botão PT/EN da barra): em EN, editam <campo>_en
@@ -429,6 +652,7 @@ function montarBanco(p) {
 }
 
 async function abrirEditor(id) {
+  carregarOpcoes();
   ed.sujo = false;
   ed.enviando = 0;
   ed.novo = !id;
@@ -444,9 +668,10 @@ async function abrirEditor(id) {
       return;
     }
   } else {
-    ed.p = { id: novoId(), titulo: '', slug: '', local: 'João Pessoa, Brasil', ano: String(new Date().getFullYear()), cliente: '', tipologia: '', area: '', status: '', visivel: false, capa: null, banco: [], secoes: [] };
+    ed.p = { id: novoId(), titulo: '', slug: '', local: 'João Pessoa, Brasil', ano: String(new Date().getFullYear()), cliente: '', tipologia: '', area: '', status: '', visivel: false, capa: null, banco: [], textos: [], secoes: [] };
   }
   ed.p.banco = montarBanco(ed.p);
+  ed.p.textos = Array.isArray(ed.p.textos) ? ed.p.textos.map((t) => ({ ...t, tipo: 'texto' })) : [];
   prepararRedacao(ed.p);
   $('#redacao').dataset.p = '';
   ed.slugManual = !!id;
@@ -547,7 +772,9 @@ function aplicarModo() {
     b.classList.toggle('ativo', at);
     b.setAttribute('aria-selected', at ? 'true' : 'false');
   });
-  $('#btBanco').textContent = ed.semBanco ? 'Mostrar banco' : 'Ocultar banco';
+  $('#btBanco').textContent = ed.semBanco ? 'Mostrar bancos' : 'Ocultar bancos';
+  $('#bancoLado').dataset.aba = ed.aba;
+  $$('#bancoAbas button').forEach((b) => { const at = b.dataset.aba === ed.aba; b.classList.toggle('ativo', at); b.setAttribute('aria-selected', at ? 'true' : 'false'); });
   if (ed.modo === 'texto') {
     // não redesenha por baixo de quem está digitando (ex.: uma imagem terminou de subir)
     if ($('#redacao').dataset.p !== ed.p.id || document.activeElement !== $('#redacao')) desenharRedacao();
@@ -566,6 +793,13 @@ function trocarModo(m) {
   aplicarModo();
 }
 $('#modos').addEventListener('click', (e) => { const b = e.target.closest('[data-modo]'); if (b) trocarModo(b.dataset.modo); });
+$('#bancoAbas').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-aba]');
+  if (!b || b.dataset.aba === ed.aba) return;
+  ed.aba = b.dataset.aba;
+  gravarPref('odisse-painel-aba', ed.aba);
+  aplicarModo();
+});
 $('#btBanco').addEventListener('click', () => {
   ed.semBanco = !ed.semBanco;
   gravarPref('odisse-painel-sem-banco', ed.semBanco ? '1' : '0');
@@ -594,6 +828,7 @@ $('#capaEscolha').addEventListener('click', (e) => {
 const posicoesDe = (ref) => ed.p.secoes.reduce((a, s, i) => (s.tipo === 'imagem' && ref && s.ref === ref ? [...a, i + 1] : a), []);
 
 function desenharBanco() {
+  desenharBancoTextos();
   const banco = ed.p.banco;
   contarSemDescricao();
   const livres = banco.filter((b) => b.ref && !posicoesDe(b.ref).length).length;
@@ -728,7 +963,7 @@ function desenharEsteira() {
   const sec = ed.p.secoes;
   const lig = idsNaRedacao();
   if (!sec.length) {
-    est.innerHTML = `<div class="esteira-vazia"><span>A sequência está vazia.</span><span>Arraste imagens do banco para cá, ou use + Imagem e + Texto.</span></div>`;
+    est.innerHTML = `<div class="esteira-vazia"><span>A sequência está vazia.</span><span>Arraste imagens e textos dos bancos para cá, ou use + Imagem e + Texto.</span></div>`;
     return;
   }
   est.innerHTML = sec.map((s, i) => {
@@ -741,7 +976,7 @@ function desenharEsteira() {
         <button data-acao="esq" title="Mover para a esquerda" ${i === 0 ? 'disabled' : ''}>←</button>
         <button data-acao="dir" title="Mover para a direita" ${i === sec.length - 1 ? 'disabled' : ''}>→</button>
         ${s.tipo === 'imagem' ? '<button data-acao="trocar" title="Trocar imagem">Trocar</button>' : ''}
-        <button data-acao="excluir" class="perigo" title="${s.tipo === 'imagem' ? 'Tirar da sequência (continua no banco)' : 'Excluir texto'}">✕</button>
+        <button data-acao="excluir" class="perigo" title="Tirar da sequência (continua no banco de ${s.tipo === 'imagem' ? 'imagens' : 'textos'})">✕</button>
       </div>`;
     if (s.tipo === 'texto') {
       const ligado = s.id && lig.has(s.id);
@@ -788,12 +1023,12 @@ $('#esteira').addEventListener('click', (e) => {
   else if (acao === 'ver-trecho') { const id = sec[i].id; trocarModo('texto'); return mostrarTrecho(id); }
   else if (acao === 'excluir') {
     const s = sec[i];
-    const ligado = s.tipo === 'texto' && s.id && idsNaRedacao().has(s.id);
-    if (ligado) {
-      if (!confirm('Tirar este card da sequência? O trecho continua na redação (aba Texto), só deixa de ser card.')) return;
-      desligarTrecho(s.id);
-    } else if (s.tipo === 'texto' && s.texto?.trim() && !confirm('Excluir este texto?')) return;
     sec.splice(i, 1); // imagem: sai só da sequência, continua no banco
+    // texto: também sai só da sequência e vai para o banco de textos (vazio, some)
+    if (s.tipo === 'texto' && ((s.texto || '').trim() || idsNaRedacao().has(s.id))) {
+      ed.p.textos.push(s);
+      aviso('Texto tirado da sequência — continua no banco de textos.');
+    }
   } else if (acao === 'trocar') return abrirSeletor(b, { trocar: i });
   else return;
   desenharEditor();
@@ -864,12 +1099,28 @@ document.addEventListener('mousedown', (e) => {
   if (seletorModo && !e.target.closest('#seletor') && !e.target.closest('[data-acao="inserir"], [data-acao="trocar"], #btAddImg')) fecharSeletor();
 });
 $('#esteira').addEventListener('scroll', fecharSeletor, { passive: true });
+// a roda do mouse (vertical) corre a sequência na horizontal — menos dentro de um
+// texto que ainda tem para onde rolar
+$('#esteira').addEventListener('wheel', (e) => {
+  if (e.ctrlKey || Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+  const ta = e.target.closest?.('textarea');
+  if (ta && ta.scrollHeight > ta.clientHeight + 1) {
+    const noTopo = ta.scrollTop <= 0, noFim = ta.scrollTop + ta.clientHeight >= ta.scrollHeight - 1;
+    if ((e.deltaY < 0 && !noTopo) || (e.deltaY > 0 && !noFim)) return;
+  }
+  const est = e.currentTarget;
+  if (est.scrollWidth <= est.clientWidth) return;
+  e.preventDefault();
+  const passo = e.deltaMode === 1 ? e.deltaY * 32 : e.deltaMode === 2 ? e.deltaY * est.clientWidth : e.deltaY;
+  est.scrollLeft += passo;
+}, { passive: false });
 window.addEventListener('resize', fecharSeletor);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') fecharSeletor();
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
     if (vista === 'editor') { e.preventDefault(); salvar(); }
     if (vista === 'pagina') { e.preventDefault(); salvarPagina(); }
+    if (vista === 'opcoes') { e.preventDefault(); salvarOpcoes(); }
   }
 });
 
@@ -939,6 +1190,7 @@ const est = $('#esteira');
 const banco = $('#bancoLado');
 let secArrastada = null;   // índice da caixa da sequência sendo arrastada
 let bancoArrastado = null; // índice da imagem do banco sendo arrastada
+let textoArrastado = null; // id do card do banco de textos sendo arrastado
 const temArquivos = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
 
 function posicaoSoltar(e) {
@@ -958,6 +1210,14 @@ function limparAlvos() {
 }
 
 banco.addEventListener('dragstart', (e) => {
+  const card = e.target.closest?.('.ttxt');
+  if (card) {
+    textoArrastado = card.dataset.t;
+    card.classList.add('arrastando');
+    e.dataTransfer.effectAllowed = 'copyMove';
+    e.dataTransfer.setData('text/plain', 'texto');
+    return;
+  }
   const item = e.target.closest?.('.bimg');
   if (!item || item.getAttribute('draggable') !== 'true') return;
   bancoArrastado = +item.dataset.k;
@@ -980,25 +1240,32 @@ est.addEventListener('dragstart', (e) => {
 document.addEventListener('dragend', () => {
   secArrastada = null;
   bancoArrastado = null;
-  $$('.caixa, .bimg').forEach((x) => x.classList.remove('arrastando'));
+  textoArrastado = null;
+  $$('.caixa, .bimg, .ttxt').forEach((x) => x.classList.remove('arrastando'));
   limparAlvos();
 });
 
 est.addEventListener('dragover', (e) => {
   const arquivos = temArquivos(e);
-  if (secArrastada === null && bancoArrastado === null && !arquivos) return;
+  if (secArrastada === null && bancoArrastado === null && textoArrastado === null && !arquivos) return;
   e.preventDefault();
   e.dataTransfer.dropEffect = secArrastada !== null ? 'move' : 'copy';
   const alvo = posicaoSoltar(e);
-  est.classList.toggle('solta', arquivos || bancoArrastado !== null);
+  est.classList.toggle('solta', arquivos || bancoArrastado !== null || textoArrastado !== null);
   $$('.entre', est).forEach((x) => x.classList.toggle('alvo', +x.dataset.pos === alvo));
 });
 est.addEventListener('dragleave', (e) => { if (!est.contains(e.relatedTarget)) limparAlvos(); });
 est.addEventListener('drop', (e) => {
   const arquivos = [...(e.dataTransfer.files || [])].filter((f) => f.type.startsWith('image/'));
-  if (secArrastada === null && bancoArrastado === null && !arquivos.length) return;
+  if (secArrastada === null && bancoArrastado === null && textoArrastado === null && !arquivos.length) return;
   e.preventDefault();
   let para = posicaoSoltar(e);
+  if (textoArrastado !== null) {
+    const id = textoArrastado;
+    textoArrastado = null;
+    limparAlvos();
+    return porTextoNaSequencia(id, para);
+  }
   if (secArrastada !== null) {
     const [s] = ed.p.secoes.splice(secArrastada, 1);
     if (para > secArrastada) para--;
@@ -1020,14 +1287,25 @@ est.addEventListener('drop', (e) => {
 
 // soltar no banco: arquivos entram no banco; uma imagem da sequência sai da sequência
 banco.addEventListener('dragover', (e) => {
-  const caixaImg = secArrastada !== null && ed.p.secoes[secArrastada]?.tipo === 'imagem';
-  if (!temArquivos(e) && !caixaImg) return;
+  const caixa = secArrastada !== null && ed.p.secoes[secArrastada];
+  if (!temArquivos(e) && !caixa) return;
   e.preventDefault();
-  e.dataTransfer.dropEffect = caixaImg ? 'move' : 'copy';
-  banco.classList.add(caixaImg ? 'tirar' : 'solta');
+  e.dataTransfer.dropEffect = caixa ? 'move' : 'copy';
+  banco.classList.add(caixa ? 'tirar' : 'solta');
 });
 banco.addEventListener('dragleave', (e) => { if (!banco.contains(e.relatedTarget)) banco.classList.remove('solta', 'tirar'); });
 banco.addEventListener('drop', (e) => {
+  if (secArrastada !== null && ed.p.secoes[secArrastada]?.tipo === 'texto') {
+    e.preventDefault();
+    limparAlvos();
+    const [s] = ed.p.secoes.splice(secArrastada, 1);
+    secArrastada = null;
+    ed.p.textos.push(s);
+    if (ed.aba !== 'textos') { ed.aba = 'textos'; gravarPref('odisse-painel-aba', 'textos'); aplicarModo(); }
+    desenharEditor();
+    mudou();
+    return aviso('Texto tirado da sequência — continua no banco de textos.');
+  }
   const caixaImg = secArrastada !== null && ed.p.secoes[secArrastada]?.tipo === 'imagem';
   const arquivos = [...(e.dataTransfer.files || [])].filter((f) => f.type.startsWith('image/'));
   if (!caixaImg && !arquivos.length) return;
@@ -1107,7 +1385,9 @@ if (red.contentEditable !== 'plaintext-only') {
   });
 }
 
-const secTexto = (id) => ed.p.secoes.find((s) => s.tipo === 'texto' && s.id === id);
+// um card de texto mora na sequência ou, fora dela, no banco de textos (ed.p.textos)
+const secTexto = (id) => ed.p.secoes.find((s) => s.tipo === 'texto' && s.id === id) || (ed.p.textos || []).find((s) => s.id === id);
+const rotuloCard = (id) => (numeroDe(id) ? `Card ${numeroDe(id)}` : 'Card no banco');
 const idsNaRedacao = () => new Set((ed.p?.redacao || []).filter((r) => typeof r !== 'string').map((r) => r.id));
 const numeroDe = (id) => ed.p.secoes.findIndex((s) => s.tipo === 'texto' && s.id === id) + 1;
 const textoDe = (r) => (typeof r === 'string' ? r : secTexto(r.id)?.texto || '');
@@ -1127,6 +1407,7 @@ function juntarSoltos(lista) {
 // feita dos cards que já existem (cada um vira um trecho ligado)
 function prepararRedacao(p) {
   p.secoes.forEach((s) => { if (s.tipo === 'texto' && !s.id) s.id = novoId(); });
+  (p.textos || []).forEach((s) => { if (!s.id) s.id = novoId(); });
   if (!Array.isArray(p.redacao)) {
     p.redacao = [];
     p.secoes.filter((s) => s.tipo === 'texto' && (s.texto || '').trim()).forEach((s, k) => {
@@ -1134,7 +1415,7 @@ function prepararRedacao(p) {
       p.redacao.push({ id: s.id });
     });
   }
-  const ids = new Set(p.secoes.filter((s) => s.tipo === 'texto').map((s) => s.id));
+  const ids = new Set([...p.secoes.filter((s) => s.tipo === 'texto'), ...(p.textos || [])].map((s) => s.id));
   const vistos = new Set();
   p.redacao = juntarSoltos(p.redacao.filter((r) => {
     if (typeof r === 'string') return true;
@@ -1154,7 +1435,7 @@ function desenharRedacao() {
   red.innerHTML = (ed.p.redacao || []).map((r) => {
     if (typeof r === 'string') return esc(r);
     const s = secTexto(r.id);
-    return s ? `<mark data-t="${r.id}" data-n="${numeroDe(r.id)}">${esc(s.texto)}</mark>` : '';
+    return s ? `<mark data-t="${r.id}" data-n="${numeroDe(r.id) || 'B'}"${numeroDe(r.id) ? '' : ' title="No banco de textos, fora da sequência"'}>${esc(s.texto)}</mark>` : '';
   }).join('') + '\n'; // quebra final de reserva: o Chrome se perde com uma quebra no fim do bloco
   garantirFinal();
   red.dataset.p = ed.p.id;
@@ -1229,7 +1510,7 @@ red.addEventListener('input', () => {
   const agora = idsNaRedacao();
   const saiu = [...antes].filter((id) => !agora.has(id) && secTexto(id));
   if (saiu.length) {
-    aviso(`${saiu.map((id) => `Card ${numeroDe(id)}`).join(', ')} saiu do texto — continua na sequência, sem vínculo. Ctrl+Z desfaz.`);
+    aviso(`${saiu.map(rotuloCard).join(', ')} saiu do texto — o card continua, sem vínculo. Ctrl+Z desfaz.`);
   }
   infoRedacao();
   clearTimeout(tTrechos);
@@ -1316,7 +1597,7 @@ function posicionarCriarCard() {
   if (!s) return esconderCriarCard();
   bCard.disabled = s.toca.length > 1;
   bCard.textContent = s.toca.length === 0 ? 'Criar card'
-    : s.toca.length === 1 ? `Ampliar card ${numeroDe(s.toca[0])}` : 'A seleção toca mais de um card';
+    : s.toca.length === 1 ? `Ampliar ${rotuloCard(s.toca[0]).toLowerCase()}` : 'A seleção toca mais de um card';
   const r = s.rg.getBoundingClientRect();
   bCard.hidden = false;
   const w = bCard.offsetWidth;
@@ -1351,9 +1632,10 @@ function criarCard() {
   }
   let msg;
   if (!s.toca.length) {
-    ed.p.secoes.push({ tipo: 'texto', id, texto: s.todo.slice(a, b), largura: 'p' });
-    msg = `Card ${ed.p.secoes.length} criado — está no fim da sequência.`;
-  } else msg = `Card ${numeroDe(id)} ampliado.`;
+    // o card novo vai para o banco de textos; dali é arrastado para a posição certa da sequência
+    ed.p.textos.push({ tipo: 'texto', id, texto: s.todo.slice(a, b), largura: 'p' });
+    msg = 'Card criado — está no banco de textos, pronto para ir à sequência.';
+  } else msg = `${rotuloCard(id)} ampliado.`;
   ed.p.redacao = juntarSoltos(nova);
   getSelection().removeAllRanges();
   esconderCriarCard();
@@ -1388,32 +1670,140 @@ red.addEventListener('click', (e) => {
   if (m) marcarTrecho(m.dataset.t);
 });
 
-// ---- coluna da direita na vista Texto: os trechos ligados, empilhados
+// ---- banco de textos: todos os cards de texto, na sequência ou fora dela
+const todosTextos = () => [...ed.p.secoes.filter((s) => s.tipo === 'texto'), ...(ed.p.textos || [])];
+const resumoTxt = (t, n = 220) => esc(t.length > n ? `${t.slice(0, n).trim()}…` : t);
+
+// põe um card do banco (ou já da sequência) na posição `pos` da sequência
+function porTextoNaSequencia(id, pos = ed.p.secoes.length) {
+  const naSeq = ed.p.secoes.findIndex((s) => s.tipo === 'texto' && s.id === id);
+  let s;
+  if (naSeq >= 0) {
+    [s] = ed.p.secoes.splice(naSeq, 1);
+    if (pos > naSeq) pos--;
+  } else {
+    const k = ed.p.textos.findIndex((x) => x.id === id);
+    if (k < 0) return;
+    [s] = ed.p.textos.splice(k, 1);
+  }
+  ed.p.secoes.splice(pos, 0, s);
+  desenharEditor();
+  if (ed.modo === 'texto') { desenharRedacao(); desenharTrechos(); }
+  mudou();
+  if (ed.modo === 'sequencia') {
+    const cx = $(`.caixa[data-i="${pos}"]`);
+    cx?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    cx?.classList.add('pisca');
+    setTimeout(() => cx?.classList.remove('pisca'), 1400);
+  } else aviso(`Card posto na sequência (posição ${pos + 1}).`);
+}
+
+// exclui um card de vez (o trecho da narrativa, se havia, fica como texto comum)
+function excluirCard(id) {
+  const ligado = idsNaRedacao().has(id);
+  if (!confirm(ligado
+    ? `Desfazer ${rotuloCard(id).toLowerCase()}? O texto continua na narrativa; o card sai do banco${numeroDe(id) ? ' e da sequência' : ''}.`
+    : `Excluir ${rotuloCard(id).toLowerCase()}? Ele não está na narrativa, então o texto se perde.`)) return false;
+  if (ligado) desligarTrecho(id);
+  ed.p.secoes = ed.p.secoes.filter((s) => !(s.tipo === 'texto' && s.id === id));
+  ed.p.textos = ed.p.textos.filter((s) => s.id !== id);
+  return true;
+}
+
+// vista Sequência: aba "Textos" do banco (arrastáveis para a esteira)
+function desenharBancoTextos() {
+  const el = $('#bancoTextos');
+  if (!el || !ed.p) return;
+  const lig = idsNaRedacao();
+  const ordemNarr = (ed.p.redacao || []).filter((r) => typeof r !== 'string').map((r) => r.id);
+  const pesoNarr = (id) => { const k = ordemNarr.indexOf(id); return k < 0 ? 1e6 : k; };
+  // primeiro os que estão fora da sequência (na ordem da narrativa), depois os da sequência, em ordem
+  const fora = (ed.p.textos || []).filter((s) => (s.texto || '').trim() || lig.has(s.id)).sort((a, b) => pesoNarr(a.id) - pesoNarr(b.id));
+  const dentro = ed.p.secoes.filter((s) => s.tipo === 'texto');
+  const livres = fora.length;
+  $('#bancoTextosInfo').textContent = fora.length + dentro.length
+    ? `${fora.length + dentro.length} ${fora.length + dentro.length === 1 ? 'card' : 'cards'} · ${livres} fora da sequência`
+    : 'Nenhum card de texto ainda';
+  $$('#textosFiltro button').forEach((b) => b.classList.toggle('ativo', b.dataset.f === ed.filtroTextos));
+  const lista = ed.filtroTextos === 'livres' ? fora : [...fora, ...dentro];
+  if (!fora.length && !dentro.length) {
+    el.innerHTML = `<div class="banco-vazio"><span>Selecione um trecho na <b>Narrativa projetual</b> e use <b>Criar card</b> — ele aparece aqui.</span><button class="bt" data-acao="tx-narrativa">Ir para a narrativa</button></div>`;
+    return;
+  }
+  if (!lista.length) { el.innerHTML = '<p class="banco-nada">Todos os cards já estão na sequência.</p>'; return; }
+  el.innerHTML = '<div class="textos-lista">' + lista.map((s) => {
+    const n = numeroDe(s.id);
+    const larg = LARGURAS[s.largura] ? s.largura : 'p';
+    return `<div class="ttxt${n ? ' em-uso' : ''}${lig.has(s.id) ? ' ligado' : ''}" data-t="${s.id}" draggable="true"
+        title="${n ? `Na sequência: posição ${n}` : 'Fora da sequência'} — arraste para a sequência">
+      <div class="ttxt-cab">
+        <span class="ttxt-pos">${n ? `Na sequência · ${n}` : 'Fora da sequência'}</span>
+        <span class="trecho-larg" title="${LARG_TIT[larg]}">${LARGURAS[larg]}</span>
+        ${lig.has(s.id) ? '<span class="ttxt-lig" title="Ligado a um trecho da narrativa">Narrativa</span>' : ''}
+        <span class="ttxt-acoes">
+          ${n ? '' : '<button data-acao="tx-usar" title="Pôr no fim da sequência">+</button>'}
+          <button data-acao="tx-apagar" class="perigo" title="${lig.has(s.id) ? 'Desfazer o card (o texto fica na narrativa)' : 'Excluir o card'}">✕</button>
+        </span>
+      </div>
+      <p>${resumoTxt(s.texto || '', 260) || '<em>Sem texto.</em>'}</p>
+    </div>`;
+  }).join('') + '</div>';
+}
+$('#textosFiltro').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  ed.filtroTextos = b.dataset.f;
+  desenharBancoTextos();
+});
+$('#bancoTextos').addEventListener('click', (e) => {
+  const bt = e.target.closest('[data-acao]');
+  if (!bt) return;
+  if (bt.dataset.acao === 'tx-narrativa') return trocarModo('texto');
+  const id = bt.closest('.ttxt')?.dataset.t;
+  if (!id) return;
+  if (bt.dataset.acao === 'tx-usar') return porTextoNaSequencia(id);
+  if (bt.dataset.acao === 'tx-apagar' && excluirCard(id)) { desenharEditor(); mudou(); }
+});
+$('#bancoTextos').addEventListener('dblclick', (e) => {
+  const it = e.target.closest('.ttxt');
+  if (!it || e.target.closest('button') || numeroDe(it.dataset.t)) return;
+  porTextoNaSequencia(it.dataset.t);
+});
+$('#btTextoNovo').addEventListener('click', () => {
+  // um card solto, fora da narrativa, direto no fim da sequência para escrever
+  inserirTexto(ed.p.secoes.length);
+});
+
+// ---- coluna da direita na vista Narrativa: o banco de textos, na ordem da narrativa
 function desenharTrechos() {
   const lig = (ed.p.redacao || []).filter((r) => typeof r !== 'string' && secTexto(r.id));
   const ligIds = new Set(lig.map((r) => r.id));
-  const soltos = ed.p.secoes.filter((s) => s.tipo === 'texto' && !ligIds.has(s.id) && (s.texto || '').trim());
+  const soltos = todosTextos().filter((s) => !ligIds.has(s.id) && (s.texto || '').trim());
+  const fora = lig.filter((r) => !numeroDe(r.id)).length;
   $('#trechosInfo').textContent = lig.length
-    ? `${lig.length} ${lig.length === 1 ? 'trecho' : 'trechos'}, na ordem do texto`
+    ? `${lig.length} ${lig.length === 1 ? 'card' : 'cards'} na ordem da narrativa${fora ? ` · ${fora} fora da sequência` : ''}`
     : 'Nenhum trecho virou card ainda';
-  const resumo = (t) => esc(t.length > 220 ? `${t.slice(0, 220).trim()}…` : t);
-  const item = (s, ligado) => `
-    <div class="trecho${ligado ? '' : ' solto'}" data-t="${s.id}">
+  const item = (s, ligado) => {
+    const n = numeroDe(s.id);
+    return `
+    <div class="trecho${ligado ? '' : ' solto'}${n ? '' : ' no-banco'}" data-t="${s.id}">
       <div class="trecho-cab">
-        <span class="trecho-n">Card ${numeroDe(s.id)}</span>
+        <span class="trecho-n">${n ? `Card ${n}` : 'Fora da sequência'}</span>
         <span class="trecho-larg" title="${LARG_TIT[s.largura || 'p']}">${LARGURAS[s.largura || 'p']}</span>
         <span class="trecho-acoes">
-          ${ligado ? '' : '<button data-acao="t-inserir" title="Pôr este texto no fim da redação, ligado ao card">Pôr no texto</button>'}
-          <button data-acao="t-seq" title="Ver este card na sequência">Sequência →</button>
-          ${ligado ? '<button data-acao="t-desfazer" class="perigo" title="Desfazer o card: o texto fica aqui, o card sai da sequência">✕</button>' : ''}
+          ${ligado ? '' : '<button data-acao="t-inserir" title="Pôr este texto no fim da narrativa, ligado ao card">Pôr no texto</button>'}
+          ${n ? '<button data-acao="t-seq" title="Ver este card na sequência">Sequência →</button>'
+            : '<button data-acao="t-usar" title="Pôr este card no fim da sequência">+ Sequência</button>'}
+          <button data-acao="t-desfazer" class="perigo" title="${ligado ? 'Desfazer o card: o texto fica aqui' : 'Excluir o card'}">✕</button>
         </span>
       </div>
-      <p>${resumo(s.texto || '')}</p>
+      <p>${resumoTxt(s.texto || '')}</p>
     </div>`;
+  };
   $('#trechos').innerHTML =
     (lig.length ? lig.map((r) => item(secTexto(r.id), true)).join('')
-      : '<p class="trechos-vazio">Selecione um trecho do texto e clique em <b>Criar card</b>. Ele vai para o fim da sequência e fica ligado ao texto.</p>') +
-    (soltos.length ? `<h3 class="trechos-sub">Só na sequência</h3><p class="trechos-nota">Cards de texto criados direto na sequência, fora da redação.</p>${soltos.map((s) => item(s, false)).join('')}` : '');
+      : '<p class="trechos-vazio">Selecione um trecho do texto e clique em <b>Criar card</b>. Ele entra no banco de textos e fica ligado à narrativa; na <b>Sequência</b>, arraste-o para a posição que quiser.</p>') +
+    (soltos.length ? `<h3 class="trechos-sub">Fora da narrativa</h3><p class="trechos-nota">Cards de texto escritos direto na sequência.</p>${soltos.map((s) => item(s, false)).join('')}` : '');
 }
 
 $('#trechos').addEventListener('click', (e) => {
@@ -1432,10 +1822,9 @@ $('#trechos').addEventListener('click', (e) => {
     setTimeout(() => cx?.classList.remove('pisca'), 1400);
     return;
   }
+  if (acao === 't-usar') return porTextoNaSequencia(id);
   if (acao === 't-desfazer') {
-    if (!confirm(`Desfazer o card ${numeroDe(id)}? O texto continua aqui; o card sai da sequência.`)) return;
-    desligarTrecho(id);
-    ed.p.secoes = ed.p.secoes.filter((s) => s.id !== id);
+    if (!excluirCard(id)) return;
   } else if (acao === 't-inserir') {
     const fimTxt = (ed.p.redacao || []).map(textoDe).join('');
     ed.p.redacao = juntarSoltos([...ed.p.redacao, fimTxt.trim() ? (/\n\s*$/.test(fimTxt) ? '\n' : '\n\n') : '', { id }]);
@@ -1466,11 +1855,18 @@ async function salvar() {
         ? { tipo: 'imagem', ref: s.ref, w: s.w, h: s.h, alt: (p.banco.find((b) => b.ref === s.ref)?.alt ?? s.alt ?? '').trim() }
         : { tipo: 'texto', id: s.id || novoId(), texto: s.texto.trim(), ...((s.texto_en || '').trim() ? { texto_en: s.texto_en.trim() } : {}), ...(s.largura === 'm' || s.largura === 'g' ? { largura: s.largura } : {}) })),
   };
+  // banco de textos: cards fora da sequência (os ligados à narrativa ficam mesmo vazios de espaço)
+  limpo.textos = (p.textos || []).filter((s) => (s.texto || '').trim()).map((s) => ({
+    id: s.id || novoId(), texto: s.texto.trim(),
+    ...((s.texto_en || '').trim() ? { texto_en: s.texto_en.trim() } : {}),
+    ...(s.largura === 'm' || s.largura === 'g' ? { largura: s.largura } : {}),
+  }));
   for (const k of Object.keys(limpo)) if (k.startsWith('_')) delete limpo[k];
   // a redação guarda só os vínculos com cards que vão ser gravados
-  const ids = new Set(limpo.secoes.filter((s) => s.tipo === 'texto').map((s) => s.id));
+  const ids = new Set([...limpo.secoes.filter((s) => s.tipo === 'texto'), ...limpo.textos].map((s) => s.id));
   limpo.redacao = juntarSoltos((p.redacao || []).filter((r) => typeof r === 'string' || ids.has(r.id)));
   for (const k of [...Object.values(CAMPOS), ...Object.values(TRADUZ).map((x) => x + '_en')]) if (typeof limpo[k] === 'string') limpo[k] = limpo[k].trim();
+  traduzirEscolhas(limpo);
   estado('salvando', 'Salvando…');
   try {
     const res = await nuvem.gravar(limpo);
@@ -1498,7 +1894,7 @@ $('#btSalvar').addEventListener('click', salvar);
 // nunca foi salva pelo painel, o formulário abre com o conteúdo que está hoje
 // no site (paginas-semente.json, gerado de _data/paginas.json).
 const pg = { nome: '', d: null, sujo: false, enviando: 0, alvoImg: null, idioma: 'pt', rss: null };
-const PAG_NOME = { sobre: 'Sobre', contato: 'Contato', privacidade: 'Privacidade', busca: 'Busca e compartilhamento', noticias: 'Notícias' };
+const PAG_NOME = { sobre: 'Sobre', contato: 'Contato', privacidade: 'Privacidade', busca: 'Busca e compartilhamento', noticias: 'Notícias', opcoes: 'Opções dos campos' };
 const NOTICIAS_SEMENTE = () => ({ rss: 'https://odisse.substack.com/feed', mostrar_rss: true, rss_ocultos: [], itens: [] });
 const hojeISO = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 const porData = (a, b) => String(b.data || '').localeCompare(String(a.data || ''));

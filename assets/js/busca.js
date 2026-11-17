@@ -29,7 +29,19 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function norm(s) { return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
-  function voc(v) { return O.voc ? O.voc(v) : v; }
+  // tradução de um valor de escolha: a que o painel gravou no projeto (Ajustes → opções) ou o vocabulário fixo
+  function voc(v) {
+    if (O.lang === 'en' && v && lista) {
+      var k = norm(v);
+      for (var i = 0; i < lista.length; i++) {
+        var r = lista[i];
+        if (norm(r.tipologia) === k && r.tipologia_en) return r.tipologia_en;
+        if (norm(r.escala) === k && r.escala_en) return r.escala_en;
+        if (norm(r.status) === k && r.status_en) return r.status_en;
+      }
+    }
+    return O.voc ? O.voc(v) : v;
+  }
   function texto(r) {
     return norm([r.titulo, r.titulo_en, r.local, r.local_en, r.tipologia, voc(r.tipologia), r.escala, voc(r.escala),
       r.cliente, r.ano, r.status, voc(r.status), r.descricao, r.descricao_en].join(' '));
