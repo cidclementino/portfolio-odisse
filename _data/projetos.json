@@ -1,5 +1,18 @@
 [
   {
+    "slug": "arena-de-apresentacoes-cf",
+    "titulo": "Arena de Apresentações CF",
+    "titulo_en": "",
+    "local": "João Pessoa, Brasil",
+    "local_en": "João Pessoa, Brazil",
+    "atualizado": "2026-11-17T05:38:17.487Z",
+    "imagens": [
+      {
+        "url": "https://site-odisse.reservaprojectbasework.workers.dev/img/a575decaf22349be-m"
+      }
+    ]
+  },
+  {
     "slug": "atelie-santo-fio",
     "titulo": "Ateliê Santo fio",
     "titulo_en": "",
