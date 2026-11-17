@@ -1,5 +1,18 @@
 [
   {
+    "slug": "observatorio-da-industria",
+    "titulo": "Observatório da Indústria",
+    "titulo_en": "",
+    "local": "Campina Grande, Brasil",
+    "local_en": "Campina Grande, Brazil",
+    "atualizado": "2026-11-17T16:29:53.743Z",
+    "imagens": [
+      {
+        "url": "https://site-odisse.reservaprojectbasework.workers.dev/img/6e469a3115d449ec-m"
+      }
+    ]
+  },
+  {
     "slug": "arena-de-apresentacoes-cf",
     "titulo": "Arena de Apresentações CF",
     "titulo_en": "",
