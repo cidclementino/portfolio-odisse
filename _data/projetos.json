@@ -1,5 +1,18 @@
 [
   {
+    "slug": "sede-administrativa-vrv",
+    "titulo": "Sede Administrativa VRV",
+    "titulo_en": "",
+    "local": "João Pessoa, Brasil",
+    "local_en": "João Pessoa, Brazil",
+    "atualizado": "2026-11-17T18:17:11.450Z",
+    "imagens": [
+      {
+        "url": "https://site-odisse.reservaprojectbasework.workers.dev/img/8e49608721024ee2-m"
+      }
+    ]
+  },
+  {
     "slug": "apartamento-rp201",
     "titulo": "Apartamento RP201",
     "titulo_en": "",
