@@ -1,5 +1,18 @@
 [
   {
+    "slug": "residencia-kama",
+    "titulo": "Residência Kama",
+    "titulo_en": "",
+    "local": "Lucena, Brasil",
+    "local_en": "Lucena, Brazil",
+    "atualizado": "2026-11-17T21:02:42.992Z",
+    "imagens": [
+      {
+        "url": "https://site-odisse.reservaprojectbasework.workers.dev/img/f52ec790afa141ac-m"
+      }
+    ]
+  },
+  {
     "slug": "sede-administrativa-vrv",
     "titulo": "Sede Administrativa VRV",
     "titulo_en": "",
