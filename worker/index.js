@@ -866,8 +866,9 @@ export default {
 
     // imagens públicas
     if (partes[0] === 'img' && partes[1] && (request.method === 'GET' || request.method === 'HEAD')) {
-      if (!ID.test(partes[1])) return erro('ref inválida', 400);
+      // fotos da equipe (Universo): a ref passa de 64 caracteres com -m/-s; FOTO_EQUIPE confere o formato
       if (partes[1].startsWith('u-')) return imagemEquipe(request, env, partes[1], ctx);
+      if (!ID.test(partes[1])) return erro('ref inválida', 400);
       return imagem(request, kv, partes[1], ctx);
     }
     if (partes[0] !== 'api') return erro('rota não encontrada', 404);
