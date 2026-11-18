@@ -45,22 +45,27 @@
     "equipe": [
       {
         "nome": "Cid Clementino",
-        "cargo": "Coordenador Criativo",
+        "cargo": "Coordenador criativo",
+        "cargo_en": "Creative Director",
+        "bio": "Formado em Arquitetura e Urbanismo pela UFPB, Cid conduz a direção criativa do Odisse, atravessando arquitetura, design de objetos e a produção editorial da Elaia. Sua atuação une rigor técnico à investigação de linguagens visuais, moldando a identidade do estúdio em todas as frentes em que ele se manifesta.",
+        "bio_en": "",
         "foto": {
           "src": "/images/equipe/cid.jpg"
-        },
-        "bio": "Formado em Arquitetura e Urbanismo pela UFPB, Cid conduz a direção criativa do Odisse, atravessando arquitetura, design de objetos e a produção editorial da Elaia. Sua atuação une rigor técnico à investigação de linguagens visuais, moldando a identidade do estúdio em todas as frentes em que ele se manifesta."
+        }
       },
       {
         "nome": "Nathalia Linhares",
-        "cargo": "Coordenadora Executiva",
+        "cargo": "Coordenadora executiva",
+        "cargo_en": "Executive Director",
+        "bio": "Formada em Arquitetura e Urbanismo pela UFPB, Nathalia lidera a coordenação executiva do Odisse, conduzindo projetos do conceito à obra com atenção rigorosa a prazos, processos e à experiência do cliente em cada etapa.",
+        "bio_en": "",
         "foto": {
           "src": "/images/equipe/nathalia.jpg"
-        },
-        "bio": "Formada em Arquitetura e Urbanismo pela UFPB, Nathalia lidera a coordenação executiva do Odisse, conduzindo projetos do conceito à obra com atenção rigorosa a prazos, processos e à experiência do cliente em cada etapa."
+        }
       }
     ],
-    "atualizado": "2026-11-09T04:34:56.176Z"
+    "atualizado": "2026-11-09T04:34:56.176Z",
+    "equipe_do_universo": true
   },
   "contato": {
     "secoes": [
