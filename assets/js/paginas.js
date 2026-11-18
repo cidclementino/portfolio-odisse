@@ -189,9 +189,18 @@
   if (!secao) return mostrar();
   var nome = secao.getAttribute('data-conteudo');
 
+  // equipe em ordem aleatória a cada visita (decisão de 18/11: sem ordem fixa entre quem aparece no site)
+  function embaralharEquipe() {
+    var grades = secao.querySelectorAll('.equipe-grid');
+    for (var g = 0; g < grades.length; g++) {
+      var itens = Array.prototype.slice.call(grades[g].children);
+      for (var i = itens.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var x = itens[i]; itens[i] = itens[j]; itens[j] = x; }
+      for (var k = 0; k < itens.length; k++) grades[g].appendChild(itens[k]);
+    }
+  }
   function desenhar(d) {
     if (!d || !DESENHOS[nome]) return;
-    try { secao.innerHTML = DESENHOS[nome](d); } catch (e) { console.error(e); }
+    try { secao.innerHTML = DESENHOS[nome](d); embaralharEquipe(); } catch (e) { console.error(e); }
   }
 
   // a página já traz no HTML a versão gerada (data-atualizado): só redesenha se a nuvem tiver outra
@@ -199,7 +208,7 @@
   var chave = 'odisse:pagina:' + nome;
   var guardado = null;
   try { guardado = JSON.parse(sessionStorage.getItem(chave) || 'null'); } catch (e) { /* idem */ }
-  if (guardado && guardado.atualizado !== naPagina) desenhar(guardado);
+  if (guardado && guardado.atualizado !== naPagina) desenhar(guardado); else embaralharEquipe();
   mostrar();
 
   fetch(base() + '/api/paginas/' + nome).then(function (res) {
