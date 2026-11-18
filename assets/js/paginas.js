@@ -66,8 +66,14 @@
     return '<a href="' + esc(interno(url)) + '"' + (externo(url) ? ' target="_blank" rel="noopener"' : '') + '>' + esc(txt) + '</a>';
   }
 
+  // equipe vinda do Universo (d.equipe_do_universo): sem bio em inglês, a pessoa aparece sem bio na página
+  // em inglês, em vez de cair no texto em português (decisão de 18/11)
+  var EQUIPE_DO_UNIVERSO = false;
+  function bioDe(p) { return EQUIPE_DO_UNIVERSO && O.lang === 'en' ? (p.bio_en || '') : tr(p, 'bio'); }
+
   // ordem: apresentação · equipe · núcleos · premiações · publicações (as notícias vêm à parte)
   function sobre(d) {
+    EQUIPE_DO_UNIVERSO = !!d.equipe_do_universo;
     var t = d.titulos || {};
     var anoDesc = function (it) { var ds = tr(it, 'descricao'); return '<p><strong>' + esc(it.ano) + '</strong>' + (it.ano && ds ? ' — ' : '') + inline(ds) + '</p>'; };
     var foto = img(d.foto, true);
@@ -84,7 +90,7 @@
           // foto pequena (960 px) quando basta; a média (1200 px) em telas densas
           var fs = p.foto && p.foto.ref ? ' srcset="' + base() + '/img/' + encodeURIComponent(p.foto.ref) + '-s 960w, ' + esc(f) + ' 1200w" sizes="(max-width: 780px) calc(100vw - 80px), 300px"' : '';
           return '<div class="pessoa"><div class="pessoa__foto frame">' + (f ? '<img src="' + esc(f) + '"' + fs + ' alt="' + esc(p.nome) + '" loading="lazy">' : '') + '</div>' +
-            '<h4>' + esc(p.nome) + '</h4><p class="pessoa__cargo">' + esc(tr(p, 'cargo')) + '</p>' + texto(tr(p, 'bio')) + '</div>';
+            '<h4>' + esc(p.nome) + '</h4><p class="pessoa__cargo">' + esc(tr(p, 'cargo')) + '</p>' + texto(bioDe(p)) + '</div>';
         }).join('') + '</div></div>' : '') +
       ((d.nucleos || []).length ? '<div class="sobre__wide"><h3>' + esc(titulo(t, 'nucleos', 'Núcleos')) + '</h3><div class="nucleos-grid">' +
         d.nucleos.map(function (n) {

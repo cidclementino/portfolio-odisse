@@ -33,7 +33,13 @@ navegador até clicar em **Sair**. Quatro abas:
 
 **Sobre** e **Contato**
 - Todo o conteúdo das duas páginas: textos, foto do estúdio, núcleos,
-  premiações, publicações, equipe (com fotos) e as seções do Contato.
+  premiações, publicações e as seções do Contato.
+- **Equipe**: vem do Universo (universo.odisse.com.br → Equipe), só quem está marcado
+  “aparece no site”: foto, cargo e apresentação em português e inglês (sem apresentação
+  em inglês, a pessoa aparece sem ela na página em inglês). O Worker lê pelo ponto de
+  entrada `Site` do universo-hub e serve as fotos em `/img/u-…`; quando a equipe muda,
+  o Universo pede a geração das páginas estáticas. A lista antiga do painel ficou só de
+  reserva (se o Universo não responder; e a foto antiga enquanto não houver foto no Universo).
 - Nos textos: Enter quebra a linha, linha em branco abre parágrafo,
   `[texto](https://…)` vira link, `**texto**` vira negrito.
 - Enquanto uma página nunca foi salva pelo painel, o site mostra a versão

@@ -1,5 +1,9 @@
 // Odisse · API do site (Cloudflare Worker + KV)
 //
+// Equipe (Sobre): vem do Universo (universo-hub, ponto de entrada "Site"; binding UNIVERSO). O que está
+// em pagina:sobre.equipe fica só de reserva, se o Universo não responder. Fotos: /img/u-<eqp>-<arq>[-m|-s].
+// O Universo pede a regeneração das páginas estáticas pelo ponto de entrada "Universo" (método gerar).
+//
 // Binding (wrangler.toml): KV Namespace `SITE`
 //   indice                 -> lista ordenada de resumos dos projetos
 //   projeto:<id>           -> projeto completo (JSON)
@@ -74,6 +78,8 @@ const SESSAO_MS = 10 * 60 * 1000;
 const MAX_BACKUPS = { mensal: 12, manual: 5 };
 const RSS_PADRAO = 'https://odisse.substack.com/feed';
 const RSS_MS = 60 * 60 * 1000;
+
+import { WorkerEntrypoint } from 'cloudflare:workers';
 
 const json = (data, status = 200, extra = {}) =>
   new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', ...CORS, ...extra } });
@@ -448,6 +454,67 @@ async function imagem(request, kv, ref, ctx) {
   return res;
 }
 
+// ---------------------------------------------------------------- equipe (do Universo)
+
+const FOTO_EQUIPE = /^u-(eqp_[0-9A-Za-z_]+?)-(arq_[0-9A-Z]{26})(?:-(m|s))?$/;
+const CHAVE_EQUIPE = 'https://site-odisse.interno/equipe-publica';
+
+// Quem "aparece no site" na ficha do Universo, no formato da página Sobre. Guardada 60 s na borda.
+async function equipeDoUniverso(env, ctx) {
+  if (!env.UNIVERSO) return null;
+  const cache = caches.default;
+  let r = await cache.match(CHAVE_EQUIPE);
+  if (!r) {
+    const u = await env.UNIVERSO.fetch('https://universo/api/v1/equipe/publica');
+    if (!u.ok) return null;
+    r = new Response(await u.text(), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=60' } });
+    ctx.waitUntil(cache.put(CHAVE_EQUIPE, r.clone()));
+  }
+  const { itens } = await r.json();
+  return (itens || []).map((p) => ({
+    nome: p.nome,
+    cargo: p.cargo || '', cargo_en: p.cargo_en || '',
+    // bio_en vazia = sem bio na página em inglês (paginas.js não cai no português quando vem do Universo)
+    bio: p.bio_pt || '', bio_en: p.bio_en || '',
+    foto: p.foto_id ? { ref: `u-${p.id}-${p.foto_id}` } : null,
+    atualizado: p.atualizado_em || '',
+  }));
+}
+
+// Sobre: a equipe do Universo no lugar da cópia do painel. Se o Universo falhar, fica a cópia.
+async function sobreComEquipe(env, ctx, pg) {
+  try {
+    const equipe = await equipeDoUniverso(env, ctx);
+    if (!equipe) return pg;
+    const atualizado = [pg.atualizado || '', ...equipe.map((p) => p.atualizado)].sort().pop();
+    // quem ainda não tem foto no Universo fica com a foto antiga do painel (mesmo nome)
+    const norm = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const antigas = new Map((pg.equipe || []).filter((p) => p.foto).map((p) => [norm(p.nome), p.foto]));
+    const lista = equipe.map(({ atualizado: _, ...p }) => (p.foto ? p : { ...p, foto: antigas.get(norm(p.nome)) || null }));
+    return { ...pg, equipe: lista, equipe_do_universo: true, atualizado };
+  } catch (e) {
+    console.warn('equipe do Universo indisponível; usando a cópia do painel', e);
+    return pg;
+  }
+}
+
+// Foto da equipe: o Universo guarda privado; aqui sai pública, com cache longo (o id da foto está na ref).
+async function imagemEquipe(request, env, ref, ctx) {
+  const m = ref.match(FOTO_EQUIPE);
+  if (!m || !env.UNIVERSO) return new Response('não encontrada', { status: 404, headers: CORS });
+  const cache = caches.default;
+  const chave = new Request(new URL(`/img/${ref}`, request.url).toString());
+  let res = await cache.match(chave);
+  if (res) return res;
+  const u = await env.UNIVERSO.fetch(`https://universo/api/v1/equipe/${m[1]}/foto?variante=${m[3] || 'g'}`);
+  if (!u.ok) return new Response('não encontrada', { status: 404, headers: CORS });
+  res = new Response(u.body, {
+    headers: { 'Content-Type': u.headers.get('Content-Type') || 'image/webp', 'Cache-Control': 'public, max-age=31536000, immutable', ...CORS },
+  });
+  ctx.waitUntil(cache.put(chave, res.clone()));
+  return res;
+}
+
 // ---------------------------------------------------------------- métricas
 
 const diaDe = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
@@ -800,6 +867,7 @@ export default {
     // imagens públicas
     if (partes[0] === 'img' && partes[1] && (request.method === 'GET' || request.method === 'HEAD')) {
       if (!ID.test(partes[1])) return erro('ref inválida', 400);
+      if (partes[1].startsWith('u-')) return imagemEquipe(request, env, partes[1], ctx);
       return imagem(request, kv, partes[1], ctx);
     }
     if (partes[0] !== 'api') return erro('rota não encontrada', 404);
@@ -840,7 +908,8 @@ export default {
     }
 
     if (partes[1] === 'paginas' && PAGINAS.has(partes[2]) && partes[2] !== 'noticias' && request.method === 'GET') {
-      const pg = await kv.get(`pagina:${partes[2]}`, { type: 'json', cacheTtl: 60 });
+      let pg = await kv.get(`pagina:${partes[2]}`, { type: 'json', cacheTtl: 60 });
+      if (pg && partes[2] === 'sobre') pg = await sobreComEquipe(env, ctx, pg);
       return pg ? json(pg, 200, { 'Cache-Control': 'public, max-age=60' }) : erro('ainda não editada', 404);
     }
 
@@ -992,5 +1061,16 @@ async function rotaAdmin(request, env, ctx, kv, url, recurso, id, id2) {
     }
 
     return erro('rota não encontrada', 404);
+  }
+}
+
+// ---------------------------------------------------------------- Universo (Worker a Worker)
+// O hub chama quando a equipe muda: limpa a equipe guardada na borda e pede a geração das páginas estáticas.
+// Ligação no universo-hub: [[services]] SITE_ODISSE → site-odisse, entrypoint "Universo".
+export class Universo extends WorkerEntrypoint {
+  async gerar(motivo) {
+    try { await caches.default.delete(CHAVE_EQUIPE); } catch { /* segue */ }
+    const e = await pedirGeracao(this.env, String(motivo || 'universo').slice(0, 60));
+    return { ok: e.ok, status: e.status };
   }
 }

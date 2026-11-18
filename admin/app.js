@@ -2106,10 +2106,9 @@ function formSobre() {
   </section>
   <section class="bloco-ed">
     ${fTitulo('equipe', 'Equipe')}
-    ${fLista('equipe', 'Pessoa', (c) => `
-      <div class="pessoa-ed">${fImagem(c + '.foto', 'Foto', { quadrada: true })}
-        <div>${fLinha(c + '.nome', 'Nome')}${fLinha(c + '.cargo', 'Cargo', { tr: true })}${fArea(c + '.bio', 'Apresentação', { linhas: 5, tr: true })}</div>
-      </div>`, { nome: (it) => it.nome, add: 'Pessoa' })}
+    <p class="nota-ed">A equipe (fotos, cargos e apresentações, em português e inglês) é editada no Universo:
+      <a href="https://universo.odisse.com.br/#/equipe" target="_blank" rel="noopener">universo.odisse.com.br → Equipe</a>.
+      Aparece aqui quem estiver marcado “aparece no site”. A lista antiga deste painel fica guardada só de reserva.</p>
   </section>
   <section class="bloco-ed">
     ${fTitulo('nucleos', 'Núcleos')}

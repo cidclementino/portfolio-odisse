@@ -15,5 +15,11 @@ kv_namespaces = [
 # Todo dia às 6h de Brasília (9h UTC): pede ao GitHub a geração das páginas estáticas
 # (para as notícias novas da Elaia entrarem). No dia 1 de cada mês, também o backup mensal
 # de projetos e páginas — fica no próprio KV (12 mensais + 5 manuais), painel → Histórico.
+# Universo (hub): a equipe da página Sobre vem de lá (ponto de entrada "Site": só a equipe pública e as fotos).
+[[services]]
+binding = "UNIVERSO"
+service = "universo-hub"
+entrypoint = "Site"
+
 [triggers]
 crons = ["0 9 * * *"]
