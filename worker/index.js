@@ -1074,4 +1074,18 @@ export class Universo extends WorkerEntrypoint {
     const e = await pedirGeracao(this.env, String(motivo || 'universo').slice(0, 60));
     return { ok: e.ok, status: e.status };
   }
+
+  // Início do Universo (Cid, 19/11): números consolidados de um dia fechado (00:00–23:59 de Brasília)
+  // e do dia anterior a ele, para a variação. Sem dia: ontem.
+  async metricasDoDia(dia) {
+    const menos = (d, n) => diaDe(new Date(new Date(d + 'T12:00:00Z').getTime() - n * 86400000));
+    const alvo = /^\d{4}-\d{2}-\d{2}$/.test(dia || '') ? dia : menos(diaDe(new Date()), 1);
+    const antes = menos(alvo, 1);
+    const todos = await eventos(this.env.SITE, antes, alvo);
+    return {
+      dia: alvo,
+      total: resumir(todos.filter((e) => e.dia === alvo)),
+      anterior: resumir(todos.filter((e) => e.dia === antes)),
+    };
+  }
 }
