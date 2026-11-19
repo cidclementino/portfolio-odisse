@@ -48,6 +48,12 @@ const nuvem = {
   backup: (chave) => req(`/api/admin/backups/${encodeURIComponent(chave)}`),
   link: (url) => req('/api/admin/link', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url }) }),
   rss: (url) => req('/api/admin/rss' + (url ? `?url=${encodeURIComponent(url)}` : '')),
+  // Acervo do Universo (banco único de imagens): projetos, imagens públicas do projeto, envio e descrição
+  acervoProjetos: () => req('/api/admin/acervo/projetos'),
+  acervoPublicas: (prj) => req(`/api/admin/acervo/projetos/${prj}`),
+  acervoNova: (prj, d) => req(`/api/admin/acervo/projetos/${prj}/imagens`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }),
+  acervoConteudo: (arq, v, blob) => req(`/api/admin/acervo/imagens/${arq}?variante=${v}`, { method: 'PUT', headers: { 'Content-Type': blob.type }, body: blob }),
+  acervoDescrever: (arq, d) => req(`/api/admin/acervo/imagens/${arq}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) }),
   // páginas estáticas (Google, previews, versão em inglês): estado do último pedido e pedir agora
   geracao: () => req('/api/admin/gerar'),
   gerar: () => req('/api/admin/gerar', { method: 'POST' }),
@@ -88,12 +94,140 @@ async function enviarImagem(arquivo) {
   const media = await reduzir(bmp, 1200);
   const pequena = await reduzir(bmp, 960);
   bmp.close?.();
+  // projeto ligado ao Universo: a imagem entra no Acervo (pública, ligada ao projeto)
+  if (ed.p?.universo) return paraAcervo({ nome: arquivo.name, g: grande.blob, m: media.blob, s: pequena.blob, w: grande.w, h: grande.h });
   const ref = novoId();
   await nuvem.imagem(ref, grande.blob);
   await nuvem.imagem(`${ref}-m`, media.blob);
   await nuvem.imagem(`${ref}-s`, pequena.blob);
   return { ref, w: grande.w, h: grande.h };
 }
+
+// ------------------------------------------------------------------ Acervo do Universo
+// Ref das imagens do Acervo no site: a-<arq_id> (o Worker serve /img/a-… a partir do Universo).
+const ACERVO = 'a-';
+const doAcervo = (ref) => typeof ref === 'string' && ref.startsWith(ACERVO);
+const sha256 = async (blob) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', await blob.arrayBuffer()))]
+  .map((b) => b.toString(16).padStart(2, '0')).join('');
+
+// envia as três versões para o Acervo; a mesma imagem já pública só ganha a ligação ao projeto
+async function paraAcervo({ nome, g, m, s, w, h, alt = '' }) {
+  const r = await nuvem.acervoNova(ed.p.universo, { nome_original: nome || 'imagem.webp', tipo_mime: g.type, sha256: await sha256(g),
+    largura: w, altura: h, texto_alternativo: alt || null });
+  const arq = r.registro.id;
+  if (!r.ja_existia) {
+    for (const [v, blob] of [['g', g], ['m', m], ['s', s]]) await nuvem.acervoConteudo(arq, v, blob);
+  }
+  ed.acervoVersao.set(arq, r.registro.versao);
+  return { ref: ACERVO + arq, w: r.registro.largura || w, h: r.registro.altura || h, ...(r.ja_existia && r.registro.texto_alternativo ? { alt: r.registro.texto_alternativo } : {}) };
+}
+
+let acervoProjetos = null; // lista do Universo (uma leitura por sessão)
+async function carregarAcervoProjetos() {
+  if (acervoProjetos) return acervoProjetos;
+  try { acervoProjetos = (await nuvem.acervoProjetos()).itens || []; } catch { acervoProjetos = null; }
+  return acervoProjetos || [];
+}
+async function desenharUniverso() {
+  const sel = $('#fUniverso');
+  const lista = await carregarAcervoProjetos();
+  const atual = ed.p?.universo || '';
+  sel.innerHTML = '<option value="">— não ligado —</option>' + lista.map((x) =>
+    `<option value="${x.id}"${x.id === atual ? ' selected' : ''}>${esc(x.codigo)} · ${esc(x.nome_publico || x.nome)}${x.publicas ? ` (${x.publicas})` : ''}</option>`).join('')
+    + (atual && !lista.some((x) => x.id === atual) ? `<option value="${atual}" selected>${atual} (não encontrado)</option>` : '');
+  sel.disabled = !acervoProjetos;
+  if (!acervoProjetos) sel.title = 'O Universo não respondeu.';
+  desenharImportar();
+}
+function desenharImportar() {
+  const locais = ed.p?.universo ? ed.p.banco.filter((b) => b.ref && !doAcervo(b.ref)) : [];
+  $('#universoImportar').hidden = !locais.length;
+  $('#universoImportarTxt').textContent = locais.length
+    ? `${locais.length} ${locais.length === 1 ? 'imagem do banco ainda está' : 'imagens do banco ainda estão'} só no site. Leve-as ao Acervo: entram públicas, ligadas ao projeto, e a sequência passa a usá-las de lá.`
+    : '';
+}
+
+// Banco do projeto ligado: as públicas do Acervo + as do site que ainda não foram levadas.
+// Imagem do Acervo usada na sequência que deixou de ser pública fica marcada (o site deixa de mostrá-la).
+async function juntarAcervo() {
+  ed.acervoVersao = new Map();
+  if (!ed.p.universo) return;
+  let publicas;
+  try { publicas = (await nuvem.acervoPublicas(ed.p.universo)).itens || []; } catch (err) {
+    aviso(`O Acervo do Universo não respondeu: ${err.message}`, true);
+    return;
+  }
+  const refs = new Set(publicas.map((x) => ACERVO + x.id));
+  const usadas = new Set([...ed.p.secoes.filter((x) => x.tipo === 'imagem').map((x) => x.ref), ed.p.capa?.ref]);
+  // fica do banco: o que é do site, e o que é do Acervo e continua público ou está em uso
+  ed.p.banco = ed.p.banco.filter((b) => !doAcervo(b.ref) || refs.has(b.ref) || usadas.has(b.ref));
+  for (const b of ed.p.banco) if (doAcervo(b.ref) && !refs.has(b.ref)) b._retirada = true;
+  for (const x of publicas) {
+    const ref = ACERVO + x.id;
+    ed.acervoVersao.set(x.id, x.versao);
+    let b = ed.p.banco.find((y) => y.ref === ref);
+    if (!b) { b = { ref, w: x.largura, h: x.altura, alt: '' }; ed.p.banco.push(b); }
+    // a descrição é da imagem no Acervo: vale aqui, no marketing e lá
+    b.alt = x.texto_alternativo || '';
+    ed.p.secoes.forEach((sec) => { if (sec.tipo === 'imagem' && sec.ref === ref) sec.alt = b.alt; });
+  }
+  desenharEditor();
+}
+
+// descrição de imagem do Acervo: grava lá (com um pequeno atraso enquanto digita)
+const tDescricao = new Map();
+function descreverNoAcervo(ref, alt) {
+  const arq = ref.slice(ACERVO.length);
+  clearTimeout(tDescricao.get(arq));
+  tDescricao.set(arq, setTimeout(async () => {
+    try {
+      const r = await nuvem.acervoDescrever(arq, { versao: ed.acervoVersao.get(arq), texto_alternativo: alt.trim() || null });
+      ed.acervoVersao.set(arq, r.registro.versao);
+    } catch (err) {
+      aviso(err.status === 409 ? 'A descrição desta imagem mudou no Universo. Reabra o projeto.' : `Descrição não gravada no Acervo: ${err.message}`, true);
+    }
+  }, 900));
+}
+
+// Leva as imagens do banco que estão só no site para o Acervo (públicas, ligadas ao projeto) e troca as refs.
+async function importarParaAcervo() {
+  const locais = ed.p.banco.filter((b) => b.ref && !doAcervo(b.ref));
+  if (!locais.length || !ed.p.universo) return;
+  if (!confirm(`Levar ${locais.length} ${locais.length === 1 ? 'imagem' : 'imagens'} ao Acervo do Universo? Entram públicas e ligadas ao projeto; depois, salve o projeto.`)) return;
+  const bt = $('#btLevarAcervo');
+  bt.disabled = true;
+  let ok = 0;
+  const falhas = [];
+  for (const b of locais) {
+    bt.textContent = `Levando ${ok + falhas.length + 1} de ${locais.length}…`;
+    try {
+      const baixar = async (suf) => { const r = await fetch(`${API}/img/${b.ref}${suf}`); if (!r.ok) throw new Error(`imagem ${suf || 'grande'} não encontrada`); return r.blob(); };
+      const [g, m, s] = [await baixar(''), await baixar('-m'), await baixar('-s')];
+      const novo = await paraAcervo({ nome: `${ed.p.slug || 'projeto'}-${b.ref}.webp`, g, m, s, w: b.w, h: b.h, alt: b.alt });
+      const antiga = b.ref;
+      Object.assign(b, novo, { alt: b.alt || novo.alt || '' });
+      ed.p.secoes.forEach((sec) => { if (sec.tipo === 'imagem' && sec.ref === antiga) Object.assign(sec, { ref: novo.ref, w: novo.w, h: novo.h }); });
+      if (ed.p.capa?.ref === antiga) ed.p.capa = { ...ed.p.capa, ref: novo.ref };
+      if (b.alt && !novo.alt) descreverNoAcervo(novo.ref, b.alt);
+      ok++;
+    } catch (err) {
+      falhas.push(`${b.ref}: ${err.message}`);
+    }
+  }
+  bt.disabled = false;
+  bt.textContent = 'Levar ao Acervo';
+  desenharEditor();
+  mudou();
+  desenharImportar();
+  aviso(falhas.length ? `${ok} levadas; ${falhas.length} não: ${falhas[0]}` : `${ok} ${ok === 1 ? 'imagem levada' : 'imagens levadas'} ao Acervo. Salve o projeto.`, !!falhas.length);
+}
+$('#btLevarAcervo').addEventListener('click', importarParaAcervo);
+$('#fUniverso').addEventListener('change', async (e) => {
+  ed.p.universo = e.target.value || null;
+  mudou();
+  await juntarAcervo();
+  desenharImportar();
+});
 
 // ------------------------------------------------------------------ vistas
 let vista = '';
@@ -684,6 +818,9 @@ async function abrirEditor(id) {
   desenharEditor();
   estado(ed.novo ? 'pendente' : 'pronto', ed.novo ? 'Projeto novo, ainda não salvo' : '');
   if (ed.novo) setTimeout(() => $('#fTitulo').focus(), 50);
+  ed.acervoVersao = new Map();
+  desenharUniverso();
+  if (ed.p.universo) { const sujo = ed.sujo; await juntarAcervo(); ed.sujo = sujo; desenharImportar(); }
 }
 
 function estado(e, txt) {
@@ -854,10 +991,11 @@ function desenharBanco() {
         <img src="${srcDe(b)}" alt="" loading="lazy" draggable="false">
         ${pos.length ? `<span class="uso">${galeria ? 'Na sequência: ' : ''}${pos.join(' · ')}</span>` : ''}
         ${capa ? '<span class="capa-tag">Capa</span>' : ''}
+        ${doAcervo(b.ref) ? `<span class="origem-tag${b._retirada ? ' retirada' : ''}" title="${b._retirada ? 'Restrita no Acervo do Universo: o site deixa de mostrá-la' : 'Imagem pública do Acervo do Universo'}">${b._retirada ? 'Restrita no Acervo' : 'Acervo'}</span>` : ''}
         ${b._enviando ? '<span class="enviando">Enviando…</span>' : `<span class="bimg-acoes">
           ${galeria && !capa ? '<button data-acao="b-capa" title="Usar como capa na Home">Capa</button>' : ''}
           <button data-acao="b-usar" title="Pôr no fim da sequência">+</button>
-          <button data-acao="b-apagar" class="perigo" title="Excluir do banco">✕</button></span>`}
+          ${doAcervo(b.ref) && !b._retirada ? '' : '<button data-acao="b-apagar" class="perigo" title="Excluir do banco">✕</button>'}</span>`}
       </div>${galeria ? `<textarea class="galt${(b.alt || '').trim() ? '' : ' vazia'}" data-campo="alt" data-k="${k}" rows="2"
         placeholder="Descreva a imagem: o que se vê, que parte do projeto é…"${b.ref ? '' : ' disabled'}>${esc(b.alt || '')}</textarea></div>` : ''}`;
     }).join('') + '</div>';
@@ -1351,6 +1489,7 @@ $('#fDescricao').addEventListener('input', contarDescricao);
 function descreverImagem(ref, alt) {
   const b = ed.p.banco.find((x) => x.ref === ref);
   if (b) b.alt = alt;
+  if (doAcervo(ref) && !b?._retirada) descreverNoAcervo(ref, alt);
   ed.p.secoes.forEach((s) => { if (s.tipo === 'imagem' && s.ref === ref) s.alt = alt; });
   contarSemDescricao();
   mudou();
@@ -1849,6 +1988,7 @@ async function salvar() {
   const limpo = {
     ...p,
     banco: p.banco.filter((b) => b.ref).map((b) => ({ ref: b.ref, w: b.w, h: b.h, ...((b.alt || '').trim() ? { alt: b.alt.trim() } : {}) })),
+    universo: p.universo || null,
     secoes: p.secoes
       .filter((s) => (s.tipo === 'imagem' ? s.ref : (s.texto || '').trim()))
       .map((s) => (s.tipo === 'imagem'

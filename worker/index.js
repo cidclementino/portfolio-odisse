@@ -4,6 +4,11 @@
 // em pagina:sobre.equipe fica só de reserva, se o Universo não responder. Fotos: /img/u-<eqp>-<arq>[-m|-s].
 // O Universo pede a regeneração das páginas estáticas pelo ponto de entrada "Universo" (método gerar).
 //
+// Acervo (Universo, Cid 19/11): banco único de imagens. Cada projeto do site pode ser ligado a um projeto do
+// Universo (campo `universo` = prj_…); o editor oferece então as imagens PÚBLICAS desse projeto, e as
+// imagens novas enviadas pelo editor entram no Acervo (públicas, ligadas ao projeto). Ref no site: a-<arq_id>,
+// servida em /img/a-<arq>[-m|-s] a partir do Universo (só enquanto a imagem for pública).
+//
 // Binding (wrangler.toml): KV Namespace `SITE`
 //   indice                 -> lista ordenada de resumos dos projetos
 //   projeto:<id>           -> projeto completo (JSON)
@@ -35,6 +40,11 @@
 //   GET    /api/admin/paginas/:nome       -> conteúdo de uma página
 //   PUT    /api/admin/paginas/:nome       -> grava o conteúdo (guarda a versão anterior)
 //   PUT    /api/admin/imagens/:ref        -> grava imagem (corpo binário)
+//   GET    /api/admin/acervo/projetos     -> projetos do Universo (para ligar a página)
+//   GET    /api/admin/acervo/projetos/:prj           -> imagens públicas do projeto no Acervo
+//   POST   /api/admin/acervo/projetos/:prj/imagens   -> imagem nova no Acervo (pública, ligada ao projeto)
+//   PUT    /api/admin/acervo/imagens/:arq?variante=  -> conteúdo dessa imagem
+//   PATCH  /api/admin/acervo/imagens/:arq            -> descrição (texto_alternativo) da imagem pública
 //   GET    /api/admin/versoes[/:tipo/:id] -> versões guardadas (todas, ou de um projeto/página)
 //   GET    /api/admin/versao?chave=       -> conteúdo de uma versão
 //   GET    /api/admin/backups             -> backups guardados
@@ -52,13 +62,15 @@
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, HEAD, PUT, POST, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, HEAD, PUT, POST, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Motivo',
   'Access-Control-Max-Age': '86400',
 };
 const MAX_IMG = 20 * 1024 * 1024;
 const ID = /^[a-z0-9_-]{4,64}$/i;
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const PRJ = /^prj_[0-9A-Z]{26}$/;
+const ARQ = /^arq_[0-9A-Z]{26}$/;
 // relevância na Home: sorteio a cada visita, em camadas (alta → média → baixa)
 const RELEVANCIAS = ['alta', 'media', 'baixa'];
 // busca = ficha do estúdio, títulos/descrições das páginas e imagem de compartilhamento
@@ -163,7 +175,7 @@ async function lerIndice(kv, cacheTtl) {
 }
 
 // versão pública: sem campos internos (banco de imagens, redação e link de prévia são só do painel)
-const publico = ({ visivel, criado, banco, textos, redacao, previa, ...resto }) => ({
+const publico = ({ visivel, criado, banco, textos, redacao, previa, universo, ...resto }) => ({
   ...resto,
   secoes: (resto.secoes || []).map(({ id, ...s }) => s),
   capa: capaDe(resto),
@@ -175,6 +187,7 @@ function validar(p, id) {
   if (!SLUG.test(p.slug || '')) return 'endereço (slug) inválido';
   if (!Array.isArray(p.secoes)) return 'seções inválidas';
   if (p.relevancia !== undefined && !RELEVANCIAS.includes(p.relevancia)) return 'relevância inválida';
+  if (p.universo !== undefined && p.universo !== null && p.universo !== '' && !PRJ.test(p.universo)) return 'projeto do Universo inválido';
   if (p.previa !== undefined && p.previa !== '' && !ID.test(p.previa)) return 'link de prévia inválido';
   for (const s of p.secoes) {
     if (s.tipo === 'imagem' && s.ref && !ID.test(s.ref)) return 'imagem inválida';
@@ -513,6 +526,52 @@ async function imagemEquipe(request, env, ref, ctx) {
   });
   ctx.waitUntil(cache.put(chave, res.clone()));
   return res;
+}
+
+// ---------------------------------------------------------------- acervo (do Universo)
+
+const IMG_ACERVO = /^a-(arq_[0-9A-Z]{26})(?:-(m|s))?$/;
+
+// Imagem do Acervo: o Universo guarda privado e só entrega a pública. Na borda fica 1 dia, para que
+// restringir uma imagem no Acervo a tire do site em até um dia.
+async function imagemAcervo(request, env, ref, ctx) {
+  const m = ref.match(IMG_ACERVO);
+  if (!m || !env.UNIVERSO) return new Response('não encontrada', { status: 404, headers: CORS });
+  const cache = caches.default;
+  const chave = new Request(new URL(`/img/${ref}`, request.url).toString());
+  let res = await cache.match(chave);
+  if (res) return res;
+  const u = await env.UNIVERSO.fetch(`https://universo/api/v1/acervo/site/imagens/${m[1]}/conteudo?variante=${m[2] || 'g'}`);
+  if (!u.ok) return new Response('não encontrada', { status: 404, headers: CORS });
+  res = new Response(u.body, {
+    headers: { 'Content-Type': u.headers.get('Content-Type') || 'image/webp', 'Cache-Control': 'public, max-age=86400', ...CORS },
+  });
+  ctx.waitUntil(cache.put(chave, res.clone()));
+  return res;
+}
+
+// Painel → Universo (rotas acervo/site do hub). A senha do painel já foi conferida.
+async function rotaAcervo(request, env, url, [tipo, id, acao]) {
+  if (!env.UNIVERSO) return erro('Universo: ligação não configurada', 503);
+  const m = request.method;
+  let caminho = null;
+  if (tipo === 'projetos' && !id && m === 'GET') caminho = 'projetos';
+  else if (tipo === 'projetos' && PRJ.test(id || '') && !acao && m === 'GET') caminho = `projetos/${id}`;
+  else if (tipo === 'projetos' && PRJ.test(id || '') && acao === 'imagens' && m === 'POST') caminho = `projetos/${id}/imagens`;
+  else if (tipo === 'imagens' && ARQ.test(id || '') && !acao && m === 'PUT') caminho = `imagens/${id}/conteudo?variante=${encodeURIComponent(url.searchParams.get('variante') || 'g')}`;
+  else if (tipo === 'imagens' && ARQ.test(id || '') && !acao && m === 'PATCH') caminho = `imagens/${id}`;
+  if (!caminho) return erro('rota não encontrada', 404);
+  const binario = m === 'PUT';
+  const corpo = m === 'GET' ? undefined : binario ? await request.arrayBuffer() : await request.text();
+  if (binario && corpo.byteLength > MAX_IMG) return erro('imagem grande demais', 413);
+  const u = await env.UNIVERSO.fetch(`https://universo/api/v1/acervo/site/${caminho}`, {
+    method: m,
+    headers: { 'Content-Type': binario ? request.headers.get('Content-Type') || 'image/webp' : 'application/json' },
+    body: corpo,
+  });
+  const j = await u.json().catch(() => ({}));
+  // o painel lê a mensagem em `error`; o Universo manda em `erro`
+  return json(u.ok ? j : { ...j, error: j.erro || `Universo respondeu ${u.status}` }, u.status);
 }
 
 // ---------------------------------------------------------------- métricas
@@ -868,6 +927,7 @@ export default {
     if (partes[0] === 'img' && partes[1] && (request.method === 'GET' || request.method === 'HEAD')) {
       // fotos da equipe (Universo): a ref passa de 64 caracteres com -m/-s; FOTO_EQUIPE confere o formato
       if (partes[1].startsWith('u-')) return imagemEquipe(request, env, partes[1], ctx);
+      if (partes[1].startsWith('a-')) return imagemAcervo(request, env, partes[1], ctx);
       if (!ID.test(partes[1])) return erro('ref inválida', 400);
       return imagem(request, kv, partes[1], ctx);
     }
@@ -918,6 +978,7 @@ export default {
     if (partes[1] !== 'admin') return erro('rota não encontrada', 404);
     if (!autorizado(request, env)) return erro('não autorizado', 401);
     const [, , recurso, id, id2] = partes;
+    if (recurso === 'acervo') return rotaAcervo(request, env, url, partes.slice(3));
 
     if (recurso === 'gerar') {
       if (request.method === 'POST') return json(await pedirGeracao(env, 'manual'));
