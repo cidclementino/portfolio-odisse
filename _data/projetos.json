@@ -110,7 +110,7 @@
     "titulo_en": "",
     "local": "João Pessoa, Brasil",
     "local_en": "João Pessoa, Brazil",
-    "atualizado": "2026-11-15T17:34:20.267Z",
+    "atualizado": "2026-11-22T03:33:49.475Z",
     "imagens": [
       {
         "url": "https://site-odisse.reservaprojectbasework.workers.dev/img/7c95afb6faad4d9b-m"
@@ -123,6 +123,9 @@
       },
       {
         "url": "https://site-odisse.reservaprojectbasework.workers.dev/img/7e19bbb44619445c-m"
+      },
+      {
+        "url": "https://site-odisse.reservaprojectbasework.workers.dev/img/aea765b186564d8a-m"
       }
     ]
   },
